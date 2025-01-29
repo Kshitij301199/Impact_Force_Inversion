@@ -1,0 +1,6 @@
+{
+    "BASE_DIR" : "/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion",
+    "CUDA_HOME" : "/storage/vast-gfz-hpc-01/cluster/nvidia/cuda/11.6.2",
+    "DATA_DIR" : "/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/data_srr/Illgraben",
+    "LABEL_DIR" : "/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/data_processed"
+}

@@ -1,0 +1,6 @@
+{
+    "input_size": 3000, 
+    "embedding_size": 512, 
+    "hidden_size": 256, 
+    "num_layers": 4
+}
