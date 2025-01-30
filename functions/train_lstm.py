@@ -1,6 +1,6 @@
 import os
 import json
-with open("../config/paths.json", "r") as file:
+with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/paths.json", "r") as file:
     paths = json.load(file)
 # Set CUDA environment variables
 os.environ["CUDA_HOME"] = paths['CUDA_HOME']
