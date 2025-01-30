@@ -33,8 +33,8 @@ def pcc(y_true, y_pred):
     denominator = np.sqrt(np.sum((y_true - y_true_mean) ** 2) * np.sum((y_pred - y_pred_mean) ** 2))
     return numerator / denominator
 
-def evaluate_model(model_type, test_julday, val_julday, interval_seconds, y_true, y_pred):
-    output_dir = f"./model_evaluation"
+def evaluate_model(model_type, test_julday, val_julday, interval_seconds, y_true, y_pred, out_dir):
+    output_dir = f"{out_dir}/model_evaluation"
     os.makedirs(output_dir, exist_ok=True)
 
     param1 = mse(y_true, y_pred)
