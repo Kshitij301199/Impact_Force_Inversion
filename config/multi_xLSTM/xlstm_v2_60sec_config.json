@@ -7,5 +7,5 @@
     "num_blocks": 7, 
     "embedding_dim": 256, 
     "slstm_at": [1],
-    "num_reps": 4
+    "num_reps": 3
 }
