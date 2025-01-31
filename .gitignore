@@ -1,3 +1,7 @@
 logs
 logs/*
 */model/*
+*output_df*
+*test_results_*
+*__pycache__*
+*pycache*
