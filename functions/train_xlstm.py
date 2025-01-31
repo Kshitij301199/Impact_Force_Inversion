@@ -107,7 +107,13 @@ def main(test_julday:int, val_julday:int, station:str, interval_seconds:int, con
     print("Making Plot")
     start_time = get_current_time()
     plot_image(st_test, pred_out, target_out, timestamps, image_dir, test_julday, val_julday, interval_seconds)
-    evaluate_model(f"xLSTM,{config_option}", test_julday, val_julday, interval_seconds, np.concatenate(target_out), np.concatenate(pred_out), f"{paths['BASE_DIR']}/{task}")
+    evaluate_model(model_type=f"xLSTM,{config_option}", 
+                   test_julday=test_julday, 
+                   val_julday=val_julday, 
+                   interval_seconds=interval_seconds, 
+                   y_true=np.concatenate(target_out), 
+                   y_pred=np.concatenate(pred_out), 
+                   out_dir=f"{paths['BASE_DIR']}/{task}")
     end_time = get_current_time()
     get_time_elapsed(start_time, end_time)
     return None
