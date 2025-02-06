@@ -1,5 +1,5 @@
 {
-    "input_size": 6000, 
+    "input_size": 100, 
     "embedding_size": 512, 
     "hidden_size": 256, 
     "num_layers": 4
