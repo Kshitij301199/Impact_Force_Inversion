@@ -75,7 +75,7 @@ def main(test_julday:int, val_julday:int, station:str, interval_seconds:int, con
 
     # INIT DATALOADERS
     print("Initialising Dataloaders")
-    scaler = MinMaxScaler(feature_range=(0, 10))
+    scaler = MinMaxScaler(feature_range=(0, 1))
     scaler.data_min_ = np.array([0])
     scaler.data_max_ = np.array([350])
     scaler.scale_ = (scaler.feature_range[1] - scaler.feature_range[0]) / (scaler.data_max_ - scaler.data_min_)
@@ -97,7 +97,7 @@ def main(test_julday:int, val_julday:int, station:str, interval_seconds:int, con
     test_dataloader = DataLoader(test_dataset, batch_size=32, shuffle=False)  # Adjust batch size as needed
 
     print("Training Model")
-    in_seq, pred_out, target_out, timestamps = train_model(model, criterion, optimizer,
+    in_seq, pred_out, target_out, timestamps, time_to_train = train_model(model, criterion, optimizer,
                                                            30, 5, interval_seconds, test_julday, val_julday,
                                                            'LSTM', train_dataloader, val_dataloader,
                                                            test_dataloader, model_dir, scaler)
@@ -107,7 +107,15 @@ def main(test_julday:int, val_julday:int, station:str, interval_seconds:int, con
     print("Making Plot")
     start_time = get_current_time()
     plot_image(st_test, pred_out, target_out, timestamps, image_dir, test_julday, val_julday, interval_seconds)
-    evaluate_model(f"LSTM,{config_option}", test_julday, val_julday, interval_seconds, np.concatenate(target_out), np.concatenate(pred_out), f"{paths['BASE_DIR']}/{task}")
+    evaluate_model(model_type=f"LSTM,{config_option}", 
+                   test_julday=test_julday, 
+                   val_julday=val_julday, 
+                   interval_seconds=interval_seconds, 
+                   y_true=np.concatenate(target_out), 
+                   y_pred=np.concatenate(pred_out), 
+                   out_dir=f"{paths['BASE_DIR']}/{task}",
+                   time_to_train=time_to_train,
+                   )
     end_time = get_current_time()
     get_time_elapsed(start_time, end_time)
     return None

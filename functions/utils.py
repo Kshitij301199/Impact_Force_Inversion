@@ -17,4 +17,4 @@ def get_time_elapsed(start:datetime, end:datetime):
     diff = end - start
     diff = int(diff.total_seconds())
     print(f"Time Elapsed during this operation : {str(timedelta(seconds=diff))}")
-    return None
+    return diff

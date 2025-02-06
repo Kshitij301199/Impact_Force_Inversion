@@ -31,9 +31,9 @@ def pcc(y_true, y_pred):
     y_pred_mean = np.mean(y_pred)
     numerator = np.sum((y_true - y_true_mean) * (y_pred - y_pred_mean))
     denominator = np.sqrt(np.sum((y_true - y_true_mean) ** 2) * np.sum((y_pred - y_pred_mean) ** 2))
-    return numerator / denominator
+    return np.where(denominator != 0, numerator / denominator, 1)
 
-def evaluate_model(model_type, test_julday, val_julday, interval_seconds, y_true, y_pred, out_dir):
+def evaluate_model(model_type, test_julday, val_julday, interval_seconds, y_true, y_pred, out_dir, time_to_train:str):
     output_dir = f"{out_dir}/model_evaluation"
     os.makedirs(output_dir, exist_ok=True)
 
@@ -42,6 +42,6 @@ def evaluate_model(model_type, test_julday, val_julday, interval_seconds, y_true
     param4 = pcc(y_true, y_pred)
 
     with open(f"{output_dir}/evaluation_output.txt", "a") as f:
-        f.write(f"{model_type},{test_julday},{val_julday},{interval_seconds},{param1:.4f},{param2:.4f},{param4:.4f}\n")
+        f.write(f"{model_type},{time_to_train},{test_julday},{val_julday},{interval_seconds},{param1:.4f},{param2:.4f},{param4:.4f}\n")
     return None
 

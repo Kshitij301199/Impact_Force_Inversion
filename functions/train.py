@@ -94,7 +94,7 @@ def train_model(model, criterion, optimizer, num_epochs:int, patience:int,
             timestamps.append(test_timestamps)
     print(f"Test loss : {test_epoch_loss / len(test_dataloader)}")
     end_time = get_current_time()
-    get_time_elapsed(start_time, end_time)
+    time_to_train = get_time_elapsed(start_time, end_time)
     print(f"{'End Testing':-^50}")
 
-    return in_sequence, predicted_output, target_output, timestamps
+    return in_sequence, predicted_output, target_output, timestamps, str(timedelta(seconds=time_to_train))
