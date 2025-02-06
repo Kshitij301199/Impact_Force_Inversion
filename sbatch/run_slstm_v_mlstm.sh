@@ -1,0 +1,1 @@
+sbatch ./sLSTM_v_mLSTM/train_xlstm.sh
