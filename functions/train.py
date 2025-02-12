@@ -65,7 +65,7 @@ def train_model(model, criterion, optimizer, num_epochs:int, patience:int,
     model.load_state_dict(best_weights)
     torch.save(model.state_dict(), f"{model_dir}/t{test_julday}_v{val_julday}_{interval}_{model_type}_model.pt")
     end_time = get_current_time()
-    get_time_elapsed(start_time, end_time)
+    time_to_train = get_time_elapsed(start_time, end_time)
     print(f"{'End Training':-^50}")
 
     # Test model
@@ -87,14 +87,20 @@ def train_model(model, criterion, optimizer, num_epochs:int, patience:int,
             loss = criterion(output, target_value) 
             test_epoch_loss += loss.item()
             # Squeeze the output to match target shape
-            in_sequence.append(input_sequences.cpu().numpy())
-            rem = output.cpu().detach().cpu().numpy().shape
-            predicted_output.append(scaler.inverse_transform(output.detach().cpu().numpy().reshape(-1,1)).reshape(rem))
-            target_output.append(scaler.inverse_transform(target_value.cpu().numpy().reshape(-1,1)).reshape(rem))
-            timestamps.append(test_timestamps)
+            if scaler is None:
+                in_sequence.append(input_sequences.cpu().numpy())
+                predicted_output.append(output.detach().cpu().numpy())
+                target_output.append(target_value.cpu().numpy())
+                timestamps.append(test_timestamps)
+            else:
+                in_sequence.append(input_sequences.cpu().numpy())
+                rem = output.cpu().detach().cpu().numpy().shape
+                predicted_output.append(scaler.inverse_transform(output.detach().cpu().numpy().reshape(-1,1)).reshape(rem))
+                target_output.append(scaler.inverse_transform(target_value.cpu().numpy().reshape(-1,1)).reshape(rem))
+                timestamps.append(test_timestamps)
     print(f"Test loss : {test_epoch_loss / len(test_dataloader)}")
     end_time = get_current_time()
-    time_to_train = get_time_elapsed(start_time, end_time)
+    time_to_test = get_time_elapsed(start_time, end_time)
     print(f"{'End Testing':-^50}")
 
     return in_sequence, predicted_output, target_output, timestamps, str(timedelta(seconds=time_to_train))
