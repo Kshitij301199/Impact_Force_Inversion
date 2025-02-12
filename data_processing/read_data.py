@@ -1,6 +1,10 @@
 import json
-with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/paths.json", "r") as file:
-    paths = json.load(file)
+try:
+    with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/paths.json", "r") as file:
+        paths = json.load(file)
+except FileNotFoundError:
+    with open("../config/paths.json", "r") as file:
+        paths = json.load(file)
 import numpy as np
 import pandas as pd
 from obspy import read, Stream
@@ -39,11 +43,11 @@ def load_seismic_data(julday:str|int|list, station:str) -> Stream:
         raise TypeError
     return st
 
-def load_label(date_list:list, station:str, interval_seconds:int) -> pd.DataFrame:
+def load_label(date_list:list, station:str, interval_seconds:int, time_shift_minutes) -> pd.DataFrame:
     total_target = None
     for date in date_list:    
         target_start_time = UTCDateTime(f"{date}") + (10*60)
-        target = pd.read_csv(f"{paths['LABEL_DIR']}/{station}/{date}.csv", index_col=0)
+        target = pd.read_csv(f"{paths['LABEL_DIR']}_{time_shift_minutes}/{station}/{date}.csv", index_col=0)
         target = target[target['Time'] >= target_start_time]
         target['Timestamp'] = target['Time'].apply(UTCDateTime).apply(UTCDateTime._get_timestamp)
         target = target.iloc[::interval_seconds]
