@@ -1,69 +1,70 @@
 #!/bin/bash
 #SBATCH -t 96:00:00               # time limit: (HH:MM:SS)
-#SBATCH --job-name=s_v_m           # job name
-#SBATCH --ntasks=1                # each task in the job array will have a single task associated with it
-#SBATCH --array=1-336             # job array id, adjusted for the total number of commands (8 test days * 7 validation days * 4 intervals)
-#SBATCH --mem-per-cpu=16G         # Memory Request (per CPU; can use on GLIC)
-#SBATCH --gres=gpu:A40:1             # load GPU A100 could be replace by A40/A30, 509-510 nodes has 4_A100_80G
-#SBATCH --reservation=GPU            # reserve the GPU
+#SBATCH --job-name=ratios          # job name
+#SBATCH --ntasks=1                # single task per job array
+#SBATCH --array=1-24%3              # Adjusted for (8 test days * 4 intervals * 3 hyp_options)
+#SBATCH --mem-per-cpu=16G         # Memory per CPU
+#SBATCH --gres=gpu:A40:1          # Request GPU
+#SBATCH --reservation=GPU         # Reserve GPU
 #SBATCH --mail-type=all
 #SBATCH --mail-user=kshitkar@gfz-potsdam.de
 #SBATCH --chdir=/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/
-#SBATCH --output=./logs/out/svm_out_%A_%a.txt   # Standard Output Log File (for Job Arrays)
-#SBATCH --error=./logs/err/svm_err_%A_%a.txt    # Standard Error Log File (for Job Arrays)
+#SBATCH --output=./logs/out/svm_out_%A_%a.txt  # Standard Output Log File
+#SBATCH --error=./logs/err/svm_err_%A_%a.txt   # Standard Error Log File
 
-# GFZ Configuration with GPUs
+# Load required modules
 module use /cluster/spack/2022b/share/spack/modules/linux-almalinux8-icelake
 source /home/kshitkar/miniforge3/bin/activate
 conda activate xlstm_env
 
-# Define the arrays
-intervals=(5 15 30)
-juldays=(161 172 182 183 196 207 223 232)
-hyp_options=('mlstm' 'slstm')
+# Define the test and validation day lists (1-to-1 linked)
+# 10secs
+test_juldays=(161 172 182 183 196 207 223 232)
+val_juldays=(196 232 161 196 223 232 161 161)  # Ensure corresponding indices match
+# 5secs
+# test_juldays=(161 172 182 183 196 207 223 232)
+# val_juldays=(162 173 184 185 197 208 224 233)  # Ensure corresponding indices match
 
-# Calculate the total number of combinations per test day
-num_val_days=$(( ${#juldays[@]} - 1 ))
+# Define intervals and hypothesis options
+intervals=(15)
+hyp_options=('mlstm' 'slstm' 'xlstm')
+
+# Get the number of test days
+num_test_days=${#test_juldays[@]}
 num_intervals=${#intervals[@]}
 num_hyp_options=${#hyp_options[@]}
-num_combinations=$(( num_val_days * num_intervals * num_hyp_options ))
+num_combinations=$(( num_intervals * num_hyp_options ))  # Per test day
 
-# Calculate the indices for the current task
+# Compute indices for test day
 test_day_idx=$(( ($SLURM_ARRAY_TASK_ID - 1) / $num_combinations ))
 remaining_idx=$(( ($SLURM_ARRAY_TASK_ID - 1) % $num_combinations ))
-
-val_day_idx=$(( $remaining_idx / (num_intervals * num_hyp_options) ))
-remaining_idx=$(( $remaining_idx % (num_intervals * num_hyp_options) ))
 
 interval_idx=$(( $remaining_idx / $num_hyp_options ))
 hyp_option_idx=$(( $remaining_idx % $num_hyp_options ))
 
-# Get the current test day
-test_julday=${juldays[$test_day_idx]}
-
-# Get the validation days (exclude the test day)
-val_juldays=("${juldays[@]:0:$test_day_idx}" "${juldays[@]:$((test_day_idx + 1))}")
-val_julday=${val_juldays[$val_day_idx]}
+# Get the current test and validation Julian days (1-to-1 mapping)
+test_julday=${test_juldays[$test_day_idx]}
+val_julday=${val_juldays[$test_day_idx]}  # Directly linked
 
 # Get the current interval
 interval=${intervals[$interval_idx]}
 
-# Get the current hyperparameter option
+# Get the current hypothesis option
 hyp_option=${hyp_options[$hyp_option_idx]}
 
-# Log the current parameters
+# Log parameters
 echo "Running for:"
 echo "Test Julian Day: $test_julday"
 echo "Validation Julian Day: $val_julday"
 echo "Interval: $interval"
 echo "Hypothesis Option: $hyp_option"
 
-# Run the Python script with the selected parameters
+# Execute Python script with parameters
 srun --gres=gpu:A40:1 --unbuffered python /storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/functions/train_xlstm.py \
     --test_julday "$test_julday" \
     --val_julday "$val_julday" \
     --interval "$interval" \
     --station "ILL11" \
     --config_op "$hyp_option" \
-    --task "sLSTM_v_mLSTM"
-
+    --task "sLSTM_v_mLSTM" \
+    --time_shift_mins 10

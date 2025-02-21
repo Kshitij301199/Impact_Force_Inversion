@@ -18,7 +18,7 @@ source /home/kshitkar/miniforge3/bin/activate
 conda activate xlstm_env
 
 # Define the arrays
-intervals=(5)
+intervals=(1)
 juldays=(161 172 182 183 196 207 223 232)
 hyp_options=('default')
 
@@ -62,6 +62,7 @@ echo "Hypothesis Option: $hyp_option"
 srun --gres=gpu:A40:1 --unbuffered python /storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/functions/train_lstm.py \
     --test_julday "$test_julday" \
     --val_julday "$val_julday" \
+    --time_shift_mins 10 \
     --interval "$interval" \
     --station "ILL11" \
     --config_op "$hyp_option" \

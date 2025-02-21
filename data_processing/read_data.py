@@ -24,15 +24,15 @@ def load_data(julday_list:list, station:str) -> np.array:
 
 def load_seismic_data(julday:str|int|list, station:str) -> Stream:
     if type(julday) is int:
-        st = read(f"{paths['DATA_DIR']}/2019/{station}/EHZ/9S.{station}.EHZ.2019.{julday}.mseed")
+        st = read(f"{paths['BASE_DIR']}/{paths['DATA_DIR']}/2019/{station}/EHZ/9S.{station}.EHZ.2019.{julday}.mseed")
         st[0].data = st[0].data * 1e3
     elif type(julday) is str:
-        st = read(f"{paths['DATA_DIR']}/2019/{station}/EHZ/9S.{station}.EHZ.2019.{julday}.mseed")
+        st = read(f"{paths['BASE_DIR']}/{paths['DATA_DIR']}/2019/{station}/EHZ/9S.{station}.EHZ.2019.{julday}.mseed")
         st[0].data = st[0].data * 1e3
     elif type(julday) is list:
         st = Stream()
         for jul in julday:
-            st += read(f"{paths['DATA_DIR']}/2019/{station}/EHZ/9S.{station}.EHZ.2019.{jul}.mseed")
+            st += read(f"{paths['BASE_DIR']}/{paths['DATA_DIR']}/2019/{station}/EHZ/9S.{station}.EHZ.2019.{jul}.mseed")
             st.merge(method=1, fill_value='latest', interpolation_samples=0)
             st._cleanup()
             st.detrend('linear')
@@ -43,11 +43,14 @@ def load_seismic_data(julday:str|int|list, station:str) -> Stream:
         raise TypeError
     return st
 
-def load_label(date_list:list, station:str, interval_seconds:int, time_shift_minutes) -> pd.DataFrame:
+def load_label_old(date_list:list, station:str, interval_seconds:int, time_shift_minutes) -> pd.DataFrame:
     total_target = None
     for date in date_list:    
         target_start_time = UTCDateTime(f"{date}") + (10*60)
-        target = pd.read_csv(f"{paths['LABEL_DIR']}_{time_shift_minutes}/{station}/{date}.csv", index_col=0)
+        try:
+            target = pd.read_csv(f"{paths['BASE_DIR']}/{paths['LABEL_DIR']}_{time_shift_minutes}/{station}/{date}.csv")
+        except FileNotFoundError:
+            target = pd.read_csv(f"../{paths['LABEL_DIR']}_{time_shift_minutes}/{station}/{date}.csv")
         target = target[target['Time'] >= target_start_time]
         target['Timestamp'] = target['Time'].apply(UTCDateTime).apply(UTCDateTime._get_timestamp)
         target = target.iloc[::interval_seconds]
@@ -55,6 +58,49 @@ def load_label(date_list:list, station:str, interval_seconds:int, time_shift_min
             total_target = target
         else:
             total_target = pd.concat([total_target, target])
-    total_target.reset_index(inplace=True)
+    total_target.reset_index(inplace=True, drop=True)
         
     return total_target
+
+def load_label(date_list: list, station: str, interval_seconds: int, time_shift_minutes) -> pd.DataFrame:
+    total_target = None
+
+    for date in date_list:
+        target_start_time = UTCDateTime(f"{date}") + (10 * 60)  # Offset by 10 minutes
+
+        # Attempt to read CSV file from different paths
+        try:
+            target = pd.read_csv(f"{paths['BASE_DIR']}/{paths['LABEL_DIR']}_{time_shift_minutes}/{station}/{date}.csv")
+        except FileNotFoundError:
+            target = pd.read_csv(f"../{paths['LABEL_DIR']}_{time_shift_minutes}/{station}/{date}.csv")
+
+        # Filter data to start after the target start time
+        target = target[target['Time'] >= target_start_time]
+
+        # Convert Time to Timestamp
+        target['Timestamp'] = target['Time'].apply(UTCDateTime).apply(UTCDateTime._get_timestamp)
+
+        # Apply sliding window mean using NumPy
+        num_windows = len(target) // interval_seconds  # Number of full windows
+        target = target.iloc[:num_windows * interval_seconds]  # Trim excess data
+
+        # Reshape data for window-based averaging
+        reshaped_values = target['Fv [kN]'].values.reshape(num_windows, interval_seconds)
+        averaged_values = np.mean(reshaped_values, axis=1)
+
+        # Create new DataFrame
+        target = pd.DataFrame({
+            'Timestamp': target['Timestamp'].values[::interval_seconds],  # Take every stride-th timestamp
+            'Fv [kN]': averaged_values  # Store the computed mean
+        })
+
+        # Concatenate results
+        if total_target is None:
+            total_target = target
+        else:
+            total_target = pd.concat([total_target, target])
+
+    total_target.reset_index(drop=True, inplace=True)
+    
+    return total_target
+

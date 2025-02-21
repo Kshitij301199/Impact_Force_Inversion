@@ -87,9 +87,9 @@ def main(station, time_shift_minutes):
     merged_data.drop(columns=['Time UTC+1', 'Time UTC+0'], inplace=True)
     merged_data['Fv [kN]'] = merged_data['Fv [kN]'].apply(fill_missing_from_Gaussian, **{"mean": min_Fv, "std": 3*min_Fv_std})
     merged_data = merged_data.fillna(value={"Fv std": min_Fv_std, "Fv min": 0, "Fv max": 0})
-    merged_data[merged_data['Time'].between(UTCDateTime('2019-07-01'), UTCDateTime('2019-07-02'))].to_csv(f"{output_dir}/2019-07-01.csv")
-    merged_data[merged_data['Time'].between(UTCDateTime('2019-07-02'), UTCDateTime('2019-07-03'))].to_csv(f"{output_dir}/2019-07-02.csv")
-    merged_data[merged_data['Time'].between(UTCDateTime('2019-07-03'), UTCDateTime('2019-07-04'))].to_csv(f"{output_dir}/2019-07-03.csv")
+    merged_data[merged_data['Time'].between(UTCDateTime('2019-07-01'), UTCDateTime('2019-07-02'))].to_csv(f"{output_dir}/2019-07-01.csv", index=False)
+    merged_data[merged_data['Time'].between(UTCDateTime('2019-07-02'), UTCDateTime('2019-07-03'))].to_csv(f"{output_dir}/2019-07-02.csv", index=False)
+    merged_data[merged_data['Time'].between(UTCDateTime('2019-07-03'), UTCDateTime('2019-07-04'))].to_csv(f"{output_dir}/2019-07-03.csv", index=False)
 
     # General Cases
     print("Running General Case")
@@ -101,7 +101,7 @@ def main(station, time_shift_minutes):
         DataEnd = date_end
         df_start_times = event_data[event_data[f'{station}Start'].apply(UTCDateTime).between(UTCDateTime(DataStart), UTCDateTime(DataEnd))][f'{station}Start']
         df_start_times = df_start_times.apply(UTCDateTime)
-        data = pd.read_csv(f"{input_dir}/{date_start.replace('-','')}_Fv.csv")
+        data = pd.read_csv(f"{input_dir}/{date_start.replace('-','')}_Fv.csv", index_col=0)
         data_start_time1 = UTCDateTime(data.iloc[0,-1])
         print(data_start_time1.datetime)
         time_diff1 = data_start_time1 - df_start_times.iloc[0] 
@@ -116,12 +116,12 @@ def main(station, time_shift_minutes):
         merged_data.drop(columns=['Time UTC+1', 'Time UTC+0'], inplace=True)
         merged_data['Fv [kN]'] = merged_data['Fv [kN]'].apply(fill_missing_from_Gaussian, **{"mean": min_Fv, "std": 3*min_Fv_std})
         merged_data = merged_data.fillna(value={"Fv std": min_Fv_std, "Fv min": 0, "Fv max": 0})
-        merged_data.to_csv(f"{output_dir}/{date_start}.csv")
+        merged_data.to_csv(f"{output_dir}/{date_start}.csv", index=False)
 
     return None
 
 if __name__ == "__main__":
-    main("ILL11", 10)
+    main("ILL11", 0)
 
 
 
