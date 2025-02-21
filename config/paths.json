@@ -3,7 +3,7 @@
     "LOCAL_BASE_DIR" : "/Users/kshitkar/Documents/Impact_Force_Inversion",
     "CUDA_HOME" : "/storage/vast-gfz-hpc-01/cluster/nvidia/cuda/11.6.2",
     "DATA_DIR" : "data_srr/Illgraben",
-    "LABEL_DIR" : "data_processed",
+    "LABEL_DIR" : "label/data_processed",
     "RAW_LABEL_DIR" : "label/impact_force_label",
     "UTC0_LABEL_DIR" : "label/utc0_data",
     "SHIFT_LABEL_DIR" : "label/data_processed"
