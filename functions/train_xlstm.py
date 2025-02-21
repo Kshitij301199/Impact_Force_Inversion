@@ -75,48 +75,48 @@ def main(test_julday:int, val_julday:int, time_shift_minutes:int, station:str, i
     print(config)
     model = xLSTMRegressor(**config)
     criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=1e-4)
+    optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
     # INIT DATALOADERS
     print("Initialising Dataloaders")
-    # scaler = MinMaxScaler(feature_range=(0, 1))
-    # scaler.data_min_ = np.array([0])
-    # scaler.data_max_ = np.array([350])
-    # scaler.scale_ = (scaler.feature_range[1] - scaler.feature_range[0]) / (scaler.data_max_ - scaler.data_min_)
-    # scaler.min_ = scaler.feature_range[0] - scaler.data_min_ * scaler.scale_
-    # rem = total_target['Fv [kN]'].to_numpy().shape
-    # train_dataset = SequenceDataset(total_data, scaler.transform(total_target['Fv [kN]'].to_numpy().reshape(-1,1)).reshape(rem),
-    #                         total_target['Timestamp'].to_numpy(),
-    #                         interval_count=num_intervals, sequence_length=interval_seconds * 100)
-    # train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=True)  # Adjust batch size as needed
-    # rem = val_target['Fv [kN]'].to_numpy().shape
-    # val_dataset = SequenceDataset(val_data, scaler.transform(val_target['Fv [kN]'].to_numpy().reshape(-1,1)).reshape(rem),
-    #                         val_target['Timestamp'].to_numpy(),
-    #                         interval_count=num_intervals, sequence_length=interval_seconds * 100)
-    # val_dataloader = DataLoader(val_dataset, batch_size=32, shuffle=False)  # Adjust batch size as needed
-    # rem = test_target['Fv [kN]'].to_numpy().shape
-    # test_dataset = SequenceDataset(test_data, scaler.transform(test_target['Fv [kN]'].to_numpy().reshape(-1,1)).reshape(rem), 
-    #                                 test_target['Timestamp'].to_numpy(), 
-    #                                 interval_count=num_intervals, sequence_length=interval_seconds * 100)
-    # test_dataloader = DataLoader(test_dataset, batch_size=32, shuffle=False)  # Adjust batch size as needed
-    train_dataset = SequenceDataset(total_data, total_target['Fv [kN]'].to_numpy(),
+    scaler = MinMaxScaler(feature_range=(0, 2))
+    scaler.data_min_ = np.array([0])
+    scaler.data_max_ = np.array([350])
+    scaler.scale_ = (scaler.feature_range[1] - scaler.feature_range[0]) / (scaler.data_max_ - scaler.data_min_)
+    scaler.min_ = scaler.feature_range[0] - scaler.data_min_ * scaler.scale_
+    rem = total_target['Fv [kN]'].to_numpy().shape
+    train_dataset = SequenceDataset(total_data, scaler.transform(total_target['Fv [kN]'].to_numpy().reshape(-1,1)).reshape(rem),
                             total_target['Timestamp'].to_numpy(),
                             interval_count=num_intervals, sequence_length=interval_seconds * 100)
     train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=True)  # Adjust batch size as needed
-    val_dataset = SequenceDataset(val_data, val_target['Fv [kN]'].to_numpy(),
+    rem = val_target['Fv [kN]'].to_numpy().shape
+    val_dataset = SequenceDataset(val_data, scaler.transform(val_target['Fv [kN]'].to_numpy().reshape(-1,1)).reshape(rem),
                             val_target['Timestamp'].to_numpy(),
                             interval_count=num_intervals, sequence_length=interval_seconds * 100)
     val_dataloader = DataLoader(val_dataset, batch_size=32, shuffle=False)  # Adjust batch size as needed
-    test_dataset = SequenceDataset(test_data, test_target['Fv [kN]'].to_numpy(), 
+    rem = test_target['Fv [kN]'].to_numpy().shape
+    test_dataset = SequenceDataset(test_data, scaler.transform(test_target['Fv [kN]'].to_numpy().reshape(-1,1)).reshape(rem), 
                                     test_target['Timestamp'].to_numpy(), 
                                     interval_count=num_intervals, sequence_length=interval_seconds * 100)
     test_dataloader = DataLoader(test_dataset, batch_size=32, shuffle=False)  # Adjust batch size as needed
+    # train_dataset = SequenceDataset(total_data, total_target['Fv [kN]'].to_numpy(),
+    #                         total_target['Timestamp'].to_numpy(),
+    #                         interval_count=num_intervals, sequence_length=interval_seconds * 100)
+    # train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=True)  # Adjust batch size as needed
+    # val_dataset = SequenceDataset(val_data, val_target['Fv [kN]'].to_numpy(),
+    #                         val_target['Timestamp'].to_numpy(),
+    #                         interval_count=num_intervals, sequence_length=interval_seconds * 100)
+    # val_dataloader = DataLoader(val_dataset, batch_size=32, shuffle=False)  # Adjust batch size as needed
+    # test_dataset = SequenceDataset(test_data, test_target['Fv [kN]'].to_numpy(), 
+    #                                 test_target['Timestamp'].to_numpy(), 
+    #                                 interval_count=num_intervals, sequence_length=interval_seconds * 100)
+    # test_dataloader = DataLoader(test_dataset, batch_size=32, shuffle=False)  # Adjust batch size as needed
 
     print("Training Model")
     in_seq, pred_out, target_out, timestamps, time_to_train = train_model(model, criterion, optimizer,
-                                                           30, 5, interval_seconds, test_julday, val_julday,
+                                                           100, 5, interval_seconds, test_julday, val_julday,
                                                            'xLSTM', train_dataloader, val_dataloader,
-                                                           test_dataloader, model_dir, scaler=None)
+                                                           test_dataloader, model_dir, scaler)
     times = [UTCDateTime(t) for t in np.concatenate(timestamps)]
     df = pd.DataFrame(data={"Timestamps":times, "Output":np.concatenate(target_out), "Predicted_Output":np.concatenate(pred_out)})
     df.to_csv(f"{save_dir}/xLSTM_t{test_julday}_v{val_julday}.csv", index=False)
@@ -140,6 +140,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--test_julday", type=int, default=161, help= "test julday")
     parser.add_argument("--val_julday", type=int, default=172, help= "val julday")
+    parser.add_argument("--time_shift_mins", type=int, default=10, help= "enter label time shift")
     parser.add_argument("--station", type=str, default="ILL13", help= "input station")
     parser.add_argument("--interval", type=int, default=30, help= "interval seconds")
     parser.add_argument("--config_op", type=str,default="default", help= "config option")
@@ -147,4 +148,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     print(f"Running main with {args.test_julday} {args.station} {args.config_op} {args.task}")
-    main(args.test_julday, args.val_julday, args.station, args.interval, args.config_op, args.task)
+    main(args.test_julday,
+        args.val_julday, 
+        args.time_shift_mins, 
+        args.station, 
+        args.interval, 
+        args.config_op, 
+        args.task)

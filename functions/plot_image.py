@@ -27,8 +27,8 @@ def plot_image(st, predicted_output, target_output, timestamps,
     times = [UTCDateTime(t).matplotlib_date for t in np.concatenate(timestamps)]
     fig, ax1 = plt.subplots(1,1)
     ax1.plot(st[0].times('matplotlib'), st[0].data, color="black", label= "ILL11")
-    ax1.set_ylabel(r"Amplitude (mm/s)");
-    ax1.set_ylim(-1, 1);
+    ax1.set_ylabel(r"Amplitude ($\mu$m/s)");
+    ax1.set_ylim(-1.5, 1.5);
     ax = ax1.twinx()
     ax.plot(times, np.concatenate(target_output), label="Impact Force Target [kN]", alpha=0.9, color='r',linewidth=1)
     ax.plot(times, np.concatenate(predicted_output), label="Model Prediction", alpha=0.6, color='b',linewidth=1)
