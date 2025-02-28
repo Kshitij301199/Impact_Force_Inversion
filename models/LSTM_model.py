@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch.nn.functional as F
 
 class LSTMRegressor(nn.Module):
     def __init__(self, input_size=3000, embedding_size=1024, hidden_size=128, num_layers=2):
@@ -40,6 +41,6 @@ class LSTMRegressor(nn.Module):
         # Pass through the fully connected layer to get a single output
         output = self.fc(final_hidden_state)  # shape: (batch_size, 1)
         
-        return output
+        return F.softplus(output)
 
 

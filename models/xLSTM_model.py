@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch.nn.functional as F
 
 from xlstm import (
     xLSTMBlockStack,
@@ -76,4 +77,4 @@ class xLSTMRegressor(nn.Module):
         # Pass through the fully connected layer to get a single output
         output = self.fc(x)  # shape: (batch_size, 1)
         
-        return output
+        return F.softplus(output)
