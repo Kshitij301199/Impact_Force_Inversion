@@ -18,3 +18,13 @@ def get_time_elapsed(start:datetime, end:datetime):
     diff = int(diff.total_seconds())
     print(f"Time Elapsed during this operation : {str(timedelta(seconds=diff))}")
     return diff
+
+def get_batch_size(interval):
+    if interval == 5:
+        return 256
+    elif interval == 15:
+        return 128
+    elif interval == 30:
+        return 128
+    elif interval == 60:
+        return 128

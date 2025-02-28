@@ -67,6 +67,8 @@ def main(test_julday:int, val_julday:int, time_shift_minutes:int, station:str, i
                                 interval_seconds= interval_seconds,
                                 time_shift_minutes= time_shift_minutes)
     print(f"Target --> Train : {len(total_target)} Test : {len(test_target)}")
+    print(f"RAM usage = {get_memory_usage_in_gb():.2f} GB")
+
 
     # INITIALIZE MODEL
     print("Initialising Model")
@@ -76,6 +78,7 @@ def main(test_julday:int, val_julday:int, time_shift_minutes:int, station:str, i
     model = xLSTMRegressor(**config)
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=1e-3)
+    batch_size = get_batch_size(interval_seconds)
 
     # INIT DATALOADERS
     print("Initialising Dataloaders")
@@ -88,17 +91,17 @@ def main(test_julday:int, val_julday:int, time_shift_minutes:int, station:str, i
     train_dataset = SequenceDataset(total_data, scaler.transform(total_target['Fv [kN]'].to_numpy().reshape(-1,1)).reshape(rem),
                             total_target['Timestamp'].to_numpy(),
                             interval_count=num_intervals, sequence_length=interval_seconds * 100)
-    train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=True)  # Adjust batch size as needed
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)  # Adjust batch size as needed
     rem = val_target['Fv [kN]'].to_numpy().shape
     val_dataset = SequenceDataset(val_data, scaler.transform(val_target['Fv [kN]'].to_numpy().reshape(-1,1)).reshape(rem),
                             val_target['Timestamp'].to_numpy(),
                             interval_count=num_intervals, sequence_length=interval_seconds * 100)
-    val_dataloader = DataLoader(val_dataset, batch_size=32, shuffle=False)  # Adjust batch size as needed
+    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)  # Adjust batch size as needed
     rem = test_target['Fv [kN]'].to_numpy().shape
     test_dataset = SequenceDataset(test_data, scaler.transform(test_target['Fv [kN]'].to_numpy().reshape(-1,1)).reshape(rem), 
                                     test_target['Timestamp'].to_numpy(), 
                                     interval_count=num_intervals, sequence_length=interval_seconds * 100)
-    test_dataloader = DataLoader(test_dataset, batch_size=32, shuffle=False)  # Adjust batch size as needed
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)  # Adjust batch size as needed
     # train_dataset = SequenceDataset(total_data, total_target['Fv [kN]'].to_numpy(),
     #                         total_target['Timestamp'].to_numpy(),
     #                         interval_count=num_intervals, sequence_length=interval_seconds * 100)

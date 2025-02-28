@@ -27,7 +27,7 @@ def main(model_type, interval, task, config):
         trues.extend(temp['Output'].to_numpy())
         preds.extend(temp['Predicted_Output'].to_numpy())
 
-    bins = np.arange(12, 350, 2)
+    bins = np.arange(8, 350, 2)
 
     plt.hist(trues, bins= bins, color= "blue", alpha= 0.8, label='True');
     plt.hist(preds, bins= bins, color= "red", alpha= 0.8, label='Predicted');

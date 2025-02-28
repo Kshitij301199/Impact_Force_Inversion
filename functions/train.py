@@ -9,6 +9,7 @@ from utils import *
 def train_model(model, criterion, optimizer, num_epochs:int, patience:int,
                 interval:int, test_julday:int, val_julday:int ,model_type:str,
                 train_dataloader, val_dataloader, test_dataloader, model_dir:str, scaler) -> tuple[list, list, list, list]:
+    print(f"RAM usage = {get_memory_usage_in_gb():.2f} GB")
     start_time = get_current_time()
     print(f"{'Starting Training':-^50}")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
