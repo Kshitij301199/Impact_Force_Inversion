@@ -2,7 +2,7 @@
 #SBATCH -t 96:00:00               # time limit: (HH:MM:SS)
 #SBATCH --job-name=ratios          # job name
 #SBATCH --ntasks=1                # single task per job array
-#SBATCH --array=1-24%3              # Adjusted for (8 test days * 4 intervals * 3 hyp_options)
+#SBATCH --array=1-72%3              # Adjusted for (8 test days * 4 intervals * 3 hyp_options)
 #SBATCH --mem-per-cpu=16G         # Memory per CPU
 #SBATCH --gres=gpu:A40:1          # Request GPU
 #SBATCH --reservation=GPU         # Reserve GPU
@@ -20,13 +20,13 @@ conda activate xlstm_env
 # Define the test and validation day lists (1-to-1 linked)
 # 10secs
 test_juldays=(161 172 182 183 196 207 223 232)
-val_juldays=(196 232 161 196 223 232 161 161)  # Ensure corresponding indices match
+val_juldays=(182 223 183 223 161 232 207 183)  # Ensure corresponding indices match
 # 5secs
 # test_juldays=(161 172 182 183 196 207 223 232)
 # val_juldays=(162 173 184 185 197 208 224 233)  # Ensure corresponding indices match
 
 # Define intervals and hypothesis options
-intervals=(15)
+intervals=(15 30 60)
 hyp_options=('mlstm' 'slstm' 'xlstm')
 
 # Get the number of test days
@@ -66,5 +66,5 @@ srun --gres=gpu:A40:1 --unbuffered python /storage/vast-gfz-hpc-01/home/kshitkar
     --interval "$interval" \
     --station "ILL11" \
     --config_op "$hyp_option" \
-    --task "sLSTM_v_mLSTM" \
+    --task "slstm_v_mlstm" \
     --time_shift_mins 10

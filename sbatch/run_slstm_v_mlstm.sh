@@ -1,1 +1,1 @@
-sbatch ./sLSTM_v_mLSTM/train_xlstm.sh
+sbatch ./slstm_v_mlstm/train_xlstm.sh

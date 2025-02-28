@@ -2,7 +2,7 @@
 #SBATCH -t 96:00:00               # time limit: (HH:MM:SS)
 #SBATCH --job-name=base_xlstm           # job name
 #SBATCH --ntasks=1                # each task in the job array will have a single task associated with it
-#SBATCH --array=1-56%4            # job array id, adjusted for the total number of commands (8 test days * 7 validation days * 4 intervals)
+#SBATCH --array=1-168%4            # job array id, adjusted for the total number of commands (8 test days * 7 validation days * 4 intervals)
 #SBATCH --mem-per-cpu=16G         # Memory Request (per CPU; can use on GLIC)
 #SBATCH --gres=gpu:A40:1             # load GPU A100 could be replace by A40/A30, 509-510 nodes has 4_A100_80G
 #SBATCH --reservation=GPU            # reserve the GPU
@@ -18,7 +18,7 @@ source /home/kshitkar/miniforge3/bin/activate
 conda activate xlstm_env
 
 # Define the arrays
-intervals=(1)
+intervals=(15 30 60)
 juldays=(161 172 182 183 196 207 223 232)
 hyp_options=('default')
 
