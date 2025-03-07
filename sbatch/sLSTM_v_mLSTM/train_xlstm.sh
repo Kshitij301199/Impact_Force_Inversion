@@ -20,7 +20,7 @@ conda activate xlstm_env
 # Define the test and validation day lists (1-to-1 linked)
 # 10secs
 test_juldays=(161 172 182 183 196 207 223 232)
-val_juldays=(182 223 183 223 161 232 207 183)  # Ensure corresponding indices match
+val_juldays=(196 232 207 232 183 223 172 182)  # Ensure corresponding indices match
 # 5secs
 # test_juldays=(161 172 182 183 196 207 223 232)
 # val_juldays=(162 173 184 185 197 208 224 233)  # Ensure corresponding indices match
