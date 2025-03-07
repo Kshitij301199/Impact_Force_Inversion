@@ -47,8 +47,8 @@ def main(station, time_shift_minutes):
     # print(f"{data_start_time1.datetime} \n{data_start_time2.datetime}")
     time_diff1, time_diff2 = data_start_time1 - df_start_times.iloc[0], data_start_time2 - df_start_times.iloc[1]
 
-    data1['Time'] = data1.iloc[:,-1].apply(UTCDateTime) - time_diff1 + (time_shift_minutes * 60)
-    data2['Time'] = data2.iloc[:,-1].apply(UTCDateTime) - time_diff2 + (time_shift_minutes * 60)
+    data1['Time'] = data1.iloc[:,-1].apply(UTCDateTime) - (6 * 60) + (time_shift_minutes * 60)
+    data2['Time'] = data2.iloc[:,-1].apply(UTCDateTime) - (1 * 60) + (time_shift_minutes * 60)
     data = pd.concat([data1, data2])
     complete_data = pd.DataFrame(columns= ['Time'])
     start_time = UTCDateTime("2019-06-10T00:00:00")
@@ -73,8 +73,8 @@ def main(station, time_shift_minutes):
     data_start_time1, data_start_time2 = UTCDateTime(data1.iloc[0,-1]), UTCDateTime(data2.iloc[0,-1])
     # print(f"{data_start_time1.datetime} \n{data_start_time2.datetime}")
     time_diff1, time_diff2 = data_start_time1 - df_start_times.iloc[0], data_start_time2 - df_start_times.iloc[1]
-    data1['Time'] = data1.iloc[:,-1].apply(UTCDateTime) - time_diff1 + (time_shift_minutes * 60)
-    data2['Time'] = data2.iloc[:,-1].apply(UTCDateTime) - time_diff2 + (time_shift_minutes * 60)
+    data1['Time'] = data1.iloc[:,-1].apply(UTCDateTime) - (61 * 60) + (time_shift_minutes * 60)
+    data2['Time'] = data2.iloc[:,-1].apply(UTCDateTime) - (68 * 60) + (time_shift_minutes * 60)
 
     data = pd.concat([data1, data2])
     complete_data = pd.DataFrame(columns= ['Time'])
@@ -93,19 +93,21 @@ def main(station, time_shift_minutes):
 
     # General Cases
     print("Running General Case")
+    # peak_shift_df = pd.read_csv("peak_times.csv", index_col=False)
     date_starts = ["2019-06-21","2019-07-15","2019-07-26","2019-08-11","2019-08-20"]
     date_ends = ["2019-06-22","2019-07-16","2019-07-27","2019-08-12","2019-08-21"]
-    shift_values = [time_shift_minutes] * 7
-    for date_start, date_end, shift in tqdm(zip(date_starts, date_ends, shift_values)):
+    shift_values = [time_shift_minutes] * 5
+    peak_diff_values = [59, 69, 61, 57, 62]
+    for date_start, date_end, shift, peak_diff in tqdm(zip(date_starts, date_ends, shift_values, peak_diff_values), total=5):
         DataStart = date_start
         DataEnd = date_end
         df_start_times = event_data[event_data[f'{station}Start'].apply(UTCDateTime).between(UTCDateTime(DataStart), UTCDateTime(DataEnd))][f'{station}Start']
         df_start_times = df_start_times.apply(UTCDateTime)
         data = pd.read_csv(f"{input_dir}/{date_start.replace('-','')}_Fv.csv", index_col=0)
         data_start_time1 = UTCDateTime(data.iloc[0,-1])
-        print(data_start_time1.datetime)
+        # print(data_start_time1.datetime)
         time_diff1 = data_start_time1 - df_start_times.iloc[0] 
-        data['Time'] = data.iloc[:,-1].apply(UTCDateTime) - time_diff1 + (shift * 60)
+        data['Time'] = data.iloc[:,-1].apply(UTCDateTime) - (peak_diff * 60) + (shift * 60)
         complete_data = pd.DataFrame(columns= ['Time'])
         start_time = UTCDateTime(date_start)
         time_list1 = []
@@ -121,7 +123,8 @@ def main(station, time_shift_minutes):
     return None
 
 if __name__ == "__main__":
-    main("ILL11", 0)
+    for interval in [0, 5, 10]:
+        main("ILL11", interval)
 
 
 

@@ -24,15 +24,15 @@ def load_data(julday_list:list, station:str) -> np.array:
 
 def load_seismic_data(julday:str|int|list, station:str) -> Stream:
     if type(julday) is int:
-        st = read(f"{paths['BASE_DIR']}/{paths['DATA_DIR']}/2019/{station}/EHZ/9S.{station}.EHZ.2019.{julday}.mseed")
+        st = read(f"{paths['LOCAL_BASE_DIR']}/{paths['DATA_DIR']}/2019/{station}/EHZ/9S.{station}.EHZ.2019.{julday}.mseed")
         st[0].data = st[0].data * 1e3
     elif type(julday) is str:
-        st = read(f"{paths['BASE_DIR']}/{paths['DATA_DIR']}/2019/{station}/EHZ/9S.{station}.EHZ.2019.{julday}.mseed")
+        st = read(f"{paths['LOCAL_BASE_DIR']}/{paths['DATA_DIR']}/2019/{station}/EHZ/9S.{station}.EHZ.2019.{julday}.mseed")
         st[0].data = st[0].data * 1e3
     elif type(julday) is list:
         st = Stream()
         for jul in julday:
-            st += read(f"{paths['BASE_DIR']}/{paths['DATA_DIR']}/2019/{station}/EHZ/9S.{station}.EHZ.2019.{jul}.mseed")
+            st += read(f"{paths['LOCAL_BASE_DIR']}/{paths['DATA_DIR']}/2019/{station}/EHZ/9S.{station}.EHZ.2019.{jul}.mseed")
             st.merge(method=1, fill_value='latest', interpolation_samples=0)
             st._cleanup()
             st.detrend('linear')
@@ -48,7 +48,7 @@ def load_label_old(date_list:list, station:str, interval_seconds:int, time_shift
     for date in date_list:    
         target_start_time = UTCDateTime(f"{date}") + (10*60)
         try:
-            target = pd.read_csv(f"{paths['BASE_DIR']}/{paths['LABEL_DIR']}_{time_shift_minutes}/{station}/{date}.csv")
+            target = pd.read_csv(f"{paths['LOCAL_BASE_DIR']}/{paths['LABEL_DIR']}_{time_shift_minutes}/{station}/{date}.csv")
         except FileNotFoundError:
             target = pd.read_csv(f"../{paths['LABEL_DIR']}_{time_shift_minutes}/{station}/{date}.csv")
         target = target[target['Time'] >= target_start_time]
@@ -70,7 +70,7 @@ def load_label(date_list: list, station: str, interval_seconds: int, time_shift_
 
         # Attempt to read CSV file from different paths
         try:
-            target = pd.read_csv(f"{paths['BASE_DIR']}/{paths['LABEL_DIR']}_{time_shift_minutes}/{station}/{date}.csv")
+            target = pd.read_csv(f"{paths['LOCAL_BASE_DIR']}/{paths['LABEL_DIR']}_{time_shift_minutes}/{station}/{date}.csv")
         except FileNotFoundError:
             target = pd.read_csv(f"../{paths['LABEL_DIR']}_{time_shift_minutes}/{station}/{date}.csv")
 
