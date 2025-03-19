@@ -11,3 +11,4 @@ model_test/
 comparison_baseline/
 *ipynb
 slstm_v_mlstm/*
+USGS_data/*
