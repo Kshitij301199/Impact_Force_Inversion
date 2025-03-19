@@ -21,9 +21,13 @@ def train_model(model, criterion, optimizer, num_epochs:int, patience:int,
     for epoch in range(num_epochs):
         epoch_loss = 0.0
         model.train()
+        # prev_target = torch.zeros(get_batch_size(interval))
         for input_sequences, target_value, _ in train_dataloader:
+            if input_sequences.dim() == 2:
+                continue
             model.to(device)
             input_sequences = input_sequences.float().to(device)  
+            # prev_target = prev_target.float().to(device)
             target_value = target_value.float().to(device)        
             
             optimizer.zero_grad()
@@ -33,19 +37,25 @@ def train_model(model, criterion, optimizer, num_epochs:int, patience:int,
             loss.backward()
             optimizer.step()
             epoch_loss += loss.item()
+            # prev_target = output.cpu().detach()
         epoch_loss /= len(train_dataloader)  # Average loss for the epoch
         model.eval()
         val_epoch_loss = 0.0
         with torch.no_grad():
+            # prev_target = torch.zeros(get_batch_size(interval))
             for input_sequences, target_value, _ in val_dataloader:
+                if input_sequences.dim() == 2:
+                    continue
                 model.to(device)
-                input_sequences = input_sequences.float().to(device)  
+                input_sequences = input_sequences.float().to(device) 
+                # prev_target = prev_target.float().to(device)
                 target_value = target_value.float().to(device)
                 # Forward pass: Get model predictions
                 output = model(input_sequences).squeeze(1)  
                 assert output.shape == target_value.shape, f"Shape mismatch {output.shape} <-> {target_value.shape}"
                 loss = criterion(output, target_value) 
                 val_epoch_loss += loss.item()
+                # prev_target = output.cpu().detach()
         val_epoch_loss /= len(val_dataloader)
         print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {epoch_loss:.4f}, Val loss : {val_epoch_loss:.4f}, Best Loss : {best_loss:.4f}, RAM usage = {get_memory_usage_in_gb():.2f} GB")
         # Check for early stopping criteria
@@ -76,10 +86,14 @@ def train_model(model, criterion, optimizer, num_epochs:int, patience:int,
     in_sequence, predicted_output, target_output, timestamps = [], [], [], []
     test_epoch_loss = 0.0
     with torch.no_grad():
+        # prev_target = torch.zeros(get_batch_size(interval))
         for input_sequences, target_value, test_timestamps in test_dataloader:
+            if input_sequences.dim() == 2:
+                continue
             model.to(device)
-        # Move data to the appropriate device if using a GPU
+            # Move data to the appropriate device if using a GPU
             input_sequences = input_sequences.float().to(device)  # Shape: (batch_size, 20, 3000)
+            # prev_target = prev_target.float().to(device)
             target_value = target_value.float().to(device)        # Shape: (batch_size,)
 
             # Forward pass: Get model predictions
@@ -87,6 +101,7 @@ def train_model(model, criterion, optimizer, num_epochs:int, patience:int,
             assert output.shape == target_value.shape, f"Shape mismatch {output.shape} <-> {target_value.shape}"
             loss = criterion(output, target_value) 
             test_epoch_loss += loss.item()
+            # prev_target = output.cpu().detach()
             # Squeeze the output to match target shape
             if scaler is None:
                 in_sequence.append(input_sequences.cpu().numpy())

@@ -62,7 +62,7 @@ def evaluate_model(model_type, test_julday, val_julday, interval_seconds, y_true
     filename = f"{output_dir}/evaluation_output.txt"
     try:
         with open(filename, "x") as file:  # "x" mode creates a file if it does not exist
-            file.write("Model,Config,Time_To_Train,Test,Val,Interval,MSE,SMAPE,PCC,DTW_Dist,MSE_0,SMAPE_0,PCC_0\n")
+            file.write("Model,Config,Time_To_Train,Test,Val,Interval,MSE_ts,SMAPE_ts,PCC_ts,DTW_Dist,MSE_0,SMAPE_0,PCC_0\n")
             print(f"File '{filename}' created with columns names")
     except FileExistsError:
         print(f"File '{filename}' already exists.")

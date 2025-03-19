@@ -8,7 +8,6 @@ os.environ["PATH"] = os.path.join(os.environ["CUDA_HOME"], "bin") + ":" + os.env
 os.environ["LD_LIBRARY_PATH"] = os.path.join(os.environ["CUDA_HOME"], "lib64") + ":" + os.environ.get("LD_LIBRARY_PATH", "")
 import sys
 sys.path.append(paths['BASE_DIR'])
-import json
 import torch
 import argparse
 import numpy as np
@@ -28,13 +27,13 @@ from functions.plot_image import plot_image
 
 from models.xLSTM_model import xLSTMRegressor
 
-def main(test_julday:int, val_julday:int, time_shift_minutes:int, station:str, interval_seconds:int, config_option:str, task:str):
+def main(test_julday:int, val_julday:int, time_shift_minutes:int|str, station:str, interval_seconds:int, config_option:str, task:str):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device : {device}")
-    num_intervals = int((10 * 60) // interval_seconds)
-    model_dir = f"{paths['BASE_DIR']}/{task}/model/{config_option}/{interval_seconds}"
-    image_dir = f"{paths['BASE_DIR']}/{task}/test_results_xlstm/{config_option}/{interval_seconds}"
-    save_dir = f"{paths['BASE_DIR']}/{task}/output_df/{config_option}/{interval_seconds}/"
+    num_intervals = int((5 * 60) // interval_seconds)
+    model_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}/model/{config_option}/{interval_seconds}"
+    image_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}/test_results/xlstm/{config_option}/{interval_seconds}"
+    save_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}/output_df/{config_option}/{interval_seconds}/"
     os.makedirs(model_dir, exist_ok=True)
     os.makedirs(image_dir, exist_ok=True)
     os.makedirs(save_dir, exist_ok=True)
@@ -74,10 +73,16 @@ def main(test_julday:int, val_julday:int, time_shift_minutes:int, station:str, i
     print("Initialising Model")
     with open(f"./config/{task}/xlstm_{config_option}_{interval_seconds}sec_config.json", "r") as f:
         config = json.load(f)
-    print(config)
+    with open(f"{task}/{time_shift_minutes}/model_config.txt", "a") as f:
+        string = f"xlstm :\n{config}\n"
+        f.write(string)
     model = xLSTMRegressor(**config)
     criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=1e-3)
+    if interval_seconds == 1:
+        lr = 5e-5
+    else:
+        lr = 5e-4
+    optimizer = optim.Adam(model.parameters(), lr=lr)
     batch_size = get_batch_size(interval_seconds)
 
     # INIT DATALOADERS
@@ -91,7 +96,7 @@ def main(test_julday:int, val_julday:int, time_shift_minutes:int, station:str, i
     train_dataset = SequenceDataset(total_data, scaler.transform(total_target['Fv [kN]'].to_numpy().reshape(-1,1)).reshape(rem),
                             total_target['Timestamp'].to_numpy(),
                             interval_count=num_intervals, sequence_length=interval_seconds * 100)
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)  # Adjust batch size as needed
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)  # Adjust batch size as needed
     rem = val_target['Fv [kN]'].to_numpy().shape
     val_dataset = SequenceDataset(val_data, scaler.transform(val_target['Fv [kN]'].to_numpy().reshape(-1,1)).reshape(rem),
                             val_target['Timestamp'].to_numpy(),
@@ -117,7 +122,7 @@ def main(test_julday:int, val_julday:int, time_shift_minutes:int, station:str, i
 
     print("Training Model")
     in_seq, pred_out, target_out, timestamps, time_to_train = train_model(model, criterion, optimizer,
-                                                           100, 5, interval_seconds, test_julday, val_julday,
+                                                           100, 10, interval_seconds, test_julday, val_julday,
                                                            'xLSTM', train_dataloader, val_dataloader,
                                                            test_dataloader, model_dir, scaler)
     times = [UTCDateTime(t) for t in np.concatenate(timestamps)]
@@ -132,7 +137,7 @@ def main(test_julday:int, val_julday:int, time_shift_minutes:int, station:str, i
                    interval_seconds=interval_seconds, 
                    y_true=np.concatenate(target_out), 
                    y_pred=np.concatenate(pred_out), 
-                   out_dir=f"{paths['BASE_DIR']}/{task}",
+                   out_dir=f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}",
                    time_to_train=time_to_train,
                    )
     end_time = get_current_time()
@@ -143,7 +148,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--test_julday", type=int, default=161, help= "test julday")
     parser.add_argument("--val_julday", type=int, default=172, help= "val julday")
-    parser.add_argument("--time_shift_mins", type=int, default=10, help= "enter label time shift")
+    parser.add_argument("--time_shift_mins", default=10, help= "enter label time shift")
     parser.add_argument("--station", type=str, default="ILL13", help= "input station")
     parser.add_argument("--interval", type=int, default=30, help= "interval seconds")
     parser.add_argument("--config_op", type=str,default="default", help= "config option")

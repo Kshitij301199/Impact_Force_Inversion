@@ -21,7 +21,7 @@ def get_time_elapsed(start:datetime, end:datetime):
 
 def get_batch_size(interval):
     if interval == 5:
-        return 256
+        return 128
     elif interval == 15:
         return 128
     elif interval == 30:

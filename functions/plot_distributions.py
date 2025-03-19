@@ -14,27 +14,46 @@ plt.rcParams.update({
 })
 
 def main(model_type, interval, task, config):
-    output_dir = f"../{task}/dist_plots/{config}" 
+    output_dir = f"../{task}/dist_plots/{config}/{model_type}/{interval}/" 
     os.makedirs(output_dir, exist_ok= True)
     data = pd.read_csv(f"../{task}/model_evaluation/best_combinations.csv", index_col=False)
     df = data[(data['Interval'] == interval) & (data['Model'] == model_type)]
     df.reset_index(drop=True, inplace= True)
 
-    preds, trues = [], []
+    all_preds, all_trues = [], []
     for i, row in df.iterrows():
+        preds, trues = [], []
         t, v = int(row['Test']), int(row['Val'])
         temp = pd.read_csv(f"../{task}/output_df/{config}/{interval}/{model_type}_t{t}_v{v}.csv")
         trues.extend(temp['Output'].to_numpy())
         preds.extend(temp['Predicted_Output'].to_numpy())
+        all_trues.extend(temp['Output'].to_numpy())
+        all_preds.extend(temp['Predicted_Output'].to_numpy())
+        
+        bins = np.arange(5, 350, 10)
 
-    bins = np.arange(8, 350, 2)
+        plt.hist(trues, bins= bins, color= "blue", alpha= 0.8, label='True');
+        plt.hist(preds, bins= bins, color= "red", alpha= 0.8, label='Predicted');
+        # plt.xscale('log')
+        plt.xlabel("Normal Force [kN]")
+        plt.ylabel("Frequency")
+        plt.title(f"{model_type} {interval} test {t}")
+        plt.legend(loc='best')
+        plt.savefig(f"{output_dir}/t{t}_v{v}_distplot.png", dpi=300)
+        plt.close()
+    
+    bins = np.arange(5, 350, 10)
 
     plt.hist(trues, bins= bins, color= "blue", alpha= 0.8, label='True');
     plt.hist(preds, bins= bins, color= "red", alpha= 0.8, label='Predicted');
+    # plt.xscale('log')
     plt.xlabel("Normal Force [kN]")
     plt.ylabel("Frequency")
+    plt.title(f"{model_type} {interval} test {t}")
     plt.legend(loc='best')
-    plt.savefig(f"{output_dir}/{interval}_{model_type}_{config}_dist.png", dpi=300)
+    plt.savefig(f"../{task}/dist_plots/{config}/{model_type}_{interval}_distplot.png", dpi=300)
+    plt.close()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
