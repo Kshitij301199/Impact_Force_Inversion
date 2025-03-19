@@ -5,3 +5,9 @@ logs/*
 *test_results_*
 *__pycache__*
 *pycache*
+data_srr/
+label/
+model_test/
+comparison_baseline/
+*ipynb
+slstm_v_mlstm/*
