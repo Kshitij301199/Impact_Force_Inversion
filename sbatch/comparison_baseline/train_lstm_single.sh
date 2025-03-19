@@ -62,7 +62,7 @@ echo "Hypothesis Option: $hyp_option"
 srun --gres=gpu:A40:1 --unbuffered python /storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/functions/train_lstm.py \
     --test_julday "$test_julday" \
     --val_julday "$val_julday" \
-    --time_shift_mins 10 \
+    --time_shift_mins 'dynamic' \
     --interval "$interval" \
     --station "ILL11" \
     --config_op "$hyp_option" \
