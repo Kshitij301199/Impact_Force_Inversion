@@ -20,7 +20,7 @@ plt.rcParams.update({
 sns.set_context("notebook", font_scale=1)  # Ensures Seaborn uses updated fonts/sizes
 
 from functions.plot_distributions import main as main2
-from data_processing.read_data import load_label
+from data_processing.read_data import load_label, load_seismic_data
 
 # Mean Squared Error (MSE)
 def mse(y_true, y_pred):
@@ -136,32 +136,27 @@ def make_fourier_transform_plots_and_metrics(data, base_dir, model_output_dir):
     return None
 
 def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
-    time_intervals = [5, 15, 30, 60]
+    time_intervals = [15, 30, 60]
     if task == "comparison_baseline":
         hue = 'Model'
     else:
         hue = 'Config'
     julday_list = [161, 172, 182, 183, 196, 207, 223, 232]
     date_list = ["2019-06-10", "2019-06-21", "2019-07-01", "2019-07-02", "2019-07-15", "2019-07-26", "2019-08-11", "2019-08-20"]
-    base_dir = f"../{task}/{time_shift}mins"
-    output_dir = f"../{task}/{time_shift}mins/model_evaluation"
-    model_output_dir = {c : f"../{task}/{time_shift}mins/output_df/{c}" for c in configs}
+    base_dir = f"../{task}/{time_shift}"
+    output_dir = f"../{task}/{time_shift}/model_evaluation"
+    model_output_dir = {c : f"../{task}/{time_shift}/output_df/{c}" for c in configs}
     data = pd.read_csv(f"{output_dir}/evaluation_output.txt", index_col=False)
-    # data = pd.read_csv(f"{output_dir}/evaluation_output_new.csv", index_col=False)
-    
-    # if not os.path.exists(f"{base_dir}/new_images/"):
-    #     make_zero_shift_plots(data, base_dir, model_output_dir)
-    # else:
-    #     pass
     
     if not os.path.exists(f"{base_dir}/fourier_transform/"):
         make_fourier_transform_plots_and_metrics(data, base_dir, model_output_dir)
     else:
         pass
+    
     if os.path.exists(f"{output_dir}/best_combinations.csv"):
         pass
     else:
-        print("Selecting Best Combinations")
+        print("\tSelecting Best Combinations")
         data = pd.read_csv(f"{output_dir}/evaluation_output_ft.csv", index_col=False)
         best_combinations_df = pd.DataFrame(columns = data.columns.values)
         for model_type in tqdm(model_types, desc="Model Progress"):
@@ -171,16 +166,14 @@ def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
                     for test_julday in tqdm([161, 172, 182, 183, 196, 207, 223, 232], desc=f"Julday Progress"):
                             temp = temp_data[(temp_data["Test"] == test_julday) & (temp_data["Interval"] == interval)]
                             temp.reset_index(inplace=True, drop=True)
-                            # temp = temp.iloc[temp.nsmallest(1, "DTW_Dist").index]
-                            # temp = temp.iloc[temp.nsmallest(3, 'SMAPE_0').nlargest(2, "PCC_0").nsmallest(1, "MSE_0").index]
-                            temp = temp.iloc[temp.nsmallest(3, 'SMAPE_10').nlargest(2, "PCC_10").nsmallest(1, "MSE_10").index]
-                            # temp = temp.iloc[temp.nlargest(1, 'PCC_0').index]
+                            temp = temp.iloc[temp.nsmallest(3, 'SMAPE_0').nlargest(2, "PCC_0").nsmallest(1, "MSE_0").index]
                             best_combinations_df.loc[len(best_combinations_df)] = temp.values[0]
         best_combinations_df.to_csv(f"{output_dir}/best_combinations.csv", index=False)
+    
     if os.path.exists(f"{output_dir}/corrected_best_combinations.csv"):
         pass
     else:
-        print("Correcting Metrics")
+        print("\tCorrecting Metrics")
         julday_list = [161, 172, 182, 183, 196, 207, 223, 232]
         correct_window_df = pd.read_csv(f"../label/correct_metrics_time_window.csv", index_col=False)
         best_combinations_df = pd.read_csv(f"{output_dir}/best_combinations.csv", index_col=False)
@@ -218,29 +211,28 @@ def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
                                                                 row['FT_RMSE'], row['FT_SMAPE']]
         corrected_df.to_csv(f"{output_dir}/corrected_best_combinations.csv", index=False)
     
-    
-    print("Making Plots and Moving Images")
+    print("\tMaking Plots and Moving Images")
     data = pd.read_csv(f"{output_dir}/corrected_best_combinations.csv", index_col=False)
     # data = data[(data['Test'] != 172) & (data['Test'] != 182)]
 
-    fig, ax = plt.subplots(1, 3, figsize=(14,3.5))
-    sns.barplot(data= data, x='Interval', y='MSE_10', hue=hue, palette="viridis", ax=ax[0], errorbar = 'se')
-    sns.barplot(data= data, x='Interval', y='SMAPE_10', hue=hue, palette="viridis", ax=ax[1], errorbar = 'se')
-    sns.barplot(data= data, x='Interval', y='PCC_10', hue=hue, palette="viridis", ax=ax[2], errorbar = 'se')
+    fig, ax = plt.subplots(1, 2, figsize=(10,3.5))
+    sns.barplot(data= data, x='Interval', y='MSE_ts', hue=hue, palette="viridis", ax=ax[0], errorbar = 'se')
+    # sns.barplot(data= data, x='Interval', y='SMAPE_10', hue=hue, palette="viridis", ax=ax[1], errorbar = 'se')
+    sns.barplot(data= data, x='Interval', y='PCC_ts', hue=hue, palette="viridis", ax=ax[1], errorbar = 'se')
     ax[0].set_ylim(bottom=0)
-    ax[1].set_ylim(0, 100)
-    ax[2].set_ylim(0, 1)
+    # ax[1].set_ylim(0, 100)
+    ax[1].set_ylim(0, 1)
     fig.tight_layout()
     fig.savefig(f"{base_dir}/Comparison_Plot_10.png", dpi=300)
     plt.close()
 
-    fig, ax = plt.subplots(1, 3, figsize=(14,3.5))
+    fig, ax = plt.subplots(1, 2, figsize=(10,3.5))
     sns.barplot(data= data, x='Interval', y='MSE_0', hue=hue, palette="viridis", ax=ax[0], errorbar = 'se')
-    sns.barplot(data= data, x='Interval', y='SMAPE_0', hue=hue, palette="viridis", ax=ax[1], errorbar = 'se')
-    sns.barplot(data= data, x='Interval', y='PCC_0', hue=hue, palette="viridis", ax=ax[2], errorbar = 'se')
+    # sns.barplot(data= data, x='Interval', y='SMAPE_0', hue=hue, palette="viridis", ax=ax[1], errorbar = 'se')
+    sns.barplot(data= data, x='Interval', y='PCC_0', hue=hue, palette="viridis", ax=ax[1], errorbar = 'se')
     ax[0].set_ylim(bottom=0)
-    ax[1].set_ylim(0, 100)
-    ax[2].set_ylim(0, 1)
+    # ax[1].set_ylim(0, 100)
+    ax[1].set_ylim(0, 1)
     fig.tight_layout()
     fig.savefig(f"{base_dir}/Comparison_Plot_0.png", dpi=300)
     plt.close()
@@ -257,10 +249,7 @@ def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
             for interval in time_intervals:
                 temp = df[(df['Model'] == model_type) & (df['Config'] == config) & (df['Interval'] == interval)]
                 for idx, row in temp.iterrows():
-                    if model_type == 'LSTM':
-                        from_path = f"{base_dir}/test_results_{model_type.lower()}/{config}/{interval}/{row['Test']}_{row['Val']}_{interval}.png"
-                    else:
-                        from_path = f"{base_dir}/test_results_{model_type.lower()}/{config}/{interval}/{row['Test']}_{row['Val']}_{interval}.png"
+                    from_path = f"{base_dir}/test_results/{model_type.lower()}/{config}/{interval}/{row['Test']}_{row['Val']}_{interval}.png"
                     to_dir = f"{base_dir}/best_images/plot/{model_type.lower()}/{config}/{interval}"
                     os.makedirs(to_dir, exist_ok=True)
                     to_path = f"{to_dir}/{row['Test']}_{row['Val']}_{interval}.png"
@@ -278,12 +267,11 @@ def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
         config = "default"
         for option in model_types:
             for interval in time_intervals:
-                main2(option, interval, f"{task}/{time_shift}mins", config)
+                main2(option, interval, f"{task}/{time_shift}", config)
                 plt.close()
     else:
         pass
 
-    print("MAKING TIME TO TRAIN PLOT")
     fig, ax = plt.subplots()
     df["Time_To_Train"] = pd.to_timedelta(df["Time_To_Train"]).dt.total_seconds()
     sns.barplot(data=df, x="Interval", y="Time_To_Train", hue=hue, palette="viridis", ax=ax, errorbar = 'se')
@@ -295,11 +283,113 @@ def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
     fig.savefig(f"{base_dir}/TimetoTrain.png", dpi=300)
     plt.close()
 
+    print("\tMaking Explaination Plots")
+    data = pd.read_csv(f"../comparison_baseline/{time_shift}/model_evaluation/best_combinations.csv", index_col=False)
+    zoom_df = pd.read_csv("../label/correct_metrics_time_window.csv", index_col=False)
+
+    output_file_dir = f"../comparison_baseline/{time_shift}/output_df/default"
+    label_dir_0 = "../label/data_processed_0/ILL11"
+    label_dir_10 = "../label/data_processed_0/ILL11"
+
+    i = 0
+    julday_list = [161, 172, 182, 183, 196, 207, 223, 232]
+    for julday in tqdm(julday_list, desc= "Julday Progress"):
+        for interval in time_intervals:
+            temp = data[(data['Test'] == julday) & (data['Interval'] == interval)]
+            fig, ax = plt.subplots(2, 2, figsize=(12.0, 6.0))
+            date_list = ["2019-06-10", "2019-06-21", "2019-07-01", "2019-07-02", "2019-07-15", "2019-07-26", "2019-08-11", "2019-08-20"]
+            date = date_list.pop(julday_list.index(julday))
+            target_output = load_label([date], "ILL11", interval, 0)
+            for idx, row in temp.iterrows():
+                interval = row['Interval']
+                model_type = row['Model']
+                test = row['Test']
+                val = row['Val']
+                st = load_seismic_data(test, 'ILL11')
+                file = pd.read_csv(f"{output_file_dir}/{interval}/{model_type}_t{test}_v{val}.csv", index_col=False)
+                times = [UTCDateTime(i).matplotlib_date for i in file['Timestamps'].to_numpy()]
+                # target_output = file['Output'].to_numpy()
+                predicted_output = file['Predicted_Output'].to_numpy()
+                
+                if model_type == 'xLSTM':
+                    ax[0,0].plot(st[0].times('matplotlib'), st[0].data, color="black", label= "ILL11", alpha=0.5)
+                    ax[0,0].set_ylabel(r"Amplitude (mm/s)");
+                    ax[0,0].set_ylim(-1.5, 1.5);
+                    ax1 = ax[0,0].twinx()
+                    ax1.plot(times, target_output['Fv [kN]'].to_numpy(), label="Impact Force Target [kN]", alpha=0.9, color='r',linewidth=1)
+                    mean = target_output['Fv [kN]'].to_numpy()
+                    std = target_output['Fv std'].to_numpy()
+                    ax1.fill_between(times, mean - std, mean + std, color='r', alpha=0.4, label="Std Dev")
+                    ax1.plot(times, predicted_output, label="Model Prediction", alpha=0.8, color='b',linewidth=1)
+                    ax1.xaxis_date()
+                    ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d\n%H:%M:%S'))
+                    ax1.set_xlim(times[0], times[-1]);
+                    ax1.set_ylabel("Normal Force [kN]");
+                    ax1.set_ylim(bottom=0)
+                    ax1.legend(loc='best');
+
+                    ax[1,0].plot(st[0].times('matplotlib'), st[0].data, color="black", label= "ILL11", alpha=0.5)
+                    ax[1,0].set_ylabel(r"Amplitude (mm/s)");
+                    ax[1,0].set_ylim(-1.5, 1.5);
+                    ax2 = ax[1,0].twinx()
+                    ax2.plot(times, target_output['Fv [kN]'].to_numpy(), label="Impact Force Target [kN]", alpha=0.9, color='r',linewidth=1)
+                    mean = target_output['Fv [kN]'].to_numpy()
+                    std = target_output['Fv std'].to_numpy()
+                    ax2.fill_between(times, mean - std, mean + std, color='r', alpha=0.4, label="Std Dev")
+                    ax2.plot(times, predicted_output, label="Model Prediction", alpha=0.8, color='b',linewidth=1)
+                    ax2.xaxis_date()
+                    ax2.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d\n%H:%M:%S'))
+                    ax2.set_xlim(UTCDateTime(zoom_df.iloc[i,0]).matplotlib_date, UTCDateTime(zoom_df.iloc[i,1]).matplotlib_date);
+                    ax2.set_ylabel("Normal Force [kN]");
+                    ax2.set_ylim(bottom=0)
+                    ax2.legend(loc='best');
+
+                elif model_type == 'LSTM':
+                    ax[0,1].plot(st[0].times('matplotlib'), st[0].data, color="black", label= "ILL11", alpha=0.5)
+                    ax[0,1].set_ylabel(r"Amplitude (mm/s)");
+                    ax[0,1].set_ylim(-1.5, 1.5);
+                    ax3 = ax[0,1].twinx()
+                    ax3.plot(times, target_output['Fv [kN]'].to_numpy(), label="Impact Force Target [kN]", alpha=0.9, color='r',linewidth=1)
+                    mean = target_output['Fv [kN]'].to_numpy()
+                    std = target_output['Fv std'].to_numpy()
+                    ax3.fill_between(times, mean - std, mean + std, color='r', alpha=0.4, label="Std Dev")
+                    ax3.plot(times, predicted_output, label="Model Prediction", alpha=0.8, color='b',linewidth=1)
+                    ax3.xaxis_date()
+                    ax3.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d\n%H:%M:%S'))
+                    ax3.set_xlim(times[0], times[-1]);
+                    ax3.set_ylabel("Normal Force [kN]");
+                    ax3.set_ylim(bottom=0)
+                    ax3.legend(loc='best');
+
+                    ax[1,1].plot(st[0].times('matplotlib'), st[0].data, color="black", label= "ILL11", alpha=0.5)
+                    ax[1,1].set_ylabel(r"Amplitude (mm/s)");
+                    ax[1,1].set_ylim(-1.5, 1.5);
+                    ax4 = ax[1,1].twinx()
+                    ax4.plot(times, target_output['Fv [kN]'].to_numpy(), label="Impact Force Target [kN]", alpha=0.9, color='r',linewidth=1)
+                    mean = target_output['Fv [kN]'].to_numpy()
+                    std = target_output['Fv std'].to_numpy()
+                    ax4.fill_between(times, mean - std, mean + std, color='r', alpha=0.4, label="Std Dev")
+                    ax4.plot(times, predicted_output, label="Model Prediction", alpha=0.8, color='b',linewidth=1)
+                    ax4.xaxis_date()
+                    ax4.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d\n%H:%M:%S'))
+                    ax4.set_xlim(UTCDateTime(zoom_df.iloc[i,0]).matplotlib_date, UTCDateTime(zoom_df.iloc[i,1]).matplotlib_date);
+                    ax4.set_ylabel("Normal Force [kN]");
+                    ax4.set_ylim(bottom=0)
+                    ax4.legend(loc='best');
+
+            ax[0,0].set_title("xLSTM Model");
+            ax[0,1].set_title("LSTM Model");
+            fig.suptitle(f"Model comparison, Interval = {interval} seconds, Test Julday = {test}", fontdict={'fontsize':8, 'fontweight':'bold'});
+            fig.tight_layout()
+            os.makedirs(f"{base_dir}/plots/", exist_ok=True)
+            fig.savefig(f"{base_dir}/plots/{date}_{interval}.png", dpi=300)
+            plt.close()
+        i += 1
     return None
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--time", type=int, default=10, help= "enter label time shift")
+    parser.add_argument("--time", default=10, help= "enter label time shift")
     parser.add_argument("--task", type=str, default="comparison_baseline", help= "name of the task corresponding to parameter directory", required=True)
     parser.add_argument("--config", nargs="+", help="List of configuration values", required=True)
     parser.add_argument("--model_type", nargs="+", help="List of model types", required=True)
