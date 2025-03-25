@@ -3,7 +3,7 @@
 #SBATCH --job-name=base_lstm           # job name
 #SBATCH --ntasks=1                # each task in the job array will have a single task associated with it
 #SBATCH --array=1-56%2            # job array id, adjusted for the total number of commands (8 test days * 7 validation days * 4 intervals)
-#SBATCH --mem-per-cpu=16G         # Memory Request (per CPU; can use on GLIC)
+#SBATCH --mem-per-cpu=24G         # Memory Request (per CPU; can use on GLIC)
 #SBATCH --gres=gpu:A40:1             # load GPU A100 could be replace by A40/A30, 509-510 nodes has 4_A100_80G
 #SBATCH --reservation=GPU            # reserve the GPU
 #SBATCH --mail-type=all
