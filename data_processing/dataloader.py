@@ -29,6 +29,12 @@ class SequenceDataset(Dataset):
         for i in range(self.interval_count):
             start_idx = (idx + i) * 100 * self.interval_seconds
             end_idx = start_idx + self.sequence_length
+            if self.input_data[start_idx: end_idx].numel() == 0:
+                print(f"Empty sequence at dataset idx {idx}, sequence entry {i}")
+                print(f"Sequences: {[s.shape for s in sequences]}")
+                print(f"Len Target Data{len(self.target_data)} Start_idx {start_idx} End_idx {end_idx}")
+                # Either raise an error or return dummy data
+                raise ValueError(f"Empty sequence found at index {idx}")
             sequences.append(self.input_data[start_idx:end_idx])
         # print(start_idx, end_idx)
         # Stack intervals into a (20, 3000) tensor

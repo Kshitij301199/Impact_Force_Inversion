@@ -2,9 +2,13 @@ import json
 try:
     with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/paths.json", "r") as file:
         paths = json.load(file)
+    with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/data_parameters.json", "r") as file:
+        data_params = json.load(file)
 except FileNotFoundError:
     with open("../config/paths.json", "r") as file:
         paths = json.load(file)
+    with open("../config/data_parameters.json", "r") as file:
+        data_params = json.load(file)
 import numpy as np
 import pandas as pd
 from obspy import read, Stream, read_inventory
@@ -43,7 +47,7 @@ def load_seismic_data(julday:str|int|list, station:str, raw:bool=False,
                 st._cleanup()
                 st.detrend('linear')
                 st.detrend('demean')
-                st.filter("bandpass", freqmin=1, freqmax=45)
+                st.filter("bandpass", freqmin=data_params['fmin'], freqmax=data_params['fmax'])
             st[0].data = st[0].data * scaling
         else:
             print(f"Wrong julday type : {type(julday)}")
@@ -57,16 +61,18 @@ def load_seismic_data(julday:str|int|list, station:str, raw:bool=False,
         st.detrend('demean')
         inv = read_inventory(f"{paths['META_DATA_DIR']}/9S_2017_2020.xml")
         st.remove_response(inventory=inv)
-        st.filter("bandpass", freqmin=1, freqmax=45)
+        st.filter("bandpass", freqmin=data_params['fmin'], freqmax=data_params['fmax'])
         st[0].data = st[0].data * scaling
         return st
 
 def load_label(date_list: list, station: str, interval_seconds: int, time_shift_minutes) -> pd.DataFrame:
     total_target = None
 
-    for date in date_list:
-        target_start_time = UTCDateTime(f"{date}") + (5 * 60)  # Offset by 10 minutes
-
+    for i, date in enumerate(date_list):
+        if i == 0:
+            target_start_time = UTCDateTime(f"{date}") + (data_params['time_window'] * 60)  # Offset by 10 minutes
+        else:
+            target_start_time == UTCDateTime(f"{date}")
         # Attempt to read CSV file from different paths
         try:
             target = pd.read_csv(f"{paths['BASE_DIR']}/{paths['LABEL_DIR']}_{time_shift_minutes}/{station}/{date}.csv")

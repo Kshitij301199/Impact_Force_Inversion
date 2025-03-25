@@ -19,7 +19,7 @@ stations=("ILL11")
 juldays=(161 162 171 172 182 183 184 196 207 223 232)
 for station in "${stations[@]}"; do
     for julday in "${juldays[@]}"; do
-        commands+=("python remove_sr.py --station $station --julday $julday")
+        commands+=("python ./data_preprocessing/remove_sr.py --station $station --julday $julday")
     done
 done
 # Get the command to run for this task
