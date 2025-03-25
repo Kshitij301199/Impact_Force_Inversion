@@ -4,6 +4,7 @@ import json
 import argparse
 import pandas as pd
 import numpy as np
+from scipy.signal import spectrogram
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 plt.rcParams.update({
@@ -15,7 +16,9 @@ plt.rcParams.update({
 
 def main(model_type, interval, task, config):
     output_dir = f"../{task}/dist_plots/{config}/{model_type}/{interval}/" 
+    psd_output_dir = f"../{task}/psd_plots/{config}/{model_type}/{interval}/"
     os.makedirs(output_dir, exist_ok= True)
+    os.makedirs(psd_output_dir, exist_ok=True)
     data = pd.read_csv(f"../{task}/model_evaluation/best_combinations.csv", index_col=False)
     df = data[(data['Interval'] == interval) & (data['Model'] == model_type)]
     df.reset_index(drop=True, inplace= True)
@@ -32,8 +35,8 @@ def main(model_type, interval, task, config):
         
         bins = np.arange(5, 350, 10)
 
-        plt.hist(trues, bins= bins, color= "blue", alpha= 0.8, label='True');
-        plt.hist(preds, bins= bins, color= "red", alpha= 0.8, label='Predicted');
+        plt.hist(trues, bins= bins, color= "blue", alpha= 0.6, label='True');
+        plt.hist(preds, bins= bins, color= "red", alpha= 0.6, label='Predicted');
         # plt.xscale('log')
         plt.xlabel("Normal Force [kN]")
         plt.ylabel("Frequency")
@@ -41,18 +44,42 @@ def main(model_type, interval, task, config):
         plt.legend(loc='best')
         plt.savefig(f"{output_dir}/t{t}_v{v}_distplot.png", dpi=300)
         plt.close()
+
+        fig, ax = plt.subplots(1, 2, figsize=(10, 3.5))
+        fs = 1 / interval
+        frequencies_true, times_true, Sxx_true = spectrogram(temp['Output'].to_numpy(), fs=fs)
+        frequencies_pred, times_pred, Sxx_pred = spectrogram(temp['Predicted_Output'].to_numpy(), fs=fs)
+
+        # Plot it
+        im1 = ax[0].pcolormesh(times_true, frequencies_true, 10 * np.log10(Sxx_true), shading='gouraud', vmin=-60, vmax=60)
+        ax[0].set_ylabel('Frequency [Hz]')
+        ax[0].set_xlabel('Time [sec]')
+        # ax[0].set_suptitle('Spectrogram (Power Spectral Density)')
+        fig.colorbar(im1, ax=ax[0], label='Power [dB]')
+
+        im2 = ax[1].pcolormesh(times_pred, frequencies_pred, 10 * np.log10(Sxx_pred), shading='gouraud', vmin=-60, vmax=60)
+        ax[1].set_ylabel('Frequency [Hz]')
+        ax[1].set_xlabel('Time [sec]')
+        # ax[1].set_suptitle('Spectrogram (Power Spectral Density)')
+        fig.colorbar(im2, ax=ax[1], label='Power [dB]')
+        
+        fig.tight_layout()
+        fig.savefig(f"{psd_output_dir}/t{t}_v{v}_distplot.png", dpi=300)
+        plt.close()
     
     bins = np.arange(5, 350, 10)
 
-    plt.hist(trues, bins= bins, color= "blue", alpha= 0.8, label='True');
-    plt.hist(preds, bins= bins, color= "red", alpha= 0.8, label='Predicted');
+    plt.hist(all_trues, bins= bins, color= "blue", alpha= 0.6, label='True');
+    plt.hist(all_preds, bins= bins, color= "red", alpha= 0.6, label='Predicted');
     # plt.xscale('log')
     plt.xlabel("Normal Force [kN]")
     plt.ylabel("Frequency")
-    plt.title(f"{model_type} {interval} test {t}")
+    plt.title(f"{model_type} {interval}")
     plt.legend(loc='best')
     plt.savefig(f"../{task}/dist_plots/{config}/{model_type}_{interval}_distplot.png", dpi=300)
     plt.close()
+
+
 
 
 if __name__ == "__main__":

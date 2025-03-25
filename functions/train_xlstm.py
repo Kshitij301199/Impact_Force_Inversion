@@ -2,6 +2,8 @@ import os
 import json
 with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/paths.json", "r") as file:
     paths = json.load(file)
+with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/data_parameters.json", "r") as file:
+    data_params = json.load(file)
 # Set CUDA environment variables
 os.environ["CUDA_HOME"] = paths['CUDA_HOME']
 os.environ["PATH"] = os.path.join(os.environ["CUDA_HOME"], "bin") + ":" + os.environ.get("PATH", "")
@@ -30,10 +32,10 @@ from models.xLSTM_model import xLSTMRegressor
 def main(test_julday:int, val_julday:int, time_shift_minutes:int|str, station:str, interval_seconds:int, config_option:str, task:str):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device : {device}")
-    num_intervals = int((5 * 60) // interval_seconds)
-    model_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}/model/{config_option}/{interval_seconds}"
-    image_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}/test_results/xlstm/{config_option}/{interval_seconds}"
-    save_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}/output_df/{config_option}/{interval_seconds}/"
+    num_intervals = int((data_params['time_window'] * 60) // interval_seconds)
+    model_dir = f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}/model/{config_option}/{interval_seconds}"
+    image_dir = f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}/test_results/xlstm/{config_option}/{interval_seconds}"
+    save_dir = f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}/output_df/{config_option}/{interval_seconds}/"
     os.makedirs(model_dir, exist_ok=True)
     os.makedirs(image_dir, exist_ok=True)
     os.makedirs(save_dir, exist_ok=True)
@@ -73,15 +75,15 @@ def main(test_julday:int, val_julday:int, time_shift_minutes:int|str, station:st
     print("Initialising Model")
     with open(f"./config/{task}/xlstm_{config_option}_{interval_seconds}sec_config.json", "r") as f:
         config = json.load(f)
-    with open(f"{task}/{time_shift_minutes}/model_config.txt", "a") as f:
+    with open(f"{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}/model_config.txt", "a") as f:
         string = f"xlstm :\n{config}\n"
         f.write(string)
     model = xLSTMRegressor(**config)
     criterion = nn.MSELoss()
     if interval_seconds == 1:
-        lr = 5e-5
-    else:
         lr = 5e-4
+    else:
+        lr = 1e-3
     optimizer = optim.Adam(model.parameters(), lr=lr)
     batch_size = get_batch_size(interval_seconds)
 
@@ -96,7 +98,7 @@ def main(test_julday:int, val_julday:int, time_shift_minutes:int|str, station:st
     train_dataset = SequenceDataset(total_data, scaler.transform(total_target['Fv [kN]'].to_numpy().reshape(-1,1)).reshape(rem),
                             total_target['Timestamp'].to_numpy(),
                             interval_count=num_intervals, sequence_length=interval_seconds * 100)
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)  # Adjust batch size as needed
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)  # Adjust batch size as needed
     rem = val_target['Fv [kN]'].to_numpy().shape
     val_dataset = SequenceDataset(val_data, scaler.transform(val_target['Fv [kN]'].to_numpy().reshape(-1,1)).reshape(rem),
                             val_target['Timestamp'].to_numpy(),
@@ -107,18 +109,6 @@ def main(test_julday:int, val_julday:int, time_shift_minutes:int|str, station:st
                                     test_target['Timestamp'].to_numpy(), 
                                     interval_count=num_intervals, sequence_length=interval_seconds * 100)
     test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)  # Adjust batch size as needed
-    # train_dataset = SequenceDataset(total_data, total_target['Fv [kN]'].to_numpy(),
-    #                         total_target['Timestamp'].to_numpy(),
-    #                         interval_count=num_intervals, sequence_length=interval_seconds * 100)
-    # train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=True)  # Adjust batch size as needed
-    # val_dataset = SequenceDataset(val_data, val_target['Fv [kN]'].to_numpy(),
-    #                         val_target['Timestamp'].to_numpy(),
-    #                         interval_count=num_intervals, sequence_length=interval_seconds * 100)
-    # val_dataloader = DataLoader(val_dataset, batch_size=32, shuffle=False)  # Adjust batch size as needed
-    # test_dataset = SequenceDataset(test_data, test_target['Fv [kN]'].to_numpy(), 
-    #                                 test_target['Timestamp'].to_numpy(), 
-    #                                 interval_count=num_intervals, sequence_length=interval_seconds * 100)
-    # test_dataloader = DataLoader(test_dataset, batch_size=32, shuffle=False)  # Adjust batch size as needed
 
     print("Training Model")
     in_seq, pred_out, target_out, timestamps, time_to_train = train_model(model, criterion, optimizer,
@@ -137,7 +127,7 @@ def main(test_julday:int, val_julday:int, time_shift_minutes:int|str, station:st
                    interval_seconds=interval_seconds, 
                    y_true=np.concatenate(target_out), 
                    y_pred=np.concatenate(pred_out), 
-                   out_dir=f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}",
+                   out_dir=f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}",
                    time_to_train=time_to_train,
                    )
     end_time = get_current_time()
