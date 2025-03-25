@@ -8,7 +8,7 @@ logs/*
 data_srr/
 label/
 model_test/
-comparison_baseline/
+comparison_baseline*/
 *ipynb
 slstm_v_mlstm/*
 USGS_data/*
