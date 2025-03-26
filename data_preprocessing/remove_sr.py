@@ -17,7 +17,7 @@ def load_write_data(julday:str, station:str):
     st.detrend('demean')
     inv = read_inventory(f"{paths["META_DATA_DIR"]}/9S_2017_2020.xml")
     st.remove_response(inventory=inv)
-    st.filter("bandpass", freqmin=1, freqmax=15)
+    st.filter("bandpass", freqmin=1, freqmax=45)
     output_dir = f"./data_srr/Illgraben/2019/{station}/EHZ"
     os.makedirs(output_dir, exist_ok=True)
     st.write(f'{output_dir}/9S.{station}.EHZ.2019.{julday}.mseed', format="MSEED")

@@ -1,5 +1,5 @@
 {
     "fmin" : 1,
-    "fmax" : 15,
-    "time_window" : 5
+    "fmax" : 45,
+    "time_window" : 10
 }
