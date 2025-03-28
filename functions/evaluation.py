@@ -14,51 +14,6 @@ from obspy.core import UTCDateTime
 
 from data_processing.read_data import load_label
 
-# # Mean Squared Error (MSE)
-# def mse(y_true, y_pred):
-#     return np.mean((y_true - y_pred) ** 2)
-
-# # Symmetric Mean Absolute Percentage Error (sMAPE)
-# def smape(y_true, y_pred):
-#     """
-#     Calculate Symmetric Mean Absolute Percentage Error (sMAPE).
-#     Args:
-#         y_true (np.array): True target values.
-#         y_pred (np.array): Predicted values.
-#     Returns:
-#         float: sMAPE value.
-#     """
-#     return np.mean(2 * np.abs(y_true - y_pred) / (np.abs(y_true) + np.abs(y_pred))) * 100
-
-# # Pearson's Correlation Coefficient (PCC)
-# def pcc(y_true, y_pred):
-#     """
-#     Calculate Pearson's Correlation Coefficient (PCC).
-#     Args:
-#         y_true (np.array): True target values.
-#         y_pred (np.array): Predicted values.
-#     Returns:
-#         float: PCC value.
-#     """
-#     y_true_mean = np.mean(y_true)
-#     y_pred_mean = np.mean(y_pred)
-#     numerator = np.sum((y_true - y_true_mean) * (y_pred - y_pred_mean))
-#     denominator = np.sqrt(np.sum((y_true - y_true_mean) ** 2) * np.sum((y_pred - y_pred_mean) ** 2))
-#     return np.where(denominator != 0, numerator / denominator, 1)
-
-# def dtw_distance_calc(seq1, seq2, interval):
-#     if interval == 60:
-#         window = 61
-#     elif interval == 30:
-#         window = 121
-#     elif interval == 15:
-#         window = 241
-#     elif interval == 5:
-#         window = 751
-#     seq1 = savgol_filter(seq1, window, 3, 0, mode='interp')
-#     seq2 = savgol_filter(seq2, window, 3, 0, mode='interp')
-#     return dtw.distance(seq1, seq2)
-
 def evaluate_model(model_type, test_julday, val_julday, interval_seconds, y_true, y_pred, out_dir, time_to_train:str):
     
     julday_list = [161, 172, 182, 183, 196, 207, 223, 232]
@@ -84,6 +39,7 @@ def evaluate_model(model_type, test_julday, val_julday, interval_seconds, y_true
 
     zero_label = load_label([date_list.pop(julday_list.index(test_julday))], "ILL11", interval_seconds, 0)
     zero_label['Timestamp'] = zero_label['Timestamp'].apply(UTCDateTime)
+    zero_label = zero_label.iloc[:len(y_true)]
     zero_label['True_Value'] = y_true
     zero_label['Pred_Value'] = y_pred
     
@@ -142,3 +98,5 @@ def evaluate_model(model_type, test_julday, val_julday, interval_seconds, y_true
         f.write(string)
     return None
 
+
+# %%
