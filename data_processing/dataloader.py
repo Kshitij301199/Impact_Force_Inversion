@@ -21,7 +21,8 @@ class SequenceDataset(Dataset):
 
     def __len__(self):
         # Each sample corresponds to one target value, so len is the length of target data minus intervals per sample
-        return len(self.target_data)
+        max_index = (len(self.input_data) - (self.interval_count * self.sequence_length)) // self.sequence_length
+        return min(len(self.target_data), max_index)
 
     def __getitem__(self, idx):
         # Get a batch of 20 sequences of 30 seconds each
@@ -32,7 +33,7 @@ class SequenceDataset(Dataset):
             if self.input_data[start_idx: end_idx].numel() == 0:
                 print(f"Empty sequence at dataset idx {idx}, sequence entry {i}")
                 print(f"Sequences: {[s.shape for s in sequences]}")
-                print(f"Len Target Data{len(self.target_data)} Start_idx {start_idx} End_idx {end_idx}")
+                print(f"Len Target Data: {len(self.target_data)}, Start_idx: {start_idx} End_idx: {end_idx}")
                 # Either raise an error or return dummy data
                 raise ValueError(f"Empty sequence found at index {idx}")
             sequences.append(self.input_data[start_idx:end_idx])

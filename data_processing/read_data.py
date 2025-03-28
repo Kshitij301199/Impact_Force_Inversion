@@ -72,7 +72,7 @@ def load_label(date_list: list, station: str, interval_seconds: int, time_shift_
         if i == 0:
             target_start_time = UTCDateTime(f"{date}") + (data_params['time_window'] * 60)  # Offset by 10 minutes
         else:
-            target_start_time == UTCDateTime(f"{date}")
+            target_start_time = UTCDateTime(f"{date}")
         # Attempt to read CSV file from different paths
         try:
             target = pd.read_csv(f"{paths['BASE_DIR']}/{paths['LABEL_DIR']}_{time_shift_minutes}/{station}/{date}.csv")
@@ -85,22 +85,28 @@ def load_label(date_list: list, station: str, interval_seconds: int, time_shift_
         # Convert Time to Timestamp
         target['Timestamp'] = target['Time'].apply(UTCDateTime).apply(UTCDateTime._get_timestamp)
 
-        # Apply sliding window mean using NumPy
-        num_windows = len(target) // interval_seconds  # Number of full windows
-        target = target.iloc[:num_windows * interval_seconds]  # Trim excess data
+        if interval_seconds != 1:
+            # Apply sliding window mean using NumPy
+            num_windows = len(target) // interval_seconds  # Number of full windows
+            target = target.iloc[:num_windows * interval_seconds]  # Trim excess data
 
-        # Reshape data for window-based averaging
-        reshaped_values = target['Fv [kN]'].values.reshape(num_windows, interval_seconds)
-        averaged_values = np.mean(reshaped_values, axis=1)
-        std_values = np.std(reshaped_values, axis=1)
+            # Reshape data for window-based averaging
+            reshaped_values = target['Fv [kN]'].values.reshape(num_windows, interval_seconds)
+            averaged_values = np.mean(reshaped_values, axis=1)
+            std_values = np.std(reshaped_values, axis=1)
 
-        # Create new DataFrame
-        target = pd.DataFrame({
-            'Timestamp': target['Timestamp'].values[::interval_seconds],  # Take every stride-th timestamp
-            'Fv [kN]': averaged_values,  # Store the computed mean
-            'Fv std': std_values
-        })
-
+            # Create new DataFrame
+            target = pd.DataFrame({
+                'Timestamp': target['Timestamp'].values[::interval_seconds],  # Take every stride-th timestamp
+                'Fv [kN]': averaged_values,  # Store the computed mean
+                'Fv std': std_values
+            })
+        else:
+            target = pd.DataFrame({
+                'Timestamp' : target['Timestamp'].values,
+                'Fv [kN]' : target['Fv [kN]'].values,
+                'Fv std' : target['Fv std'].values
+            })
         # Concatenate results
         if total_target is None:
             total_target = target
