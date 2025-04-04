@@ -8,7 +8,7 @@ def get_memory_usage_in_gb():
     memory_info = process.memory_info().rss  # Resident Set Size in bytes
     return memory_info / (1024 ** 3)  # Convert to GB
 
-print(f"RAM usage = {get_memory_usage_in_gb():.2f} GB")
+# print(f"RAM usage = {get_memory_usage_in_gb():.2f} GB")
 
 def get_current_time():
     return datetime.now()
