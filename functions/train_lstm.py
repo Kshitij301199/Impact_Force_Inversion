@@ -85,7 +85,7 @@ def main(test_julday:int, val_julday:int, time_shift_minutes:int, station:str, i
     else:
         lr = 1e-3
     optimizer = optim.Adam(model.parameters(), lr=lr)
-    batch_size = get_batch_size(interval_seconds)
+    batch_size = 48
 
     # INIT DATALOADERS
     print("Initialising Dataloaders")
