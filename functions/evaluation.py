@@ -14,14 +14,21 @@ from obspy.core import UTCDateTime
 
 from data_processing.read_data import load_label
 
-def evaluate_model(model_type, test_julday, val_julday, interval_seconds, y_true, y_pred, out_dir, time_to_train:str):
-    
+def evaluate_model(model_type:str, test_julday:int, val_julday:int, interval_seconds:int, y_true, y_pred, out_dir:str, time_to_train:str):
+    print(f"{'Evaluating Model':-^50}")
     julday_list = [161, 172, 182, 183, 196, 207, 223, 232]
     date_list = ["2019-06-10", "2019-06-21", "2019-07-01", "2019-07-02", "2019-07-15", "2019-07-26", "2019-08-11", "2019-08-20"]
-
     constraint_df = pd.read_csv(f"{paths['BASE_DIR']}/label/correct_metrics_time_window.csv", index_col=False)
-    window_df = constraint_df.iloc[julday_list.index(test_julday)]
-    window_start, window_end = UTCDateTime(window_df['Start_Time']), UTCDateTime(window_df['End_Time'])
+
+    if test_julday == 161:
+        window_df = constraint_df.iloc[:2]
+        print(window_df)
+        window_start_1, window_end_1 = UTCDateTime(window_df['Start_Time'].iloc[0]), UTCDateTime(window_df['End_Time'].iloc[0])
+        window_start_2, window_end_2 = UTCDateTime(window_df['Start_Time'].iloc[1]), UTCDateTime(window_df['End_Time'].iloc[1])
+    else:
+        window_df = constraint_df.iloc[julday_list.index(test_julday) + 1]
+        print(window_df)
+        window_start, window_end = UTCDateTime(window_df['Start_Time']), UTCDateTime(window_df['End_Time'])
 
     output_dir = f"{out_dir}/model_evaluation"
     os.makedirs(output_dir, exist_ok=True)
@@ -37,16 +44,12 @@ def evaluate_model(model_type, test_julday, val_julday, interval_seconds, y_true
     except FileExistsError:
         pass
 
-    zero_label = load_label([date_list.pop(julday_list.index(test_julday))], "ILL11", interval_seconds, 0)
+    zero_label = load_label([date_list.pop(julday_list.index(test_julday))], "ILL11", interval_seconds, 0, trim=False)
     zero_label['Timestamp'] = zero_label['Timestamp'].apply(UTCDateTime)
     zero_label = zero_label.iloc[:len(y_true)]
     zero_label['True_Value'] = y_true
     zero_label['Pred_Value'] = y_pred
     
-    # mse_score = mse(y_true, y_pred)
-    # smape_score = smape(y_true, y_pred)
-    # pcc_score = pcc(y_true, y_pred)
-    # dtw_distance_score = dtw_distance_calc(y_true, y_pred, interval_seconds)
     r1, _ = pearsonr(zero_label['True_Value'].to_numpy(), zero_label['Pred_Value'].to_numpy())
     r2, _ = pearsonr(zero_label['Fv [kN]'].to_numpy(), zero_label['Pred_Value'].to_numpy())
     corr1 = np.correlate(zero_label['True_Value'].to_numpy() - np.mean(zero_label['True_Value'].to_numpy()), zero_label['Pred_Value'].to_numpy() - np.mean(zero_label['Pred_Value'].to_numpy()), mode='full')
@@ -71,7 +74,15 @@ def evaluate_model(model_type, test_julday, val_julday, interval_seconds, y_true
 )
         f.write(string)
 
-    zero_label = zero_label[zero_label['Timestamp'].between(window_start, window_end)]
+    # Constrained evaluation
+    if test_julday == 161:
+        print(len(zero_label))
+        zero_label_temp = zero_label[zero_label['Timestamp'].between(window_start_1, window_end_1)]
+        zero_label = pd.concat([zero_label_temp, zero_label[zero_label['Timestamp'].between(window_start_2, window_end_2)]])
+        print(len(zero_label))
+    else:
+        zero_label = zero_label[zero_label['Timestamp'].between(window_start, window_end)]
+    
     r1, _ = pearsonr(zero_label['True_Value'].to_numpy(), zero_label['Pred_Value'].to_numpy())
     r2, _ = pearsonr(zero_label['Fv [kN]'].to_numpy(), zero_label['Pred_Value'].to_numpy())
     corr1 = np.correlate(zero_label['True_Value'].to_numpy() - np.mean(zero_label['True_Value'].to_numpy()), zero_label['Pred_Value'].to_numpy() - np.mean(zero_label['Pred_Value'].to_numpy()), mode='full')
