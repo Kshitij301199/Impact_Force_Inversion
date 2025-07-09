@@ -9,8 +9,8 @@
 #SBATCH --mail-type=all
 #SBATCH --mail-user=kshitkar@gfz-potsdam.de
 #SBATCH --chdir=/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/
-#SBATCH --output=./logs/out/%A_%a.txt   # Standard Output Log File (for Job Arrays)
-#SBATCH --error=./logs/err/%A_%a.txt    # Standard Error Log File (for Job Arrays)
+#SBATCH --output=./logs/out/t17_%A_%a.txt   # Standard Output Log File (for Job Arrays)
+#SBATCH --error=./logs/err/t17_%A_%a.txt    # Standard Error Log File (for Job Arrays)
 
 # GFZ Configuration with GPUs
 module use /cluster/spack/2022b/share/spack/modules/linux-almalinux8-icelake
