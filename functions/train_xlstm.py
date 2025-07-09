@@ -53,10 +53,10 @@ def main(test_julday:int, val_julday:int, time_shift_minutes:int|str, station:st
 
     # LOAD DATA
     print(f"{'Loading Data':-^50}")
-    total_data = load_data(julday_list, station)
-    val_data = load_data(val_julday_list, station)
-    test_data = load_data(test_julday_list, station)
-    st_test = load_seismic_data(test_julday, station)
+    total_data = load_data(julday_list, station, trim=True, abs=True)
+    val_data = load_data(val_julday_list, station, trim=True, abs=True)
+    test_data = load_data(test_julday_list, station, trim=False, abs=True)
+    st_test = load_seismic_data(test_julday, station, trim=False)
     print(f"Data --> Train : {len(total_data)} Test : {len(test_data)}")
     total_target = load_label(date_list= date_list, station= station, 
                                 interval_seconds= interval_seconds,
@@ -66,7 +66,8 @@ def main(test_julday:int, val_julday:int, time_shift_minutes:int|str, station:st
                                 time_shift_minutes= time_shift_minutes)
     test_target = load_label(date_list= test_date_list, station= station, 
                                 interval_seconds= interval_seconds,
-                                time_shift_minutes= time_shift_minutes)
+                                time_shift_minutes= time_shift_minutes,
+                                trim=False)
     print(f"Target --> Train : {len(total_target)} Test : {len(test_target)}")
     print(f"RAM usage = {get_memory_usage_in_gb():.2f} GB")
 
@@ -81,11 +82,12 @@ def main(test_julday:int, val_julday:int, time_shift_minutes:int|str, station:st
     model = xLSTMRegressor(**config)
     criterion = nn.MSELoss()
     if interval_seconds == 1:
-        lr = 5e-4
+        lr = 5e-5
+        batch_size = 32
     else:
-        lr = 5e-4
-    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=1e-5)
-    batch_size = 64
+        lr = 5e-5
+        batch_size = 128
+    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=5e-5)
 
     # INIT DATALOADERS
     print("Initialising Dataloaders")
