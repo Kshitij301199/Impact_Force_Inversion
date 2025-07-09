@@ -92,10 +92,10 @@ def objective(trial):
 
     # LOAD DATA
     print(f"{'Loading Data':-^50}")
-    total_data = load_data(julday_list, station)
-    val_data = load_data(val_julday_list, station)
-    test_data = load_data(test_julday_list, station)
-    st_test = load_seismic_data(test_julday, station)
+    total_data = load_data(julday_list, station, trim=True, abs=True)
+    val_data = load_data(val_julday_list, station, trim=True, abs=True)
+    test_data = load_data(test_julday_list, station, trim=False, abs=True)
+    st_test = load_seismic_data(test_julday, station, trim=False)
     print(f"Data --> Train : {len(total_data)} Test : {len(test_data)}")
     total_target = load_label(date_list= date_list, station= station, 
                                 interval_seconds= interval_seconds,
@@ -105,7 +105,8 @@ def objective(trial):
                                 time_shift_minutes= time_shift_minutes)
     test_target = load_label(date_list= test_date_list, station= station, 
                                 interval_seconds= interval_seconds,
-                                time_shift_minutes= time_shift_minutes)
+                                time_shift_minutes= time_shift_minutes,
+                                trim=False)
     print(f"Target --> Train : {len(total_target)} Test : {len(test_target)}")
     print(f"RAM usage = {get_memory_usage_in_gb():.2f} GB")
     # Define the model
