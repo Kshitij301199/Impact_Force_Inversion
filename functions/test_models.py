@@ -26,7 +26,8 @@ from functions.plot_image import plot_image_test
 from models.LSTM_model import LSTMRegressor
 from models.xLSTM_model import xLSTMRegressor
 
-def load_model(model_type:str, interval:int):
+def load_model(model_julday:int, model_type:str, interval:int):
+    mapping = {161 : 1, 172 : 2, 196 : 3, 207 : 4, 223 : 5, 232 : 6}
     if model_type == 'LSTM':
         with open(f"./config/comparison_baseline/lstm_default_{interval}sec_config.json", "r") as f:
             config = json.load(f)
@@ -38,33 +39,25 @@ def load_model(model_type:str, interval:int):
     else:
         print(f"Wrong model type entered : {model_type}!")
         exit()
-    model.load_state_dict(torch.load(f=f"{paths['SAVED_MODEL_DIR']}/{interval}_{model_type}.pt", weights_only=True))
+    model.load_state_dict(torch.load(f=f"{paths['SAVED_MODEL_DIR']}/{mapping[model_julday]}/{interval}_{model_type}.pt", weights_only=True))
     return model
 
 def main(network:str, station:str, component:str, year:int, julday:int, model_type:str, interval_seconds:int):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device : {device}")
     julday = str(julday).zfill(3)
-    num_intervals = int((10 * 60) // interval_seconds)
+    num_intervals = int((5 * 60) // interval_seconds)
 
-
-    output_dir = f"./model_test/{model_type}_{interval_seconds}/{network}/{station}_{component}/{year}/"
-    output_file_dir = f"{output_dir}/df"
-    output_img_dir = f"{output_dir}/img"
-    os.makedirs(output_file_dir, exist_ok=True)
-    os.makedirs(output_img_dir, exist_ok=True)
-
-    # LOAD MODEL
-    model = load_model(model_type, interval_seconds)
-
+    mapping = {161 : 1, 172 : 2, 196 : 3, 207 : 4, 223 : 5, 232 : 6}
+    
     # LOAD DATA
-    print("\t\tLoading Data")
+    print("\tLoading Data")
     st = load_seismic_data(julday= julday, station= station, raw= True, year= year, component= component,
-                           network= network)
-    data = st[0].data[1:]
+                           network= network, trim=False)
+    data = np.abs(st[0].data[1:])
 
     # PREPARE DATALOADER
-    print("\t\tPreparing Dataloader")
+    print("\tPreparing Dataloader")
     scaler = MinMaxScaler(feature_range=(0, 2))
     scaler.data_min_ = np.array([0])
     scaler.data_max_ = np.array([350])
@@ -75,38 +68,47 @@ def main(network:str, station:str, component:str, year:int, julday:int, model_ty
                                 interval_count= num_intervals, sequence_length= interval_seconds * 100)
     dataloader = DataLoader(dataset= dataset, batch_size= get_batch_size(interval_seconds), shuffle=False)
 
-    # APPLY MODEL
-    start_time = get_current_time()
-    print(f"{'Start Testing':-^50}")
-    model.eval()
-    in_sequence, predicted_output, model_timestamps = [], [], []
-    test_epoch_loss = 0.0
-    with torch.no_grad():
-        for input_sequences, test_timestamps in dataloader:
-            model.to(device)
-            # Move data to the appropriate device if using a GPU
-            input_sequences = input_sequences.float().to(device)  # Shape: (batch_size, 20, 3000)
+    for model_julday in [161, 172, 196, 207, 223, 232]:
+        output_dir = f"./model_test/{model_type}_{interval_seconds}/{year}/{mapping[model_julday]}/"
+        output_file_dir = f"{output_dir}/df"
+        output_img_dir = f"{output_dir}/img"
+        os.makedirs(output_file_dir, exist_ok=True)
+        os.makedirs(output_img_dir, exist_ok=True)
+        # LOAD MODEL
+        model = load_model(model_julday, model_type, interval_seconds)
 
-            # Forward pass: Get model predictions
-            output = model(input_sequences).squeeze(1)  # Shape: (batch_size, 1)
-            # Squeeze the output to match target shape
-            in_sequence.append(input_sequences.cpu().numpy())
-            rem = output.cpu().detach().cpu().numpy().shape
-            predicted_output.append(scaler.inverse_transform(output.detach().cpu().numpy().reshape(-1,1)).reshape(rem))
-            model_timestamps.append(test_timestamps)
-    end_time = get_current_time()
-    time_to_test = get_time_elapsed(start_time, end_time)
-    print(f"{f'End Testing : {str(timedelta(seconds=time_to_test))}':-^50}")
+        # APPLY MODEL
+        start_time = get_current_time()
+        print(f"{'Start Testing':-^50}")
+        model.eval()
+        in_sequence, predicted_output, model_timestamps = [], [], []
+        test_epoch_loss = 0.0
+        with torch.no_grad():
+            for input_sequences, test_timestamps in dataloader:
+                model.to(device)
+                # Move data to the appropriate device if using a GPU
+                input_sequences = input_sequences.float().to(device)  # Shape: (batch_size, 20, 3000)
 
-    # SAVE OUTPUT
-    times = [UTCDateTime(t) for t in timestamps]
-    assert len(times) == len(np.concatenate(predicted_output)), f"Length mismatch for saving output data {len(times)} != {len(np.concatenate(predicted_output))}"
-    df = pd.DataFrame(data={"Timestamps":times, "Predicted_Output":np.concatenate(predicted_output)})
-    df.to_csv(f"{output_file_dir}/{julday}.csv", index=False)
+                # Forward pass: Get model predictions
+                output = model(input_sequences).squeeze(1)  # Shape: (batch_size, 1)
+                # Squeeze the output to match target shape
+                in_sequence.append(input_sequences.cpu().numpy())
+                rem = output.cpu().detach().cpu().numpy().shape
+                predicted_output.append(scaler.inverse_transform(output.detach().cpu().numpy().reshape(-1,1)).reshape(rem))
+                model_timestamps.append(test_timestamps)
+        end_time = get_current_time()
+        time_to_test = get_time_elapsed(start_time, end_time)
+        print(f"{f'End Testing : {str(timedelta(seconds=time_to_test))}':-^50}")
 
-    # PLOT IMAGE
-    plot_image_test(st=st, predicted_output= predicted_output, timestamps= model_timestamps, 
-                    image_dir= output_img_dir, julday= julday, interval= interval_seconds)
+        # SAVE OUTPUT
+        times = [UTCDateTime(t) for t in timestamps]
+        assert len(times) == len(np.concatenate(predicted_output)), f"Length mismatch for saving output data {len(times)} != {len(np.concatenate(predicted_output))}"
+        df = pd.DataFrame(data={"Timestamps":times, "Predicted_Output":np.concatenate(predicted_output)})
+        df.to_csv(f"{output_file_dir}/{julday}.csv", index=False)
+
+        # PLOT IMAGE
+        plot_image_test(st=st, predicted_output= predicted_output, timestamps= model_timestamps, 
+                        image_dir= output_img_dir, julday= julday, interval= interval_seconds)
     
     return None
 
