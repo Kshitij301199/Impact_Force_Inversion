@@ -17,22 +17,24 @@ sys.path.append("..")
 from data_processing.read_data import load_seismic_data
 
 def get_mean_and_std():
-    min_Fvs, min_Fv_stds = [], []
+    min_Fvs, mean_Fv_stds = [], []
     for file in os.listdir(path= f"{paths['LOCAL_BASE_DIR']}/{paths['UTC0_LABEL_DIR']}"):
         df = pd.read_csv(f"{paths['LOCAL_BASE_DIR']}/{paths['UTC0_LABEL_DIR']}/{file}")
         min_Fvs.append(np.min(df['Fv [kN]']))
-        min_Fv_stds.append(np.min(df['Fv std']))
+        mean_Fv_stds.append(np.mean(df['Fv std']))
     min_Fv = np.min(min_Fvs)
-    min_Fv_std = np.mean(min_Fv_stds)
-    print(f"Minimum Impact Force : {min_Fv:.2f}kN, \nMinimum Standard Deviation : {min_Fv_std:.2f}kN")
+    min_Fv_std = np.min(mean_Fv_stds)
+   
     return min_Fv, min_Fv_std
 
 def main(station, time_shift_minutes, from_velocity:bool=False):
     input_dir = f"{paths['LOCAL_BASE_DIR']}/{paths['UTC0_LABEL_DIR']}"
     velocity_dir = f"{paths['LOCAL_BASE_DIR']}/label"
     event_data = pd.read_csv("2019-event-times.csv", index_col=0)
-    # min_Fv, min_Fv_std = get_mean_and_std()
-    min_Fv, min_Fv_std = 0.5, 0.05
+    min_Fv, min_Fv_std = get_mean_and_std()
+    # min_Fv, min_Fv_std = 0.5, 0.01
+    sigma = 5
+    print(f"Minimum Impact Force : {min_Fv:.2f}kN, \nMinimum Standard Deviation : {min_Fv_std:.2f}kN, Used Standard Deviation : {sigma * min_Fv_std:.2f}kN")
     
     # Unique Cases 1
     if not from_velocity:
@@ -61,7 +63,7 @@ def main(station, time_shift_minutes, from_velocity:bool=False):
         complete_data['Time'] = time_list1
         merged_data = pd.merge(left= complete_data, right= data, how="left", on='Time')
         merged_data.drop(columns=['Time UTC+1', 'Time UTC+0'], inplace=True)
-        merged_data['Fv [kN]'] = merged_data['Fv [kN]'].apply(fill_missing_from_Gaussian, **{"mean": min_Fv, "std": 3*min_Fv_std})
+        merged_data['Fv [kN]'] = merged_data['Fv [kN]'].apply(fill_missing_from_Gaussian, **{"mean": min_Fv, "std": sigma*min_Fv_std})
         merged_data = merged_data.fillna(value={"Fv std": min_Fv_std, "Fv min": 0, "Fv max": 0})
         merged_data.to_csv(f"{output_dir}/{start_date}.csv", index=False)
 
@@ -88,7 +90,7 @@ def main(station, time_shift_minutes, from_velocity:bool=False):
         complete_data['Time'] = time_list1
         merged_data = pd.merge(left= complete_data, right= data, how="left", on='Time')
         merged_data.drop(columns=['Time UTC+1', 'Time UTC+0'], inplace=True)
-        merged_data['Fv [kN]'] = merged_data['Fv [kN]'].apply(fill_missing_from_Gaussian, **{"mean": min_Fv, "std": 3*min_Fv_std})
+        merged_data['Fv [kN]'] = merged_data['Fv [kN]'].apply(fill_missing_from_Gaussian, **{"mean": min_Fv, "std": sigma*min_Fv_std})
         merged_data = merged_data.fillna(value={"Fv std": min_Fv_std, "Fv min": 0, "Fv max": 0})
         merged_data[merged_data['Time'].between(UTCDateTime('2019-07-01'), UTCDateTime('2019-07-02'))].to_csv(f"{output_dir}/2019-07-01.csv", index=False)
         merged_data[merged_data['Time'].between(UTCDateTime('2019-07-02'), UTCDateTime('2019-07-03'))].to_csv(f"{output_dir}/2019-07-02.csv", index=False)
@@ -119,13 +121,14 @@ def main(station, time_shift_minutes, from_velocity:bool=False):
             complete_data['Time'] = time_list1
             merged_data = pd.merge(left= complete_data, right= data, how="left", on= 'Time')
             merged_data.drop(columns=['Time UTC+1', 'Time UTC+0'], inplace=True)
-            merged_data['Fv [kN]'] = merged_data['Fv [kN]'].apply(fill_missing_from_Gaussian, **{"mean": min_Fv, "std": 3*min_Fv_std})
+            merged_data['Fv [kN]'] = merged_data['Fv [kN]'].apply(fill_missing_from_Gaussian, **{"mean": min_Fv, "std": sigma*min_Fv_std})
             merged_data = merged_data.fillna(value={"Fv std": min_Fv_std, "Fv min": 0, "Fv max": 0})
             merged_data.to_csv(f"{output_dir}/{date_start}.csv", index=False)
     else:
         output_dir = f"{paths['LOCAL_BASE_DIR']}/label/data_processed_dynamic/{station}"
         os.makedirs(output_dir, exist_ok=True)
-        vel_df = pd.read_csv(f"{velocity_dir}/DF_velocity_data.csv", index_col=False)
+        vel_df = pd.read_csv(f"{velocity_dir}/DF_characteristics.csv", index_col=False)
+        vel_df['Event_Date'] = vel_df['Event_Date'].apply(lambda x: x.split('T')[0])
         print("Running Unique Case 1")
         start_date = "2019-06-10"
         end_date = "2019-06-11"
@@ -139,8 +142,8 @@ def main(station, time_shift_minutes, from_velocity:bool=False):
         # print(f"{data_start_time1.datetime} \n{data_start_time2.datetime}")
         time_diff1, time_diff2 = data_start_time1 - df_start_times.iloc[0], data_start_time2 - df_start_times.iloc[1]
 
-        data1['Time'] = data1.iloc[:,-1].apply(UTCDateTime) - (6 * 60) + int(temp.iloc[0,-1]) # - peak_to_peak difference + time shift by velocity
-        data2['Time'] = data2.iloc[:,-1].apply(UTCDateTime) - (1 * 60) + int(temp.iloc[1,-1]) # - peak_to_peak difference + time shift by velocity
+        data1['Time'] = data1.iloc[:,-1].apply(UTCDateTime) - (6 * 60) + int(temp.iloc[0,2]) # - peak_to_peak difference + time shift by velocity
+        data2['Time'] = data2.iloc[:,-1].apply(UTCDateTime) - (1 * 60) + int(temp.iloc[1,2]) # - peak_to_peak difference + time shift by velocity
         data = pd.concat([data1, data2])
         complete_data = pd.DataFrame(columns= ['Time'])
         start_time = UTCDateTime("2019-06-10T00:00:00")
@@ -150,7 +153,7 @@ def main(station, time_shift_minutes, from_velocity:bool=False):
         complete_data['Time'] = time_list1
         merged_data = pd.merge(left= complete_data, right= data, how="left", on='Time')
         merged_data.drop(columns=['Time UTC+1', 'Time UTC+0'], inplace=True)
-        merged_data['Fv [kN]'] = merged_data['Fv [kN]'].apply(fill_missing_from_Gaussian, **{"mean": min_Fv, "std": 3*min_Fv_std})
+        merged_data['Fv [kN]'] = merged_data['Fv [kN]'].apply(fill_missing_from_Gaussian, **{"mean": min_Fv, "std": sigma*min_Fv_std})
         merged_data = merged_data.fillna(value={"Fv std": min_Fv_std, "Fv min": 0, "Fv max": 0})
         merged_data.to_csv(f"{output_dir}/{start_date}.csv", index=False)
 
@@ -166,8 +169,8 @@ def main(station, time_shift_minutes, from_velocity:bool=False):
         data_start_time1, data_start_time2 = UTCDateTime(data1.iloc[0,-1]), UTCDateTime(data2.iloc[0,-1])
         # print(f"{data_start_time1.datetime} \n{data_start_time2.datetime}")
         time_diff1, time_diff2 = data_start_time1 - df_start_times.iloc[0], data_start_time2 - df_start_times.iloc[1]
-        data1['Time'] = data1.iloc[:,-1].apply(UTCDateTime) - (61 * 60) + int(temp.iloc[0,-1])
-        data2['Time'] = data2.iloc[:,-1].apply(UTCDateTime) - (68 * 60) + int(temp.iloc[1,-1])
+        data1['Time'] = data1.iloc[:,-1].apply(UTCDateTime) - (61 * 60) + int(temp.iloc[0,2])
+        data2['Time'] = data2.iloc[:,-1].apply(UTCDateTime) - (68 * 60) + int(temp.iloc[1,2])
 
         data = pd.concat([data1, data2])
         complete_data = pd.DataFrame(columns= ['Time'])
@@ -178,7 +181,7 @@ def main(station, time_shift_minutes, from_velocity:bool=False):
         complete_data['Time'] = time_list1
         merged_data = pd.merge(left= complete_data, right= data, how="left", on='Time')
         merged_data.drop(columns=['Time UTC+1', 'Time UTC+0'], inplace=True)
-        merged_data['Fv [kN]'] = merged_data['Fv [kN]'].apply(fill_missing_from_Gaussian, **{"mean": min_Fv, "std": 3*min_Fv_std})
+        merged_data['Fv [kN]'] = merged_data['Fv [kN]'].apply(fill_missing_from_Gaussian, **{"mean": min_Fv, "std": sigma*min_Fv_std})
         merged_data = merged_data.fillna(value={"Fv std": min_Fv_std, "Fv min": 0, "Fv max": 0})
         merged_data[merged_data['Time'].between(UTCDateTime('2019-07-01'), UTCDateTime('2019-07-02'))].to_csv(f"{output_dir}/2019-07-01.csv", index=False)
         merged_data[merged_data['Time'].between(UTCDateTime('2019-07-02'), UTCDateTime('2019-07-03'))].to_csv(f"{output_dir}/2019-07-02.csv", index=False)
@@ -200,8 +203,8 @@ def main(station, time_shift_minutes, from_velocity:bool=False):
             data_start_time1 = UTCDateTime(data.iloc[0,-1])
             # print(data_start_time1.datetime)
             time_diff1 = data_start_time1 - df_start_times.iloc[0] 
-            print(f"date: {date_start}, time_shift: {temp.iloc[0,-1]}")
-            data['Time'] = data.iloc[:,-1].apply(UTCDateTime) - (peak_diff * 60) + int(temp.iloc[0,-1])
+            print(f"date: {date_start}, time_shift: {temp.iloc[0,2]}")
+            data['Time'] = data.iloc[:,-1].apply(UTCDateTime) - (peak_diff * 60) + int(temp.iloc[0,2])
             complete_data = pd.DataFrame(columns= ['Time'])
             start_time = UTCDateTime(date_start)
             time_list1 = []
@@ -210,7 +213,7 @@ def main(station, time_shift_minutes, from_velocity:bool=False):
             complete_data['Time'] = time_list1
             merged_data = pd.merge(left= complete_data, right= data, how="left", on= 'Time')
             merged_data.drop(columns=['Time UTC+1', 'Time UTC+0'], inplace=True)
-            merged_data['Fv [kN]'] = merged_data['Fv [kN]'].apply(fill_missing_from_Gaussian, **{"mean": min_Fv, "std": 3*min_Fv_std})
+            merged_data['Fv [kN]'] = merged_data['Fv [kN]'].apply(fill_missing_from_Gaussian, **{"mean": min_Fv, "std": sigma*min_Fv_std})
             merged_data = merged_data.fillna(value={"Fv std": min_Fv_std, "Fv min": 0, "Fv max": 0})
             merged_data.to_csv(f"{output_dir}/{date_start}.csv", index=False)
 
@@ -219,6 +222,7 @@ def main(station, time_shift_minutes, from_velocity:bool=False):
 if __name__ == "__main__":
     # for interval in [0, 5, 10]:
     main("ILL11", None, True)
+    main("ILL11", 0, False)
 
 
 

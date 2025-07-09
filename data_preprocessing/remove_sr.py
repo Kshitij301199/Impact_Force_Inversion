@@ -7,6 +7,8 @@ try:
 except FileNotFoundError:
     with open("../config/paths.json", "r") as file:
         paths = json.load(file)
+with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/data_parameters.json", "r") as file:
+    data_params = json.load(file)
 from obspy import read, read_inventory
 
 def load_write_data(julday:str, station:str):
@@ -17,7 +19,7 @@ def load_write_data(julday:str, station:str):
     st.detrend('demean')
     inv = read_inventory(f"{paths["META_DATA_DIR"]}/9S_2017_2020.xml")
     st.remove_response(inventory=inv)
-    st.filter("bandpass", freqmin=1, freqmax=45)
+    st.filter("bandpass", freqmin=data_params['fmin'], freqmax=data_params['fmax'])
     output_dir = f"./data_srr/Illgraben/2019/{station}/EHZ"
     os.makedirs(output_dir, exist_ok=True)
     st.write(f'{output_dir}/9S.{station}.EHZ.2019.{julday}.mseed', format="MSEED")
