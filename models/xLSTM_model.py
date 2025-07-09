@@ -65,26 +65,10 @@ class xLSTMRegressor(nn.Module):
         """
         x = self.embedding(x)  # (batch_size, 20, embedding_dim)
 
-        # Repeat prev_target across the sequence length (dim=1)
-        # if prev_target.dim() == 2:
-        #     prev_target = prev_target  # (batch_size, 1)
-        #     # prev_target = prev_target.repeat(1, x.size(1), 1)  # (batch_size, 20, 1)
-        # elif prev_target.dim() == 1:
-        #     prev_target = prev_target.unsqueeze(1)
-            # prev_target = prev_target.repeat(1, x.size(1), 1)  # (batch_size, 20, 1)
-
-        # prev_target = prev_target[:x.size(0), :]
-        # assert x.size(0) == prev_target.size(0), f"Batch Size Mismatch {x.size(0)} != {prev_target.size(0)}"
-        # assert x.size(1) == prev_target.size(1), f"Seq Len Mismatch {x.size(1)} != {prev_target.size(1)}"
-        # Concatenate prev_targets
-        # x = torch.cat([x, prev_target], dim=-1)  # (batch_size, 20, embedding_dim + 1)
-
         for xlstm in self.xlstm_layers:
             x = xlstm(x)  # (batch_size, 20, embedding_dim + 1)
 
         x = x[:, -1, :]  # (batch_size, embedding_dim + 1)
         output = self.fc(x)  # (batch_size, 1)
-        # output = F.softplus(output)
-        # output = self.fc2(torch.cat([output, prev_target], dim=-1))
         
         return F.softplus(output)
