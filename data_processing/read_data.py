@@ -80,7 +80,12 @@ def load_seismic_data(julday:str|int, station:str, raw:bool=False,
         st[0].data = st[0].data * scaling
         return st
 
-def load_label(date_list: list, station: str, interval_seconds: int, time_shift_minutes, trim:bool = True) -> pd.DataFrame:
+def load_label(date_list: list, station: str, interval_seconds: int, time_shift_minutes, trim:bool = True, smoothing: int | None = 30) -> pd.DataFrame:
+    if smoothing == None:
+        data_col = "Fv [kN]"
+    else:
+        data_col = f"moving_avg_{smoothing}"
+    
     total_target = None
     try:
         trim_df = pd.read_csv(f"{paths['BASE_DIR']}/label/correct_metrics_time_window.csv")
@@ -136,7 +141,7 @@ def load_label(date_list: list, station: str, interval_seconds: int, time_shift_
             target = target.iloc[:num_windows * interval_seconds]  # Trim excess data
 
             # Reshape data for window-based averaging
-            reshaped_values = target['Fv [kN]'].values.reshape(num_windows, interval_seconds)
+            reshaped_values = target[data_col].values.reshape(num_windows, interval_seconds)
             averaged_values = np.mean(reshaped_values, axis=1)
             std_values = np.std(reshaped_values, axis=1)
 
