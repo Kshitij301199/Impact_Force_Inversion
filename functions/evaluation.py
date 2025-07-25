@@ -14,7 +14,7 @@ from obspy.core import UTCDateTime
 
 from data_processing.read_data import load_label
 
-def evaluate_model(model_type:str, test_julday:int, val_julday:int, interval_seconds:int, y_true, y_pred, out_dir:str, time_to_train:str):
+def evaluate_model(model_type:str, test_julday:int, val_julday:int, interval_seconds:int, y_true, y_pred, smoothing:int,out_dir:str, time_to_train:str):
     print(f"{'Evaluating Model':-^50}")
     julday_list = [161, 172, 182, 183, 196, 207, 223, 232]
     date_list = ["2019-06-10", "2019-06-21", "2019-07-01", "2019-07-02", "2019-07-15", "2019-07-26", "2019-08-11", "2019-08-20"]
@@ -44,7 +44,7 @@ def evaluate_model(model_type:str, test_julday:int, val_julday:int, interval_sec
     except FileExistsError:
         pass
 
-    zero_label = load_label([date_list.pop(julday_list.index(test_julday))], "ILL11", interval_seconds, 0, trim=False)
+    zero_label = load_label([date_list.pop(julday_list.index(test_julday))], "ILL11", interval_seconds, 0, trim=False, smoothing=smoothing)
     zero_label['Timestamp'] = zero_label['Timestamp'].apply(UTCDateTime)
     zero_label = zero_label.iloc[:len(y_true)]
     zero_label['True_Value'] = y_true
@@ -52,9 +52,13 @@ def evaluate_model(model_type:str, test_julday:int, val_julday:int, interval_sec
     
     r1, _ = pearsonr(zero_label['True_Value'].to_numpy(), zero_label['Pred_Value'].to_numpy())
     r2, _ = pearsonr(zero_label['Fv [kN]'].to_numpy(), zero_label['Pred_Value'].to_numpy())
-    corr1 = np.correlate(zero_label['True_Value'].to_numpy() - np.mean(zero_label['True_Value'].to_numpy()), zero_label['Pred_Value'].to_numpy() - np.mean(zero_label['Pred_Value'].to_numpy()), mode='full')
+    corr1 = np.correlate(zero_label['True_Value'].to_numpy() - np.mean(zero_label['True_Value'].to_numpy()),
+                         zero_label['Pred_Value'].to_numpy() - np.mean(zero_label['Pred_Value'].to_numpy()),
+                         mode='full')
     lag1 = np.argmax(corr1) - (len(zero_label['True_Value'].to_numpy()) - 1)
-    corr2 = np.correlate(zero_label['Fv [kN]'].to_numpy() - np.mean(zero_label['Fv [kN]'].to_numpy()), zero_label['Pred_Value'].to_numpy() - np.mean(zero_label['Pred_Value'].to_numpy()), mode='full')
+    corr2 = np.correlate(zero_label['Fv [kN]'].to_numpy() - np.mean(zero_label['Fv [kN]'].to_numpy()), 
+                         zero_label['Pred_Value'].to_numpy() - np.mean(zero_label['Pred_Value'].to_numpy()), 
+                         mode='full')
     lag2 = np.argmax(corr2) - (len(zero_label['Fv [kN]'].to_numpy()) - 1)
     with open(filename, "a") as f:
         string = (
@@ -109,5 +113,3 @@ def evaluate_model(model_type:str, test_julday:int, val_julday:int, interval_sec
         f.write(string)
     return None
 
-
-# %%

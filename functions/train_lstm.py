@@ -30,44 +30,73 @@ from functions.plot_image import plot_image
 
 from models.LSTM_model import LSTMRegressor
 
-def main(test_julday:int, val_julday:int, time_shift_minutes:int, station:str, interval_seconds:int, config_option:str, task:str):
+def main(test_julday:int, val_julday:int, time_shift_minutes:int|str, smoothing:int,station:str, interval_seconds:int, config_option:str, task:str):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device : {device}")
     num_intervals = int((data_params['time_window'] * 60) // interval_seconds)
-    model_dir = f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}/model/{config_option}/{interval_seconds}"
-    image_dir = f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}/test_results/lstm/{config_option}/{interval_seconds}"
-    save_dir = f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}/output_df/{config_option}/{interval_seconds}/"
-    os.makedirs(model_dir, exist_ok=True)
-    os.makedirs(image_dir, exist_ok=True)
-    os.makedirs(save_dir, exist_ok=True)
+    if task == "abalation_study_1":
+        output_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}" 
+        model_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}/model/{test_julday}"
+        image_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}/test_results/lstm/{test_julday}"
+        save_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}/output_df/{test_julday}"
+        os.makedirs(model_dir, exist_ok=True)
+        os.makedirs(image_dir, exist_ok=True)
+        os.makedirs(save_dir, exist_ok=True)
+    elif task == "slstm_v_mlstm":
+        output_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}" 
+        model_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}/model/{config_option}"
+        image_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}/test_results/{config_option}"
+        save_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}/output_df/{config_option}"
+        os.makedirs(model_dir, exist_ok=True)
+        os.makedirs(image_dir, exist_ok=True)
+        os.makedirs(save_dir, exist_ok=True)
+    else:
+        output_dir = f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}_{smoothing}" 
+        model_dir = f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}_{smoothing}/model/{config_option}/{interval_seconds}"
+        image_dir = f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}_{smoothing}/test_results/lstm/{config_option}/{interval_seconds}"
+        save_dir = f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}_{smoothing}/output_df/{config_option}/{interval_seconds}"
+        os.makedirs(model_dir, exist_ok=True)
+        os.makedirs(image_dir, exist_ok=True)
+        os.makedirs(save_dir, exist_ok=True)
 
     julday_list = [161, 172, 182, 183, 196, 207, 223, 232]
     date_list = ["2019-06-10", "2019-06-21", "2019-07-01", "2019-07-02", "2019-07-15", "2019-07-26", "2019-08-11", "2019-08-20"]
     
-    test_date = date_list.pop(julday_list.index(test_julday))
-    julday_list.remove(test_julday)
-    val_date = date_list.pop(julday_list.index(val_julday))  
-    julday_list.remove(val_julday)
-    test_julday_list = [test_julday]
-    test_date_list = [test_date]
-    val_julday_list, val_date_list = [val_julday], [val_date]
+    if task == "abalation_study_1":
+        julday_list = julday_list[:test_julday]
+        date_list = date_list[:test_julday]
+        test_julday, test_julday_list, test_date_list = 232, [232], ["2019-08-20"]
+        val_julday, val_julday_list, val_date_list = 223, [223], ["2019-08-11"]
+    else:
+        test_date = date_list.pop(julday_list.index(test_julday))
+        julday_list.remove(test_julday)
+        val_date = date_list.pop(julday_list.index(val_julday))  
+        julday_list.remove(val_julday)
+        test_julday_list = [test_julday]
+        test_date_list = [test_date]
+        val_julday_list, val_date_list = [val_julday], [val_date]
 
     # LOAD DATA
+    smoothing = smoothing
     print(f"{'Loading Data':-^50}")
     total_data = load_data(julday_list, station, trim=True, abs=True)
-    val_data = load_data(val_julday_list, station, trim=True, abs=True)
+    val_data = load_data(val_julday_list, station, trim=False, abs=True)
     test_data = load_data(test_julday_list, station, trim=False, abs=True)
     st_test = load_seismic_data(test_julday, station, trim=False)
     print(f"Data --> Train : {len(total_data)} Test : {len(test_data)}")
     total_target = load_label(date_list= date_list, station= station, 
                                 interval_seconds= interval_seconds,
-                                time_shift_minutes= time_shift_minutes)
+                                time_shift_minutes= time_shift_minutes,
+                                smoothing=smoothing)
     val_target = load_label(date_list= val_date_list, station= station, 
                                 interval_seconds= interval_seconds,
-                                time_shift_minutes= time_shift_minutes)
+                                time_shift_minutes= time_shift_minutes,
+                                smoothing=smoothing,
+                                trim=False)
     test_target = load_label(date_list= test_date_list, station= station, 
                                 interval_seconds= interval_seconds,
                                 time_shift_minutes= time_shift_minutes,
+                                smoothing=smoothing,
                                 trim=False)
     print(f"Target --> Train : {len(total_target)} Test : {len(test_target)}")
     print(f"RAM usage = {get_memory_usage_in_gb():.2f} GB")
@@ -76,7 +105,7 @@ def main(test_julday:int, val_julday:int, time_shift_minutes:int, station:str, i
     print("Initialising Model")
     with open(f"./config/{task}/lstm_{config_option}_{interval_seconds}sec_config.json", "r") as f:
         config = json.load(f)
-    with open(f"{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}/model_config.txt", "a") as f:
+    with open(f"{output_dir}/model_config.txt", "a") as f:
         string = f"lstm :\n{config}\n"
         f.write(string)
     model = LSTMRegressor(**config)
@@ -127,8 +156,9 @@ def main(test_julday:int, val_julday:int, time_shift_minutes:int, station:str, i
                    val_julday=val_julday, 
                    interval_seconds=interval_seconds, 
                    y_true=np.concatenate(target_out), 
-                   y_pred=np.concatenate(pred_out), 
-                   out_dir=f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}",
+                   y_pred=np.concatenate(pred_out),
+                   smoothing=smoothing, 
+                   out_dir=output_dir,
                    time_to_train=time_to_train,
                    )
     end_time = get_current_time()
@@ -145,12 +175,14 @@ if __name__ == "__main__":
     parser.add_argument("--interval", type=int, default=30, help= "interval seconds")
     parser.add_argument("--config_op", type=str,default="default", help= "config option")
     parser.add_argument("--task", type=str, default="comparison_baseline", help= "name of the task corresponding to parameter directory")
+    parser.add_argument("--smoothing", type=int, default=30, help="enter a value used for smoothing the raw data")
 
     args = parser.parse_args()
     print(f"Running main with {args.test_julday} {args.station} {args.config_op} {args.task}")
     main(args.test_julday,
         args.val_julday, 
-        args.time_shift_mins, 
+        args.time_shift_mins,
+        args.smoothing, 
         args.station, 
         args.interval, 
         args.config_op, 
