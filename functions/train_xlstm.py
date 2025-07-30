@@ -18,6 +18,7 @@ import torch.nn as nn
 import torch.optim as optim
 from obspy import UTCDateTime
 from sklearn.preprocessing import MinMaxScaler
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from data_processing.read_data import load_data, load_label, load_seismic_data
 from data_processing.dataloader import SequenceDataset, DataLoader
@@ -115,12 +116,13 @@ def main(test_julday:int, val_julday:int, time_shift_minutes:int|str, smoothing:
         batch_size = 32
     else:
         lr = 5e-5
-        batch_size = 128
+        batch_size = 48
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=5e-5)
+    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3)
 
     # INIT DATALOADERS
     print("Initialising Dataloaders")
-    scaler = MinMaxScaler(feature_range=(0, 2))
+    scaler = MinMaxScaler(feature_range=(0, 1))
     scaler.data_min_ = np.array([0])
     scaler.data_max_ = np.array([350])
     scaler.scale_ = (scaler.feature_range[1] - scaler.feature_range[0]) / (scaler.data_max_ - scaler.data_min_)
@@ -143,9 +145,9 @@ def main(test_julday:int, val_julday:int, time_shift_minutes:int|str, smoothing:
 
     print("Training Model")
     in_seq, pred_out, target_out, timestamps, time_to_train = train_model(model, criterion, optimizer,
-                                                           100, 10, interval_seconds, test_julday, val_julday,
+                                                           100, 15, interval_seconds, test_julday, val_julday,
                                                            'xLSTM', train_dataloader, val_dataloader,
-                                                           test_dataloader, model_dir, scaler)
+                                                           test_dataloader, model_dir, scaler, scheduler)
     times = [UTCDateTime(t) for t in np.concatenate(timestamps)]
     df = pd.DataFrame(data={"Timestamps":times, "Output":np.concatenate(target_out), "Predicted_Output":np.concatenate(pred_out)})
     df.to_csv(f"{save_dir}/xLSTM_t{test_julday}_v{val_julday}.csv", index=False)

@@ -8,7 +8,7 @@ from utils import *
 
 def train_model(model, criterion, optimizer, num_epochs:int, patience:int,
                 interval:int, test_julday:int, val_julday:int ,model_type:str,
-                train_dataloader, val_dataloader, test_dataloader, model_dir:str, scaler) -> tuple[list, list, list, list]:
+                train_dataloader, val_dataloader, test_dataloader, model_dir:str, scaler, scheduler) -> tuple[list, list, list, list]:
     print(f"RAM usage = {get_memory_usage_in_gb():.2f} GB")
     start_time = get_current_time()
     print(f"{'Starting Training':-^50}")
@@ -35,6 +35,7 @@ def train_model(model, criterion, optimizer, num_epochs:int, patience:int,
             assert output.shape == target_value.shape, f"Shape mismatch {output.shape} <-> {target_value.shape}"
             loss = criterion(output, target_value)     # Compute loss
             loss.backward()
+            # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
             epoch_loss += loss.item()
             # prev_target = output.cpu().detach()
@@ -57,7 +58,9 @@ def train_model(model, criterion, optimizer, num_epochs:int, patience:int,
                 val_epoch_loss += loss.item()
                 # prev_target = output.cpu().detach()
         val_epoch_loss /= len(val_dataloader)
-        print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {epoch_loss:.4f}, Val loss : {val_epoch_loss:.4f}, Best Loss : {best_loss:.4f}, RAM usage = {get_memory_usage_in_gb():.2f} GB")
+        current_lr = scheduler.optimizer.param_groups[0]['lr']
+        print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {epoch_loss:.4f}, Val loss : {val_epoch_loss:.4f}, Best Loss : {best_loss:.4f}, RAM usage = {get_memory_usage_in_gb():.2f} GB, LR = {current_lr:.2e}")
+        scheduler.step(val_epoch_loss)
         # Check for early stopping criteria
         if val_epoch_loss < best_loss:
             best_loss = val_epoch_loss
