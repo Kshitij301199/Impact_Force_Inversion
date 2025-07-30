@@ -127,6 +127,7 @@ def main(station, time_shift_minutes, from_velocity:bool=False):
     else:
         output_dir = f"{paths['LOCAL_BASE_DIR']}/label/data_processed_dynamic/{station}"
         os.makedirs(output_dir, exist_ok=True)
+        distance = 450 # in meters between ILL11 and Force Plate
         vel_df = pd.read_csv(f"{velocity_dir}/DF_characteristics.csv", index_col=False)
         vel_df['Event_Date'] = vel_df['Event_Date'].apply(lambda x: x.split('T')[0])
         print("Running Unique Case 1")
@@ -142,8 +143,11 @@ def main(station, time_shift_minutes, from_velocity:bool=False):
         # print(f"{data_start_time1.datetime} \n{data_start_time2.datetime}")
         time_diff1, time_diff2 = data_start_time1 - df_start_times.iloc[0], data_start_time2 - df_start_times.iloc[1]
 
-        data1['Time'] = data1.iloc[:,-1].apply(UTCDateTime) - (6 * 60) + int(temp.iloc[0,2]) # - peak_to_peak difference + time shift by velocity
-        data2['Time'] = data2.iloc[:,-1].apply(UTCDateTime) - (1 * 60) + int(temp.iloc[1,2]) # - peak_to_peak difference + time shift by velocity
+        print(f"date: {start_date}, vel: {temp.iloc[0,2]}, time_shift: {distance / temp.iloc[0,2] : .2f}")
+        print(f"date: {start_date}, vel: {temp.iloc[1,2]}, time_shift: {distance / temp.iloc[1,2] : .2f}")
+
+        data1['Time'] = data1.iloc[:,-1].apply(UTCDateTime) - (6 * 60) + int(distance / temp.iloc[0,2]) # - peak_to_peak difference + time shift by velocity
+        data2['Time'] = data2.iloc[:,-1].apply(UTCDateTime) - (1 * 60) + int(distance / temp.iloc[1,2]) # - peak_to_peak difference + time shift by velocity
         data = pd.concat([data1, data2])
         complete_data = pd.DataFrame(columns= ['Time'])
         start_time = UTCDateTime("2019-06-10T00:00:00")
@@ -167,10 +171,12 @@ def main(station, time_shift_minutes, from_velocity:bool=False):
         data1 = pd.read_csv(f"{input_dir}/20190702_Fv.csv", index_col=0)
         data2 = pd.read_csv(f"{input_dir}/20190703_Fv.csv", index_col=0)
         data_start_time1, data_start_time2 = UTCDateTime(data1.iloc[0,-1]), UTCDateTime(data2.iloc[0,-1])
+        print(f"date: {DataStart}, vel: {temp.iloc[0,2]}, time_shift: {distance / temp.iloc[0,2] : .2f}")
+        print(f"date: {DataStart}, vel: {temp.iloc[1,2]}, time_shift: {distance / temp.iloc[1,2] : .2f}")
         # print(f"{data_start_time1.datetime} \n{data_start_time2.datetime}")
         time_diff1, time_diff2 = data_start_time1 - df_start_times.iloc[0], data_start_time2 - df_start_times.iloc[1]
-        data1['Time'] = data1.iloc[:,-1].apply(UTCDateTime) - (61 * 60) + int(temp.iloc[0,2])
-        data2['Time'] = data2.iloc[:,-1].apply(UTCDateTime) - (68 * 60) + int(temp.iloc[1,2])
+        data1['Time'] = data1.iloc[:,-1].apply(UTCDateTime) - (61 * 60) + int(distance / temp.iloc[0,2])
+        data2['Time'] = data2.iloc[:,-1].apply(UTCDateTime) - (68 * 60) + int(distance / temp.iloc[1,2])
 
         data = pd.concat([data1, data2])
         complete_data = pd.DataFrame(columns= ['Time'])
@@ -203,8 +209,8 @@ def main(station, time_shift_minutes, from_velocity:bool=False):
             data_start_time1 = UTCDateTime(data.iloc[0,-1])
             # print(data_start_time1.datetime)
             time_diff1 = data_start_time1 - df_start_times.iloc[0] 
-            print(f"date: {date_start}, time_shift: {temp.iloc[0,2]}")
-            data['Time'] = data.iloc[:,-1].apply(UTCDateTime) - (peak_diff * 60) + int(temp.iloc[0,2])
+            print(f"date: {date_start}, vel: {temp.iloc[0,2]}, time_shift: {distance / temp.iloc[0,2] : .2f}")
+            data['Time'] = data.iloc[:,-1].apply(UTCDateTime) - (peak_diff * 60) + int(distance / temp.iloc[0,2])
             complete_data = pd.DataFrame(columns= ['Time'])
             start_time = UTCDateTime(date_start)
             time_list1 = []
