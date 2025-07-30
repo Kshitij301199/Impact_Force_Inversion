@@ -1,1 +1,1 @@
-{"input_size": 1500, "conv1d_kernel_size": 20, "qkv_proj_blocksize": 8, "num_heads": 8, "context_length": 20, "num_blocks": 8, "embedding_dim": 96, "slstm_at": [1], "num_reps": 3}
+{"input_size": 1500, "conv1d_kernel_size": 4, "qkv_proj_blocksize": 4, "num_heads": 2, "context_length": 20, "num_blocks": 8, "embedding_dim": 96, "slstm_at": [1], "num_reps": 1}
