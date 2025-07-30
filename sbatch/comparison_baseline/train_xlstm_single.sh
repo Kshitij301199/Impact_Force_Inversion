@@ -2,9 +2,9 @@
 #SBATCH -t 96:00:00               # time limit: (HH:MM:SS)
 #SBATCH --job-name=base_xlstm           # job name
 #SBATCH --ntasks=1                # each task in the job array will have a single task associated with it
-#SBATCH --array=1-30%4            # job array id, adjusted for the total number of commands (8 test days * 7 validation days * 4 intervals)
+#SBATCH --array=1-126%4            # job array id, adjusted for the total number of commands (8 test days * 7 validation days * 4 intervals)
 #SBATCH --mem-per-cpu=16G         # Memory Request (per CPU; can use on GLIC)
-#SBATCH --gres=gpu:A30:1             # load GPU A100 could be replace by A40/A30, 509-510 nodes has 4_A100_80G
+#SBATCH --gres=gpu:A40:1             # load GPU A100 could be replace by A40/A30, 509-510 nodes has 4_A100_80G
 #SBATCH --reservation=GPU            # reserve the GPU
 #SBATCH --mail-type=all
 #SBATCH --mail-user=kshitkar@gfz-potsdam.de
@@ -19,8 +19,8 @@ conda activate xlstm_env
 
 # Define the arrays
 intervals=(5)
-juldays=(161 172 196 207 223 232)
-hyp_options=('default')
+juldays=(161 172 183 196 207 223 232)
+hyp_options=('default' 'mlstm' 'slstm')
 
 # Calculate the total number of combinations per test day
 num_val_days=$(( ${#juldays[@]} - 1 ))
@@ -59,12 +59,14 @@ echo "Interval: $interval"
 echo "Hypothesis Option: $hyp_option"
 
 # Run the Python script with the selected parameters
-srun --gres=gpu:A30:1 --unbuffered python /storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/functions/train_xlstm.py \
+srun --gres=gpu:A40:1 --unbuffered python /storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/functions/train_xlstm.py \
     --test_julday "$test_julday" \
     --val_julday "$val_julday" \
     --time_shift_mins 'dynamic' \
     --interval "$interval" \
     --station "ILL11" \
     --config_op "$hyp_option" \
-    --task "comparison_baseline"
+    --task "comparison_baseline" \
+    --smoothing 30
+
 
