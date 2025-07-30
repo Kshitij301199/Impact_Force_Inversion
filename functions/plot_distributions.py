@@ -5,6 +5,7 @@ import argparse
 import pandas as pd
 import numpy as np
 from scipy.signal import spectrogram
+import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 plt.rcParams.update({
@@ -16,11 +17,11 @@ plt.rcParams.update({
 
 def main(model_type, interval, task, config):
     output_dir = f"../{task}/dist_plots/{config}/{model_type}/{interval}/" 
-    psd_output_dir = f"../{task}/psd_plots/{config}/{model_type}/{interval}/"
+    # psd_output_dir = f"../{task}/psd_plots/{config}/{model_type}/{interval}/"
     os.makedirs(output_dir, exist_ok= True)
-    os.makedirs(psd_output_dir, exist_ok=True)
+    # os.makedirs(psd_output_dir, exist_ok=True)
     data = pd.read_csv(f"../{task}/model_evaluation/best_combinations.csv", index_col=False)
-    df = data[(data['Interval'] == interval) & (data['Model'] == model_type)]
+    df = data[(data['Interval'] == interval) & (data['Model'] == model_type) & (data['Config'] == config)]
     df.reset_index(drop=True, inplace= True)
 
     all_preds, all_trues = [], []
@@ -33,51 +34,58 @@ def main(model_type, interval, task, config):
         all_trues.extend(temp['Output'].to_numpy())
         all_preds.extend(temp['Predicted_Output'].to_numpy())
         
-        bins = np.arange(5, 350, 10)
+        # bins = np.logspace(np.log10(20), np.log10(350), num=20)
+        bins = np.arange(20, 350, 10)
 
-        plt.hist(trues, bins= bins, color= "blue", alpha= 0.6, label='True');
-        plt.hist(preds, bins= bins, color= "red", alpha= 0.6, label='Predicted');
+        fig, ax = plt.subplots()
+        sns.histplot(x=trues, bins= bins, ax=ax, color= "blue", alpha= 0.8, label='True', kde=False)#, stat='density');
+        sns.histplot(x=preds, bins= bins, ax=ax, color= "red", alpha= 0.6, label='Predicted', kde=False)#, stat='density');
         # plt.xscale('log')
-        plt.xlabel("Normal Force [kN]")
-        plt.ylabel("Frequency")
-        plt.title(f"{model_type} {interval} test {t}")
-        plt.legend(loc='best')
-        plt.savefig(f"{output_dir}/t{t}_v{v}_distplot.png", dpi=300)
-        plt.close()
+        # plt.yscale('log')
+        ax.set_xlabel("Normal Force [kN]")
+        ax.set_ylabel("Count")
+        ax.set_title(f"{model_type} {interval} test {t}")
+        ax.legend(loc='best')
+        fig.savefig(f"{output_dir}/t{t}_v{v}_distplot.png", dpi=300)
+        plt.close(fig=fig)
 
-        fig, ax = plt.subplots(1, 2, figsize=(10, 3.5))
-        fs = 1 / interval
-        frequencies_true, times_true, Sxx_true = spectrogram(temp['Output'].to_numpy(), fs=fs)
-        frequencies_pred, times_pred, Sxx_pred = spectrogram(temp['Predicted_Output'].to_numpy(), fs=fs)
+        # fig, ax = plt.subplots(1, 2, figsize=(10, 3.5))
+        # fs = 1 / interval
+        # frequencies_true, times_true, Sxx_true = spectrogram(temp['Output'].to_numpy(), fs=fs)
+        # frequencies_pred, times_pred, Sxx_pred = spectrogram(temp['Predicted_Output'].to_numpy(), fs=fs)
 
-        # Plot it
-        im1 = ax[0].pcolormesh(times_true, frequencies_true, 10 * np.log10(Sxx_true), shading='gouraud', vmin=-60, vmax=60)
-        ax[0].set_ylabel('Frequency [Hz]')
-        ax[0].set_xlabel('Time [sec]')
-        # ax[0].set_suptitle('Spectrogram (Power Spectral Density)')
-        fig.colorbar(im1, ax=ax[0], label='Power [dB]')
+        # # Plot it
+        # im1 = ax[0].pcolormesh(times_true, frequencies_true, 10 * np.log10(Sxx_true), shading='gouraud', vmin=-60, vmax=60)
+        # ax[0].set_ylabel('Frequency [Hz]')
+        # ax[0].set_xlabel('Time [sec]')
+        # # ax[0].set_suptitle('Spectrogram (Power Spectral Density)')
+        # fig.colorbar(im1, ax=ax[0], label='Power [dB]')
 
-        im2 = ax[1].pcolormesh(times_pred, frequencies_pred, 10 * np.log10(Sxx_pred), shading='gouraud', vmin=-60, vmax=60)
-        ax[1].set_ylabel('Frequency [Hz]')
-        ax[1].set_xlabel('Time [sec]')
-        # ax[1].set_suptitle('Spectrogram (Power Spectral Density)')
-        fig.colorbar(im2, ax=ax[1], label='Power [dB]')
+        # im2 = ax[1].pcolormesh(times_pred, frequencies_pred, 10 * np.log10(Sxx_pred), shading='gouraud', vmin=-60, vmax=60)
+        # ax[1].set_ylabel('Frequency [Hz]')
+        # ax[1].set_xlabel('Time [sec]')
+        # # ax[1].set_suptitle('Spectrogram (Power Spectral Density)')
+        # fig.colorbar(im2, ax=ax[1], label='Power [dB]')
         
-        fig.tight_layout()
-        fig.savefig(f"{psd_output_dir}/t{t}_v{v}_distplot.png", dpi=300)
-        plt.close()
+        # fig.tight_layout()
+        # fig.savefig(f"{psd_output_dir}/t{t}_v{v}_distplot.png", dpi=300)
+        # plt.close()
     
-    bins = np.arange(5, 350, 10)
+    # bins = np.logspace(np.log10(20), np.log10(350), num=20)
+    bins = np.arange(20, 350, 10)
 
-    plt.hist(all_trues, bins= bins, color= "blue", alpha= 0.6, label='True');
-    plt.hist(all_preds, bins= bins, color= "red", alpha= 0.6, label='Predicted');
+    sns.histplot(x=all_trues, bins= bins, color= "blue", alpha= 0.8, label='True', kde=False, stat='density');
+    sns.histplot(x=all_preds, bins= bins, color= "red", alpha= 0.6, label='Predicted', kde=False, stat='density');
     # plt.xscale('log')
+    # plt.yscale('log')
     plt.xlabel("Normal Force [kN]")
     plt.ylabel("Frequency")
     plt.title(f"{model_type} {interval}")
     plt.legend(loc='best')
     plt.savefig(f"../{task}/dist_plots/{config}/{model_type}_{interval}_distplot.png", dpi=300)
     plt.close()
+
+    return None
 
 
 

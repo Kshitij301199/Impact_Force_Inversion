@@ -54,20 +54,20 @@ def define_model(trial):
 
 def objective(trial):
     print(f"{f'Trial Number {trial.number}':-^100}")
-    output_dir = f"{paths['BASE_DIR']}/lstm_tuning_3/"
+    output_dir = f"{paths['BASE_DIR']}/lstm_tuning_1/"
     os.makedirs(output_dir, exist_ok=True)
-    model_dir = f"{paths['BASE_DIR']}/lstm_tuning_3/model/"
+    model_dir = f"{paths['BASE_DIR']}/lstm_tuning_1/model/"
     os.makedirs(model_dir, exist_ok=True)
-    image_dir = f"{paths['BASE_DIR']}/lstm_tuning_3/images/trial_{trial.number}/"
+    image_dir = f"{paths['BASE_DIR']}/lstm_tuning_1/images/trial_{trial.number}/"
     os.makedirs(image_dir, exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     
     # Load the data
     test_julday = 232
-    # val_julday_list = [161, 172]
+    val_julday_list = [161, 172]
     # val_julday_list = [207, 223]
-    val_julday_list = [183, 196]
+    # val_julday_list = [183, 196]
     savestr = "".join([str(i) for i in val_julday_list])
     station = 'ILL11'
     interval_seconds = 5
@@ -280,7 +280,7 @@ if __name__ == "__main__":
     study = optuna.create_study(
         direction="minimize",
         storage="sqlite:///lstm_tuning.db",
-        study_name="lstm_tuning_3",
+        study_name="lstm_tuning_1",
         load_if_exists=True,
         pruner=optuna.pruners.MedianPruner()
     )
