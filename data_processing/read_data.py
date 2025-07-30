@@ -81,7 +81,9 @@ def load_seismic_data(julday:str|int, station:str, raw:bool=False,
         return st
 
 def load_label(date_list: list, station: str, interval_seconds: int, time_shift_minutes, trim:bool = True, smoothing: int | None = 30) -> pd.DataFrame:
-    if smoothing == None:
+    time_window = data_params['time_window']
+
+    if smoothing == None or smoothing == 0:
         data_col = "Fv [kN]"
     else:
         data_col = f"moving_avg_{smoothing}"
