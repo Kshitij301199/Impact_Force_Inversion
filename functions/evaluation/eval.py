@@ -37,10 +37,10 @@ def evaluate_model(model_type:str, test_julday:int, val_julday:int, interval_sec
     filename2 = f"{output_dir}/evaluation_output_constrained.txt"
     try:
         with open(filename, "x") as file:  # "x" mode creates a file if it does not exist
-            file.write("Model,Config,Time_To_Train,Test,Val,Interval,MSE_ts,RMSE_ts,MAE_ts,R2_ts,Corr_ts,PearsonR_ts,MSE_0,RMSE_0,MAE_0,R2_0,Corr_0,PearsonR_0\n")
+            file.write("Model,Config,Time_To_Train,Test,Val,Interval,MSE_ts,RMSE_ts,MAE_ts,R2_ts,Corr_ts,PearsonR_ts\n")
             print(f"File '{filename}' created with columns names")
         with open(filename2, "x") as file:  # "x" mode creates a file if it does not exist
-            file.write("Model,Config,Time_To_Train,Test,Val,Interval,MSE_ts,RMSE_ts,MAE_ts,R2_ts,Corr_ts,PearsonR_ts,MSE_0,RMSE_0,MAE_0,R2_0,Corr_0,PearsonR_0\n")
+            file.write("Model,Config,Time_To_Train,Test,Val,Interval,MSE_ts,RMSE_ts,MAE_ts,R2_ts,Corr_ts,PearsonR_ts\n")
             print(f"File '{filename}' created with columns names")
     except FileExistsError:
         pass
@@ -52,15 +52,15 @@ def evaluate_model(model_type:str, test_julday:int, val_julday:int, interval_sec
     zero_label['Pred_Value'] = y_pred
     
     r1, _ = pearsonr(zero_label['True_Value'].to_numpy(), zero_label['Pred_Value'].to_numpy())
-    r2, _ = pearsonr(zero_label['Fv [kN]'].to_numpy(), zero_label['Pred_Value'].to_numpy())
+    # r2, _ = pearsonr(zero_label['Fv [kN]'].to_numpy(), zero_label['Pred_Value'].to_numpy())
     corr1 = np.correlate(zero_label['True_Value'].to_numpy() - np.mean(zero_label['True_Value'].to_numpy()),
                          zero_label['Pred_Value'].to_numpy() - np.mean(zero_label['Pred_Value'].to_numpy()),
                          mode='full')
     lag1 = np.argmax(corr1) - (len(zero_label['True_Value'].to_numpy()) - 1)
-    corr2 = np.correlate(zero_label['Fv [kN]'].to_numpy() - np.mean(zero_label['Fv [kN]'].to_numpy()), 
-                         zero_label['Pred_Value'].to_numpy() - np.mean(zero_label['Pred_Value'].to_numpy()), 
-                         mode='full')
-    lag2 = np.argmax(corr2) - (len(zero_label['Fv [kN]'].to_numpy()) - 1)
+    # corr2 = np.correlate(zero_label['Fv [kN]'].to_numpy() - np.mean(zero_label['Fv [kN]'].to_numpy()), 
+    #                      zero_label['Pred_Value'].to_numpy() - np.mean(zero_label['Pred_Value'].to_numpy()), 
+    #                      mode='full')
+    # lag2 = np.argmax(corr2) - (len(zero_label['Fv [kN]'].to_numpy()) - 1)
     with open(filename, "a") as f:
         string = (
     f"{model_type},{time_to_train},{test_julday},{val_julday},{interval_seconds},"
@@ -69,14 +69,15 @@ def evaluate_model(model_type:str, test_julday:int, val_julday:int, interval_sec
     f"{mean_absolute_error(zero_label['True_Value'].to_numpy(), zero_label['Pred_Value'].to_numpy()):.4f},"
     f"{r2_score(zero_label['True_Value'].to_numpy(), zero_label['Pred_Value'].to_numpy()):.4f},"
     f"{lag1:.4f},"
-    f"{r1:.4f},"
-    f"{mean_squared_error(zero_label['Fv [kN]'].to_numpy(), zero_label['Pred_Value'].to_numpy()):.4f},"
-    f"{np.sqrt(mean_squared_error(zero_label['True_Value'].to_numpy(), zero_label['Pred_Value'].to_numpy())):.4f},"
-    f"{mean_absolute_error(zero_label['Fv [kN]'].to_numpy(), zero_label['Pred_Value'].to_numpy()):.4f},"
-    f"{r2_score(zero_label['Fv [kN]'].to_numpy(), zero_label['Pred_Value'].to_numpy()):.4f},"
-    f"{lag2:.4f},"
-    f"{r2:.4f}\n"
-)
+    f"{r1:.4f}\n"
+        )
+    # f"{mean_squared_error(zero_label['Fv [kN]'].to_numpy(), zero_label['Pred_Value'].to_numpy()):.4f},"
+    # f"{np.sqrt(mean_squared_error(zero_label['True_Value'].to_numpy(), zero_label['Pred_Value'].to_numpy())):.4f},"
+    # f"{mean_absolute_error(zero_label['Fv [kN]'].to_numpy(), zero_label['Pred_Value'].to_numpy()):.4f},"
+    # f"{r2_score(zero_label['Fv [kN]'].to_numpy(), zero_label['Pred_Value'].to_numpy()):.4f},"
+    # f"{lag2:.4f},"
+    # f"{r2:.4f}\n"
+# )
         f.write(string)
 
     # Constrained evaluation
@@ -89,11 +90,11 @@ def evaluate_model(model_type:str, test_julday:int, val_julday:int, interval_sec
         zero_label = zero_label[zero_label['Timestamp'].between(window_start, window_end)]
     
     r1, _ = pearsonr(zero_label['True_Value'].to_numpy(), zero_label['Pred_Value'].to_numpy())
-    r2, _ = pearsonr(zero_label['Fv [kN]'].to_numpy(), zero_label['Pred_Value'].to_numpy())
+    # r2, _ = pearsonr(zero_label['Fv [kN]'].to_numpy(), zero_label['Pred_Value'].to_numpy())
     corr1 = np.correlate(zero_label['True_Value'].to_numpy() - np.mean(zero_label['True_Value'].to_numpy()), zero_label['Pred_Value'].to_numpy() - np.mean(zero_label['Pred_Value'].to_numpy()), mode='full')
     lag1 = np.argmax(corr1) - (len(zero_label['True_Value'].to_numpy()) - 1)
-    corr2 = np.correlate(zero_label['Fv [kN]'].to_numpy() - np.mean(zero_label['Fv [kN]'].to_numpy()), zero_label['Pred_Value'].to_numpy() - np.mean(zero_label['Pred_Value'].to_numpy()), mode='full')
-    lag2 = np.argmax(corr2) - (len(zero_label['Fv [kN]'].to_numpy()) - 1)
+    # corr2 = np.correlate(zero_label['Fv [kN]'].to_numpy() - np.mean(zero_label['Fv [kN]'].to_numpy()), zero_label['Pred_Value'].to_numpy() - np.mean(zero_label['Pred_Value'].to_numpy()), mode='full')
+    # lag2 = np.argmax(corr2) - (len(zero_label['Fv [kN]'].to_numpy()) - 1)
 
     with open(filename2, "a") as f:
         string = (
@@ -103,14 +104,15 @@ def evaluate_model(model_type:str, test_julday:int, val_julday:int, interval_sec
     f"{mean_absolute_error(zero_label['True_Value'].to_numpy(), zero_label['Pred_Value'].to_numpy()):.4f},"
     f"{r2_score(zero_label['True_Value'].to_numpy(), zero_label['Pred_Value'].to_numpy()):.4f},"
     f"{lag1:.4f},"
-    f"{r1:.4f},"
-    f"{mean_squared_error(zero_label['Fv [kN]'].to_numpy(), zero_label['Pred_Value'].to_numpy()):.4f},"
-    f"{np.sqrt(mean_squared_error(zero_label['True_Value'].to_numpy(), zero_label['Pred_Value'].to_numpy())):.4f},"
-    f"{mean_absolute_error(zero_label['Fv [kN]'].to_numpy(), zero_label['Pred_Value'].to_numpy()):.4f},"
-    f"{r2_score(zero_label['Fv [kN]'].to_numpy(), zero_label['Pred_Value'].to_numpy()):.4f},"
-    f"{lag2:.4f},"
-    f"{r2:.4f}\n"
-)
+    f"{r1:.4f}\n"
+        )
+#     f"{mean_squared_error(zero_label['Fv [kN]'].to_numpy(), zero_label['Pred_Value'].to_numpy()):.4f},"
+#     f"{np.sqrt(mean_squared_error(zero_label['True_Value'].to_numpy(), zero_label['Pred_Value'].to_numpy())):.4f},"
+#     f"{mean_absolute_error(zero_label['Fv [kN]'].to_numpy(), zero_label['Pred_Value'].to_numpy()):.4f},"
+#     f"{r2_score(zero_label['Fv [kN]'].to_numpy(), zero_label['Pred_Value'].to_numpy()):.4f},"
+#     f"{lag2:.4f},"
+#     f"{r2:.4f}\n"
+# )
         f.write(string)
     return None
 

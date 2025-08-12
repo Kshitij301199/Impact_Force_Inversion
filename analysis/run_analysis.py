@@ -26,8 +26,8 @@ plt.rcParams.update({
 })
 sns.set_context("notebook", font_scale=1)  # Ensures Seaborn uses updated fonts/sizes
 
-from functions.plot_distributions import main as main2
-from data_processing.read_data import load_label, load_seismic_data
+from functions.evaluation.plot_distributions import main as main2
+from functions.data_processing.read_data import load_label, load_seismic_data
 
 # Mean Squared Error (MSE)
 def mse(y_true, y_pred):
@@ -294,7 +294,7 @@ def check_velocity_estimates(best_comb, task_dir):
     plt.close()
     return None
 
-def calc_ref_scores(base_dir, output_dir):
+def calc_ref_scores(base_dir, output_dir, time_shift):
     eval_out = pd.read_csv(f"{output_dir}/evaluation_output.txt")
     eval_out_cons = pd.read_csv(f"{output_dir}/evaluation_output_constrained.txt")
     if "ref_MSE_ts" in eval_out.columns:
@@ -333,12 +333,12 @@ def calc_ref_scores(base_dir, output_dir):
             print(f"Loading Label {test} {interval}")
             julday_list = [161, 172, 182, 183, 196, 207, 223, 232]
             date_list = ["2019-06-10", "2019-06-21", "2019-07-01", "2019-07-02", "2019-07-15", "2019-07-26", "2019-08-11", "2019-08-20"]
-            label = load_label([date_list.pop(julday_list.index(test))], "ILL11", interval, 'dynamic', trim=False, smoothing=None, divide_by=None)
-            julday_list = [161, 172, 182, 183, 196, 207, 223, 232]
-            date_list = ["2019-06-10", "2019-06-21", "2019-07-01", "2019-07-02", "2019-07-15", "2019-07-26", "2019-08-11", "2019-08-20"]
-            label_zero = load_label([date_list.pop(julday_list.index(test))], "ILL11", interval, 0, trim=False, smoothing=None, divide_by=None)
+            label = load_label([date_list.pop(julday_list.index(test))], "ILL11", interval, time_shift, trim=False, smoothing=None, divide_by=None)
+            # julday_list = [161, 172, 182, 183, 196, 207, 223, 232]
+            # date_list = ["2019-06-10", "2019-06-21", "2019-07-01", "2019-07-02", "2019-07-15", "2019-07-26", "2019-08-11", "2019-08-20"]
+            # label_zero = load_label([date_list.pop(julday_list.index(test))], "ILL11", interval, 0, trim=False, smoothing=None, divide_by=None)
             label['Timestamp'] = label['Timestamp'].apply(lambda x: UTCDateTime(x))
-            label_zero['Timestamp'] = label_zero['Timestamp'].apply(lambda x: UTCDateTime(x))
+            # label_zero['Timestamp'] = label_zero['Timestamp'].apply(lambda x: UTCDateTime(x))
             old_test = test
             old_interval = interval
         output_df = pd.read_csv(f"{base_dir}/output_df/{row['Config']}/{row['Interval']}/{model}_t{test}_v{val}.csv", index_col=None)
@@ -346,28 +346,28 @@ def calc_ref_scores(base_dir, output_dir):
         assert len(output_df) == len(label), f"Length mismatch {len(output_df)} -|- {len(label)}"
         # print("Calculating MSE")
         list1.append(np.round(mean_squared_error(label['Fv [kN]'].to_numpy(), output_df['Predicted_Output'].to_numpy()),4))
-        list2.append(np.round(mean_squared_error(label_zero['Fv [kN]'].to_numpy(), output_df['Predicted_Output'].to_numpy()),4))
+        # list2.append(np.round(mean_squared_error(label_zero['Fv [kN]'].to_numpy(), output_df['Predicted_Output'].to_numpy()),4))
 
         # print("Calculating constrained MSE")
         if test == 161:
             label_temp = label[label['Timestamp'].between(window_start_1, window_end_1)]
             label_trim = pd.concat([label_temp, label[label['Timestamp'].between(window_start_2, window_end_2)]])
-            zero_label_temp = label_zero[label_zero['Timestamp'].between(window_start_1, window_end_1)]
-            label_zero_trim = pd.concat([zero_label_temp, label_zero[label_zero['Timestamp'].between(window_start_2, window_end_2)]])
+            # zero_label_temp = label_zero[label_zero['Timestamp'].between(window_start_1, window_end_1)]
+            # label_zero_trim = pd.concat([zero_label_temp, label_zero[label_zero['Timestamp'].between(window_start_2, window_end_2)]])
             output_df_temp = output_df[output_df['Timestamps'].between(window_start_1, window_end_1)]
             output_df_trim = pd.concat([output_df_temp, output_df[output_df['Timestamps'].between(window_start_2, window_end_2)]])
         else:
             label_trim = label[label['Timestamp'].between(window_start, window_end)]
-            label_zero_trim = label_zero[label_zero['Timestamp'].between(window_start, window_end)]
+            # label_zero_trim = label_zero[label_zero['Timestamp'].between(window_start, window_end)]
             output_df_trim = output_df[output_df['Timestamps'].between(window_start, window_end)]
 
         list3.append(np.round(mean_squared_error(label_trim['Fv [kN]'].to_numpy(), output_df_trim['Predicted_Output'].to_numpy()),4))
-        list4.append(np.round(mean_squared_error(label_zero_trim['Fv [kN]'].to_numpy(), output_df_trim['Predicted_Output'].to_numpy()),4))
+        # list4.append(np.round(mean_squared_error(label_zero_trim['Fv [kN]'].to_numpy(), output_df_trim['Predicted_Output'].to_numpy()),4))
 
     eval_out['ref_MSE_ts'] = list1
-    eval_out['ref_MSE_0'] = list2
+    # eval_out['ref_MSE_0'] = list2
     eval_out_cons['ref_MSE_ts'] = list3
-    eval_out_cons['ref_MSE_0'] = list4
+    # eval_out_cons['ref_MSE_0'] = list4
 
     eval_out.to_csv(f"{output_dir}/evaluation_output.txt", index=False)
     eval_out_cons.to_csv(f"{output_dir}/evaluation_output_constrained.txt", index=False)
@@ -390,15 +390,15 @@ def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
     base_dir = f"../model_version2/{task}/{time_shift}_{smoothing}"
     output_dir = f"../model_version2/{task}/{time_shift}_{smoothing}/model_evaluation"
     # model_output_dir = {c : f"../{task}/{time_shift}_{smoothing}/output_df/{c}" for c in configs}
-    data = pd.read_csv(f"{output_dir}/evaluation_output_constrained.txt", index_col=False)
-    data = data[(data['Test'] != 182) & (data['Test'] != 183)]
+    # data = pd.read_csv(f"{output_dir}/evaluation_output_constrained.txt", index_col=False)
+    # data = data[(data['Test'] != 182) & (data['Test'] != 183)]
     
     # if not os.path.exists(f"{base_dir}/fourier_transform/"):
     #     make_fourier_transform_plots_and_metrics(data, base_dir, model_output_dir)
     # else:
     #     pass
     
-    calc_ref_scores(base_dir, output_dir)
+    calc_ref_scores(base_dir, output_dir, time_shift)
 
     if os.path.exists(f"{output_dir}/best_combinations.csv"):
         best_combinations_df = pd.read_csv(f"{output_dir}/best_combinations.csv", index_col=False)
@@ -411,6 +411,7 @@ def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
                 temp_data = data[(data["Model"] == model_type) & (data['Config'] == config)]
                 for interval in tqdm(time_intervals, desc=f"Interval Progress ({model_type}, {config})"):
                     for test_julday in tqdm(julday_list, desc=f"Julday Progress"):
+                            # print(f"Processing {model_type} {config} {interval} {test_julday}")
                             temp = temp_data[(temp_data["Test"] == test_julday) & (temp_data["Interval"] == interval)]
                             temp.reset_index(inplace=True, drop=True)
                             temp = temp.iloc[temp.nsmallest(1, "MSE_ts").index]
@@ -420,24 +421,23 @@ def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
     
     print("\tMaking Plots and Moving Images")
     fig, ax = plt.subplots()
+    best_combinations_df = best_combinations_df[(best_combinations_df['Test'] != 182) & (best_combinations_df['Test'] != 183)]
     plot_grouped_bar_with_error(data= best_combinations_df, x='Interval', y='ref_MSE_ts', hue='Model', palette="viridis", ax=ax, hue_order=['LSTM', 'xLSTM'], bar_width=0.25)
     fig.savefig(f"{base_dir}/ref_MSE_ts.png", dpi=300)
     plt.close(fig=fig)
-    fig, ax = plt.subplots()
-    plot_grouped_bar_with_error(data= best_combinations_df, x='Interval', y='ref_MSE_0', hue='Model', palette="viridis", ax=ax, hue_order=['LSTM', 'xLSTM'], bar_width=0.25)
-    fig.savefig(f"{base_dir}/ref_MSE_0.png", dpi=300)
-    plt.close(fig=fig)
-    # data = pd.read_csv(f"{output_dir}/evaluation_output_constrained.txt", index_col=False)
-    # make_evaluation_plots(data, time_intervals, 'Model', base_dir, "Comparison_Plot")
-    data = pd.read_csv(f"{output_dir}/best_combinations.csv", index_col=False)
-    make_evaluation_plots(data, time_intervals, 'Model', base_dir, "Best_Comparison_Plot")
 
+    make_evaluation_plots(best_combinations_df, time_intervals, 'Model', base_dir, "Best_Comparison_Plot")
+    
+    data = pd.read_csv(f"{output_dir}/evaluation_output_constrained.txt", index_col=False)
+    make_evaluation_plots(data, time_intervals, 'Model', base_dir, "Comparison_Plot")
+    
+    data = pd.read_csv(f"{output_dir}/best_combinations.csv", index_col=False)
     move_plots(data, model_types, configs, time_intervals, base_dir)
 
-    print("Making distribution plots!")
-    if os.path.exists(f"{base_dir}/dist_plot"):
+    if os.path.exists(f"{base_dir}/dist_plots/"):
         pass
     else:
+        print("Making distribution plots!")
         if 'comparison_baseline' in task:
             config = "default"
             for option in model_types:
@@ -483,7 +483,8 @@ def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
                 model_type = row['Model']
                 test = row['Test']
                 val = row['Val']
-                st = load_seismic_data(test, 'ILL11', year=2019, trim=False)
+                st = load_seismic_data(julday= test, station= 'ILL11', year= 2019, trim= False, raw= False)
+                # print(st)
                 file = pd.read_csv(f"{output_file_dir}/{interval}/{model_type}_t{test}_v{val}.csv", index_col=False)
                 times = [UTCDateTime(i).matplotlib_date for i in file['Timestamps'].to_numpy()]
                 # target_output = file['Output'].to_numpy()
@@ -495,12 +496,10 @@ def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
                     ax[0,0].set_ylim(-1.5, 1.5);
                     ax1 = ax[0,0].twinx()
                     ax1.plot(target_times, target_output['Fv [kN]'].to_numpy(), label="Impact Force Target [kN]", alpha=0.9, color='r',linewidth=1)
-                    mean = target_output['Fv [kN]'].to_numpy()
-                    std = target_output['Fv std'].to_numpy()
-                    # ax1.fill_between(target_times, mean - std, mean + std, color='r', alpha=0.4, label="Std Dev")
                     ax1.plot(times, predicted_output, label="Model Prediction", alpha=0.8, color='b',linewidth=1)
                     ax1.xaxis_date()
                     ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d\n%H:%M:%S'))
+                    ax1.xaxis.set_major_locator(mdates.MinuteLocator(interval=240))
                     ax1.set_xlim(times[0], times[-1]);
                     ax1.set_ylabel("Normal Force [kN]");
                     ax1.set_ylim(bottom=0)
@@ -511,9 +510,6 @@ def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
                     ax[1,0].set_ylim(-1.5, 1.5);
                     ax2 = ax[1,0].twinx()
                     ax2.plot(target_times, target_output['Fv [kN]'].to_numpy(), label="Impact Force Target [kN]", alpha=0.9, color='r',linewidth=1)
-                    mean = target_output['Fv [kN]'].to_numpy()
-                    std = target_output['Fv std'].to_numpy()
-                    # ax2.fill_between(target_times, mean - std, mean + std, color='r', alpha=0.4, label="Std Dev")
                     ax2.plot(times, predicted_output, label="Model Prediction", alpha=0.8, color='b',linewidth=1)
                     ax2.xaxis_date()
                     ax2.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d\n%H:%M:%S'))
@@ -529,12 +525,10 @@ def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
                     ax[0,1].set_ylim(-1.5, 1.5);
                     ax3 = ax[0,1].twinx()
                     ax3.plot(target_times, target_output['Fv [kN]'].to_numpy(), label="Impact Force Target [kN]", alpha=0.9, color='r',linewidth=1)
-                    mean = target_output['Fv [kN]'].to_numpy()
-                    std = target_output['Fv std'].to_numpy()
-                    # ax3.fill_between(target_times, mean - std, mean + std, color='r', alpha=0.4, label="Std Dev")
                     ax3.plot(times, predicted_output, label="Model Prediction", alpha=0.8, color='b',linewidth=1)
                     ax3.xaxis_date()
                     ax3.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d\n%H:%M:%S'))
+                    ax3.xaxis.set_major_locator(mdates.MinuteLocator(interval=240))
                     ax3.set_xlim(times[0], times[-1]);
                     ax3.set_ylabel("Normal Force [kN]");
                     ax3.set_ylim(bottom=0)
@@ -545,9 +539,6 @@ def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
                     ax[1,1].set_ylim(-1.5, 1.5);
                     ax4 = ax[1,1].twinx()
                     ax4.plot(target_times, target_output['Fv [kN]'].to_numpy(), label="Impact Force Target [kN]", alpha=0.9, color='r',linewidth=1)
-                    mean = target_output['Fv [kN]'].to_numpy()
-                    std = target_output['Fv std'].to_numpy()
-                    # ax4.fill_between(target_times, mean - std, mean + std, color='r', alpha=0.4, label="Std Dev")
                     ax4.plot(times, predicted_output, label="Model Prediction", alpha=0.8, color='b',linewidth=1)
                     ax4.xaxis_date()
                     ax4.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d\n%H:%M:%S'))
