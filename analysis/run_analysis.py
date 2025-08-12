@@ -33,9 +33,8 @@ from data_processing.read_data import load_label, load_seismic_data
 def mse(y_true, y_pred):
     return np.round(np.mean((y_true - y_pred) ** 2), 2)
 
-
 def plot_grouped_bar_with_error(data, x, y, hue, hue_order, ax,
-                                palette="viridis", bar_width=0.35):
+                                palette="viridis", bar_width=0.35, ylim=None):
     """
     Plot grouped bar chart with mean and standard error using Matplotlib.
 
@@ -91,6 +90,8 @@ def plot_grouped_bar_with_error(data, x, y, hue, hue_order, ax,
     ax.set_xlabel(x)
     ax.set_ylabel(y)
     ax.legend(title=hue)
+    if ylim is not None:
+        ax.set_ylim(ylim)
     ax.set_title(f"Mean {y} by {x} and {hue}")
     ax.grid(True, axis='y', linestyle='--', alpha=0.5)
     return None    
@@ -98,39 +99,44 @@ def plot_grouped_bar_with_error(data, x, y, hue, hue_order, ax,
 def make_evaluation_plots(data, intervals, hue, base_dir, output_file_name):
     # data = data[(data['Test'] != 182)]
     for interval in intervals:
-        fig, ax = plt.subplots(1,4, figsize=(14, 3.5))
+        fig, ax = plt.subplots(1,3, figsize=(12, 3.5))
         plot_data = data[data['Interval'] == interval]
         
-        plot_grouped_bar_with_error(data = plot_data, x="Test", y="MSE_ts", hue=hue, palette="viridis", ax=ax[0], hue_order=["LSTM", "xLSTM"])
-        plot_grouped_bar_with_error(data = plot_data, x="Test", y="R2_ts", hue=hue, palette="viridis", ax=ax[1], hue_order=["LSTM", "xLSTM"])
-        plot_grouped_bar_with_error(data = plot_data, x="Test", y='MAE_ts', hue=hue, palette="viridis", ax=ax[2], hue_order=["LSTM", "xLSTM"])
-        plot_grouped_bar_with_error(data = plot_data, x="Test", y='PearsonR_ts', hue=hue, palette="viridis", ax=ax[3], hue_order=["LSTM", "xLSTM"])
+        plot_grouped_bar_with_error(data = plot_data, x="Test", y="RMSE_ts", hue=hue, palette="viridis", ax=ax[0], hue_order=["LSTM", "xLSTM"])
+        plot_grouped_bar_with_error(data = plot_data, x="Test", y="R2_ts", hue=hue, palette="viridis", ax=ax[1], hue_order=["LSTM", "xLSTM"], ylim=(0, 1))
+        # plot_grouped_bar_with_error(data = plot_data, x="Test", y='MAE_ts', hue=hue, palette="viridis", ax=ax[2], hue_order=["LSTM", "xLSTM"])
+        plot_grouped_bar_with_error(data = plot_data, x="Test", y='PearsonR_ts', hue=hue, palette="viridis", ax=ax[2], hue_order=["LSTM", "xLSTM"], ylim=(0, 1))
 
         fig.tight_layout()
         fig.savefig(f"{base_dir}/{output_file_name}_{interval}_ts.png", dpi=300)
         plt.close(fig=fig)
 
-        fig, ax = plt.subplots(1,4, figsize=(14, 3.5))
-        plot_grouped_bar_with_error(data = plot_data, x="Test", y="MSE_0", hue=hue, palette="viridis", ax=ax[0], hue_order=["LSTM", "xLSTM"])
-        plot_grouped_bar_with_error(data = plot_data, x="Test", y="R2_0", hue=hue, palette="viridis", ax=ax[1], hue_order=["LSTM", "xLSTM"])
-        plot_grouped_bar_with_error(data = plot_data, x="Test", y='MAE_0', hue=hue, palette="viridis", ax=ax[2], hue_order=["LSTM", "xLSTM"])
-        plot_grouped_bar_with_error(data = plot_data, x="Test", y='PearsonR_0', hue=hue, palette="viridis", ax=ax[3], hue_order=["LSTM", "xLSTM"])
+        # fig, ax = plt.subplots(1,3, figsize=(14, 3.5))
+        # plot_grouped_bar_with_error(data = plot_data, x="Test", y="MSE_0", hue=hue, palette="viridis", ax=ax[0], hue_order=["LSTM", "xLSTM"])
+        # plot_grouped_bar_with_error(data = plot_data, x="Test", y="R2_0", hue=hue, palette="viridis", ax=ax[1], hue_order=["LSTM", "xLSTM"], ylim=(0,1))
+        # # plot_grouped_bar_with_error(data = plot_data, x="Test", y='MAE_0', hue=hue, palette="viridis", ax=ax[2], hue_order=["LSTM", "xLSTM"])
+        # plot_grouped_bar_with_error(data = plot_data, x="Test", y='PearsonR_0', hue=hue, palette="viridis", ax=ax[2], hue_order=["LSTM", "xLSTM"], ylim=(0,1))
 
-        fig.tight_layout()
-        fig.savefig(f"{base_dir}/{output_file_name}_{interval}_0.png", dpi=300)
-        plt.close(fig=fig)
+        # fig.tight_layout()
+        # fig.savefig(f"{base_dir}/{output_file_name}_{interval}_0.png", dpi=300)
+        # plt.close(fig=fig)
 
     # fig, ax = plt.subplots(1, 4, figsize=(14,3.5))
     # sns.barplot(data= data, x='Interval', y='MSE_ts', hue=hue, palette="viridis", ax=ax[0], errorbar = 'se', hue_order=["LSTM", "xLSTM"])
     # sns.barplot(data= data, x='Interval', y='R2_ts', hue=hue, palette="viridis", ax=ax[1], errorbar = 'se', hue_order=["LSTM", "xLSTM"])
     # sns.barplot(data= data, x='Interval', y='MAE_ts', hue=hue, palette="viridis", ax=ax[2], errorbar = 'se', hue_order=["LSTM", "xLSTM"])
     # sns.barplot(data= data, x='Interval', y='PearsonR_ts', hue=hue, palette="viridis", ax=ax[3], errorbar = 'se', hue_order=["LSTM", "xLSTM"])
-    fig, ax = plt.subplots(1,1, figsize=(5.5,3.5))
-    plot_grouped_bar_with_error(data= data, x='Interval', y='MSE_ts', hue=hue, palette="viridis", ax=ax, hue_order=["LSTM", "xLSTM"])
-    ax.set_xlabel("Interval (s)")
-    ax.set_ylabel("Mean Squared Error (MSE)")
-    ax.set_title("Comparison of MSE by Interval and Model")
-    ax.set_ylim(bottom=0)
+    fig, ax = plt.subplots(1,3, figsize=(12,3.5))
+    plot_grouped_bar_with_error(data= data, x='Interval', y='RMSE_ts', hue=hue, palette="viridis", ax=ax[0], hue_order=["LSTM", "xLSTM"])
+    plot_grouped_bar_with_error(data = data, x="Interval", y="R2_ts", hue=hue, palette="viridis", ax=ax[1], hue_order=["LSTM", "xLSTM"], ylim=(0, 1))
+    plot_grouped_bar_with_error(data = data, x="Interval", y='PearsonR_ts', hue=hue, palette="viridis", ax=ax[2], hue_order=["LSTM", "xLSTM"], ylim=(0, 1))
+    for axis in ax:
+        axis.set_xlabel("Interval (s)")
+    ax[0].set_ylabel("Mean Squared Error (MSE)")
+    # ax[0].set_title("Comparison of MSE by Interval and Model")
+    ax[1].set_ylabel("R2 Score")
+    ax[2].set_ylabel("Pearson Correlation Coefficient")
+    ax[0].set_ylim(bottom=0)
     # # ax[3].set_ylim(0, 100)
     # # ax.set_ylim(0, 1)
     fig.tight_layout()
@@ -142,16 +148,16 @@ def make_evaluation_plots(data, intervals, hue, base_dir, output_file_name):
     # sns.barplot(data= data, x='Interval', y='R2_0', hue=hue, palette="viridis", ax=ax[1], errorbar = 'se', hue_order=["LSTM", "xLSTM"])
     # sns.barplot(data= data, x='Interval', y='MAE_0', hue=hue, palette="viridis", ax=ax[2], errorbar = 'se', hue_order=["LSTM", "xLSTM"])
     # sns.barplot(data= data, x='Interval', y='PearsonR_0', hue=hue, palette="viridis", ax=ax[3], errorbar = 'se', hue_order=["LSTM", "xLSTM"])
-    fig, ax = plt.subplots(1,1, figsize=(5.5,3.5))
-    plot_grouped_bar_with_error(data= data, x='Interval', y='MSE_0', hue=hue, palette="viridis", ax=ax, hue_order=["LSTM", "xLSTM"])
-    ax.set_xlabel("Interval (s)")
-    ax.set_ylabel("Mean Squared Error (MSE)")
-    ax.set_title("Comparison of MSE by Interval and Model")
-    ax.set_ylim(bottom=0)
-    # # ax[3].set_ylim(0, 100)
-    # # ax[1].set_ylim(0, 1)
-    fig.tight_layout()
-    fig.savefig(f"{base_dir}/{output_file_name}_0.png", dpi=300)
+    # fig, ax = plt.subplots(1,1, figsize=(5.5,3.5))
+    # plot_grouped_bar_with_error(data= data, x='Interval', y='MSE_0', hue=hue, palette="viridis", ax=ax, hue_order=["LSTM", "xLSTM"])
+    # ax.set_xlabel("Interval (s)")
+    # ax.set_ylabel("Mean Squared Error (MSE)")
+    # ax.set_title("Comparison of MSE by Interval and Model")
+    # ax.set_ylim(bottom=0)
+    # # # ax[3].set_ylim(0, 100)
+    # # # ax[1].set_ylim(0, 1)
+    # fig.tight_layout()
+    # fig.savefig(f"{base_dir}/{output_file_name}_0.png", dpi=300)
     # plt.close()
 
     # fig, ax = plt.subplots(1, 1)
@@ -291,6 +297,9 @@ def check_velocity_estimates(best_comb, task_dir):
 def calc_ref_scores(base_dir, output_dir):
     eval_out = pd.read_csv(f"{output_dir}/evaluation_output.txt")
     eval_out_cons = pd.read_csv(f"{output_dir}/evaluation_output_constrained.txt")
+    if "ref_MSE_ts" in eval_out.columns:
+        print("Reference scores already calculated. Skipping...")
+        return None
     eval_out.sort_values(by=["Test", "Interval", "Val"], inplace=True)
     eval_out_cons.sort_values(by=["Test", "Interval", "Val"], inplace=True)
 
@@ -324,10 +333,10 @@ def calc_ref_scores(base_dir, output_dir):
             print(f"Loading Label {test} {interval}")
             julday_list = [161, 172, 182, 183, 196, 207, 223, 232]
             date_list = ["2019-06-10", "2019-06-21", "2019-07-01", "2019-07-02", "2019-07-15", "2019-07-26", "2019-08-11", "2019-08-20"]
-            label = load_label([date_list.pop(julday_list.index(test))], "ILL11", interval, 'dynamic', trim=False, smoothing=None)
+            label = load_label([date_list.pop(julday_list.index(test))], "ILL11", interval, 'dynamic', trim=False, smoothing=None, divide_by=None)
             julday_list = [161, 172, 182, 183, 196, 207, 223, 232]
             date_list = ["2019-06-10", "2019-06-21", "2019-07-01", "2019-07-02", "2019-07-15", "2019-07-26", "2019-08-11", "2019-08-20"]
-            label_zero = load_label([date_list.pop(julday_list.index(test))], "ILL11", interval, 0, trim=False, smoothing=None)
+            label_zero = load_label([date_list.pop(julday_list.index(test))], "ILL11", interval, 0, trim=False, smoothing=None, divide_by=None)
             label['Timestamp'] = label['Timestamp'].apply(lambda x: UTCDateTime(x))
             label_zero['Timestamp'] = label_zero['Timestamp'].apply(lambda x: UTCDateTime(x))
             old_test = test
@@ -372,10 +381,14 @@ def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
         hue = 'Model'
     else:
         hue = 'Config'
-    julday_list = [161, 172, 196, 207, 223, 232]
-    date_list = ["2019-06-10", "2019-06-21", "2019-07-15", "2019-07-26", "2019-08-11", "2019-08-20"]
-    base_dir = f"../new_final_version/{task}/{time_shift}_{smoothing}"
-    output_dir = f"../new_final_version/{task}/{time_shift}_{smoothing}/model_evaluation"
+    if time_shift == "average":
+        julday_list = [161, 172, 196, 207, 223, 232]
+        date_list = ["2019-06-10", "2019-06-21", "2019-07-15", "2019-07-26", "2019-08-11", "2019-08-20"]
+    elif time_shift == "dynamic":
+        julday_list = [172, 196, 207, 223]
+        date_list = ["2019-06-21", "2019-07-15", "2019-07-26", "2019-08-11"]
+    base_dir = f"../model_version2/{task}/{time_shift}_{smoothing}"
+    output_dir = f"../model_version2/{task}/{time_shift}_{smoothing}/model_evaluation"
     # model_output_dir = {c : f"../{task}/{time_shift}_{smoothing}/output_df/{c}" for c in configs}
     data = pd.read_csv(f"{output_dir}/evaluation_output_constrained.txt", index_col=False)
     data = data[(data['Test'] != 182) & (data['Test'] != 183)]
@@ -388,7 +401,7 @@ def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
     calc_ref_scores(base_dir, output_dir)
 
     if os.path.exists(f"{output_dir}/best_combinations.csv"):
-        pass
+        best_combinations_df = pd.read_csv(f"{output_dir}/best_combinations.csv", index_col=False)
     else:
         print("\tSelecting Best Combinations")
         data = pd.read_csv(f"{output_dir}/evaluation_output_constrained.txt", index_col=False)
@@ -397,7 +410,7 @@ def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
             for config in tqdm(configs, desc="Config Progress"):
                 temp_data = data[(data["Model"] == model_type) & (data['Config'] == config)]
                 for interval in tqdm(time_intervals, desc=f"Interval Progress ({model_type}, {config})"):
-                    for test_julday in tqdm([161, 172, 196, 207, 223, 232], desc=f"Julday Progress"):
+                    for test_julday in tqdm(julday_list, desc=f"Julday Progress"):
                             temp = temp_data[(temp_data["Test"] == test_julday) & (temp_data["Interval"] == interval)]
                             temp.reset_index(inplace=True, drop=True)
                             temp = temp.iloc[temp.nsmallest(1, "MSE_ts").index]
@@ -430,7 +443,7 @@ def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
             for option in model_types:
                 # option = "xLSTM"
                 for interval in time_intervals:
-                    main2(option, interval, f"new_final_version/{task}/{time_shift}_{smoothing}", config)
+                    main2(option, interval, f"model_version2/{task}/{time_shift}_{smoothing}", config)
                     plt.close()
         else:
             pass
@@ -440,28 +453,37 @@ def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
     # check_velocity_estimates(data, base_dir)
 
     print("\tMaking Explaination Plots")
-    data = pd.read_csv(f"../new_final_version/{task}/{time_shift}_{smoothing}/model_evaluation/best_combinations.csv", index_col=False)
+    data = pd.read_csv(f"../model_version2/{task}/{time_shift}_{smoothing}/model_evaluation/best_combinations.csv", index_col=False)
     zoom_df = pd.read_csv("../label/correct_metrics_time_window.csv", index_col=False)
-    zoom_df = zoom_df.iloc[[0,2,5,6,7,8],:].reset_index(drop=True)
+    if time_shift == "average":
+        zoom_df = zoom_df.iloc[[0,2,5,6,7,8],:].reset_index(drop=True)
+    elif time_shift == "dynamic":
+        zoom_df = zoom_df.iloc[[2,5,6,7],:].reset_index(drop=True)
 
-    output_file_dir = f"../new_final_version/{task}/{time_shift}_{smoothing}/output_df/default"
+    output_file_dir = f"../model_version2/{task}/{time_shift}_{smoothing}/output_df/default"
 
     i = 0
-    julday_list = [161, 172, 196, 207, 223, 232]
+    if time_shift == "average":
+        julday_list = [161, 172, 196, 207, 223, 232]
+    elif time_shift == "dynamic":
+        julday_list = [172, 196, 207, 223]
     for julday in tqdm(julday_list, desc= "Julday Progress"):
         for interval in time_intervals:
             temp = data[(data['Test'] == julday) & (data['Interval'] == interval)]
             fig, ax = plt.subplots(2, 2, figsize=(12.0, 6.0), sharey=True)
-            date_list = ["2019-06-10", "2019-06-21", "2019-07-15", "2019-07-26", "2019-08-11", "2019-08-20"]
+            if time_shift == "average":
+                date_list = ["2019-06-10", "2019-06-21", "2019-07-15", "2019-07-26", "2019-08-11", "2019-08-20"]
+            elif time_shift == "dynamic":
+                date_list = ["2019-06-21", "2019-07-15", "2019-07-26", "2019-08-11"]
             date = date_list.pop(julday_list.index(julday))
-            target_output = load_label([date], "ILL11", interval, 0, trim=False, smoothing=smoothing)
+            target_output = load_label([date], "ILL11", interval, time_shift, trim=False, smoothing=smoothing, divide_by=None)
             target_times = [UTCDateTime(i).matplotlib_date for i in target_output['Timestamp'].to_numpy()]
             for idx, row in temp.iterrows():
                 interval = row['Interval']
                 model_type = row['Model']
                 test = row['Test']
                 val = row['Val']
-                st = load_seismic_data(test, 'ILL11', trim=False)
+                st = load_seismic_data(test, 'ILL11', year=2019, trim=False)
                 file = pd.read_csv(f"{output_file_dir}/{interval}/{model_type}_t{test}_v{val}.csv", index_col=False)
                 times = [UTCDateTime(i).matplotlib_date for i in file['Timestamps'].to_numpy()]
                 # target_output = file['Output'].to_numpy()
@@ -495,6 +517,7 @@ def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
                     ax2.plot(times, predicted_output, label="Model Prediction", alpha=0.8, color='b',linewidth=1)
                     ax2.xaxis_date()
                     ax2.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d\n%H:%M:%S'))
+                    ax2.xaxis.set_major_locator(mdates.MinuteLocator(interval=30))
                     ax2.set_xlim(UTCDateTime(zoom_df.iloc[i,0]).matplotlib_date, UTCDateTime(zoom_df.iloc[i,1]).matplotlib_date);
                     ax2.set_ylabel("Normal Force [kN]");
                     ax2.set_ylim(bottom=0)
@@ -528,6 +551,7 @@ def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
                     ax4.plot(times, predicted_output, label="Model Prediction", alpha=0.8, color='b',linewidth=1)
                     ax4.xaxis_date()
                     ax4.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d\n%H:%M:%S'))
+                    ax4.xaxis.set_major_locator(mdates.MinuteLocator(interval=30))
                     ax4.set_xlim(UTCDateTime(zoom_df.iloc[i,0]).matplotlib_date, UTCDateTime(zoom_df.iloc[i,1]).matplotlib_date);
                     ax4.set_ylabel("Normal Force [kN]");
                     ax4.set_ylim(bottom=0)
