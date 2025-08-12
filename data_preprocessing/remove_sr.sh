@@ -2,7 +2,7 @@
 #SBATCH -t 1:00:00               # time limit: (HH:MM:SS)
 #SBATCH --job-name=rem_resp     # job name
 #SBATCH --ntasks=1               # each task in the job array will have a single task associated with it
-#SBATCH --array=1-11            # job array id, adjusted for the total number of commands
+#SBATCH --array=1-21            # job array id, adjusted for the total number of commands
 #SBATCH --mem-per-cpu=2G         # Memory Request (per CPU; can use on GLIC)
 #SBATCH --mail-type=all
 #SBATCH --mail-user=kshitkar@gfz-potsdam.de
@@ -16,10 +16,18 @@ conda activate seismic_cal
 commands=()
 
 stations=("ILL11")
+year=2019
 juldays=(161 162 171 172 182 183 184 196 207 223 232)
 for station in "${stations[@]}"; do
     for julday in "${juldays[@]}"; do
-        commands+=("python ./data_preprocessing/remove_sr.py --station $station --julday $julday")
+        commands+=("python ./data_preprocessing/remove_sr.py --station $station --julday $julday --year $year")
+    done
+done
+year=2020
+juldays=(156 159 160 162 168 169 181 210 229 243)
+for station in "${stations[@]}"; do
+    for julday in "${juldays[@]}"; do
+        commands+=("python ./data_preprocessing/remove_sr.py --station $station --julday $julday --year $year")
     done
 done
 # Get the command to run for this task
