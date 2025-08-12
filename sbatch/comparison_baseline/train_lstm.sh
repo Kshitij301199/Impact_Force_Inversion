@@ -19,7 +19,10 @@ conda activate xlstm_env
 
 # Define the arrays
 intervals=(15 30)
-juldays=(161 172 183 196 207 223 232)
+juldays=(161 172 183 196 207 223 232) # 84
+# juldays=(172 196 207 223) # 12
+# juldays=(161 183 232) # 6
+
 hyp_options=('default')
 
 # Calculate the total number of combinations per test day
@@ -62,7 +65,7 @@ echo "Hypothesis Option: $hyp_option"
 srun --gres=gpu:A40:1 --unbuffered python /storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/functions/train_lstm.py \
     --test_julday "$test_julday" \
     --val_julday "$val_julday" \
-    --time_shift_mins 'dynamic' \
+    --time_shift_mins 'average' \
     --interval "$interval" \
     --station "ILL11" \
     --config_op "$hyp_option" \

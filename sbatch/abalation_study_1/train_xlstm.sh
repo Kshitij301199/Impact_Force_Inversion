@@ -32,7 +32,7 @@ echo "Hypothesis Option: default"
 srun --gres=gpu:A30:1 --unbuffered python /storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/functions/train_xlstm.py \
     --test_julday "$num_day" \
     --val_julday 0 \
-    --time_shift_mins 'dynamic' \
+    --time_shift_mins 'average' \
     --interval 5 \
     --station "ILL11" \
     --config_op "default" \
