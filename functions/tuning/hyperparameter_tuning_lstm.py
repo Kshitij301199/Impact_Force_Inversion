@@ -1,18 +1,21 @@
 import os
+import sys
 import json
+import copy
+import argparse
+
 with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/paths.json", "r") as file:
     paths = json.load(file)
 with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/data_parameters.json", "r") as file:
     data_params = json.load(file)
+
 # Set CUDA environment variables
 os.environ["CUDA_HOME"] = paths['CUDA_HOME']
 os.environ["PATH"] = os.path.join(os.environ["CUDA_HOME"], "bin") + ":" + os.environ.get("PATH", "")
 os.environ["LD_LIBRARY_PATH"] = os.path.join(os.environ["CUDA_HOME"], "lib64") + ":" + os.environ.get("LD_LIBRARY_PATH", "")
-import sys
+
 sys.path.append(paths['BASE_DIR'])
 import torch
-import argparse
-import copy
 import numpy as np
 import pandas as pd
 import torch.nn as nn
@@ -21,71 +24,59 @@ from obspy import UTCDateTime
 from sklearn.preprocessing import MinMaxScaler
 
 from functions.utils import *
-from data_processing.read_data import load_data, load_label, load_seismic_data
-from data_processing.dataloader import SequenceDataset, DataLoader
-from functions.plot_image import plot_image
+from functions.data_processing.read_data import load_data, load_label, load_seismic_data
+from functions.data_processing.dataloader import SequenceDataset, DataLoader
+from functions.evaluation.plot_image import plot_image
 
 import torch.nn.functional as F
 
-from models.xLSTM_model import xLSTMRegressor
+from models.LSTM_model import LSTMRegressor
 
 import optuna
 
 def define_model(trial):
-    n_repeats = trial.suggest_int("n_repeats", 1, 3, step=1)
-    kernel_size = trial.suggest_int("conv1d_size", 4, 24, step=4)
-    qkv_blocksize = trial.suggest_int("qkv_size", 4, 24, step=4)
-    num_heads = trial.suggest_int("num_heads", 2, 16, step=2)
-    emb_dim = trial.suggest_int("embedding_dimension", 16, 128, step=16)
-
-    if (emb_dim % num_heads != 0):
-        print(f"Invalid combination of embedding dimension ({emb_dim}) and number of heads ({num_heads}).")
-        raise optuna.TrialPruned()  # Skip invalid combinations
-
-    print(f"n_repeats: {n_repeats}, conv1d_size: {kernel_size}, qkv_size: {qkv_blocksize}, num_heads: {num_heads}, embedding_dimension: {emb_dim}")
+    embedding_dim = trial.suggest_int("embedding_dim", 16, 128, step=16)
+    hidden_dim = trial.suggest_int("hidden_dim", 16, 128, step=16)
+    num_layers = trial.suggest_int("num_layers", 1, 4)
+    print(f"Embedding Dimension: {embedding_dim}, Hidden Dimension: {hidden_dim}, Number of Layers: {num_layers}")
 
     try:
-        model  = xLSTMRegressor(input_size=500, 
-                          conv1d_kernel_size= kernel_size,
-                          qkv_proj_blocksize=qkv_blocksize,
-                          num_heads=num_heads,
-                          context_length=60,
-                          num_blocks=8,
-                          embedding_dim=emb_dim,
-                          slstm_at=[1],
-                          num_reps=n_repeats
-                          )
+        model = LSTMRegressor(
+            input_size=500,
+            embedding_size=embedding_dim,
+            hidden_size=hidden_dim,
+            num_layers=num_layers,
+        )
     except AssertionError:
-        print(f"Invalid combination of embedding dimension ({emb_dim}) and number of heads ({num_heads}).")
+        print(f"Invalid combination of embedding dimension ({embedding_dim}) and number of heads ({num_layers}).")
         raise optuna.TrialPruned()
     except torch.cuda.OutOfMemoryError:
-        print(f"Out of memory error with embedding dimension ({emb_dim}) and number of heads ({num_heads}).")
+        print(f"Out of memory error with embedding dimension ({embedding_dim}) and number of heads ({num_layers}).")
         raise optuna.TrialPruned()
     return model
 
 def objective(trial):
     print(f"{f'Trial Number {trial.number}':-^100}")
-    output_dir = f"{paths['BASE_DIR']}/xlstm_tuning_2/"
+    output_dir = f"{paths['BASE_DIR']}/lstm_tuning_1/"
     os.makedirs(output_dir, exist_ok=True)
-    model_dir = f"{paths['BASE_DIR']}/xlstm_tuning_2/model/"
+    model_dir = f"{paths['BASE_DIR']}/lstm_tuning_1/model/"
     os.makedirs(model_dir, exist_ok=True)
-    image_dir = f"{paths['BASE_DIR']}/xlstm_tuning_2/images/trial_{trial.number}/"
+    image_dir = f"{paths['BASE_DIR']}/lstm_tuning_1/images/trial_{trial.number}/"
     os.makedirs(image_dir, exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     
     # Load the data
     test_julday = 232
-    # val_julday_list = [161, 172]
-    val_julday_list = [207, 223]
+    val_julday_list = [161, 172]
+    # val_julday_list = [207, 223]
     # val_julday_list = [183, 196]
     savestr = "".join([str(i) for i in val_julday_list])
-    
     station = 'ILL11'
     interval_seconds = 5
     time_shift_minutes = 'dynamic'
     num_intervals = int((5 * 60) // interval_seconds)
-    batch_size = trial.suggest_categorical("batch_size", [32, 64, 128, 256, 512])
+    batch_size = trial.suggest_int("batch_size", 16, 128, step=16)
     print(f"Batch Size: {batch_size}")
     
     julday_list = [161, 172, 182, 183, 196, 207, 223, 232]
@@ -149,7 +140,7 @@ def objective(trial):
 
     # Define the loss function and optimizer
     lr = trial.suggest_categorical("lr", [1e-3, 5e-4, 1e-4, 5e-5, 1e-5])
-    weight_decay = trial.suggest_categorical("weight_decay", [1e-3, 5e-4, 1e-4, 5e-5, 1e-5])
+    # weight_decay = trial.suggest_float("weight_decay", 1e-5, 1e-2, log=True)
     criterion = trial.suggest_categorical("criterion", ["MSE", "MAE"])
     if criterion == "MSE":
         criterion = nn.MSELoss()
@@ -157,13 +148,12 @@ def objective(trial):
         criterion = nn.L1Loss()
     else:
         raise ValueError("Invalid criterion selected")
-    print(f"Learning Rate: {lr}, Weight Decay: {weight_decay}, Criterion: {criterion}")
-    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+    print(f"Learning Rate: {lr}, Criterion: {criterion}")
+    optimizer = optim.Adam(model.parameters(), lr=lr)
 
     # Train the model
     print(f"{'Starting Training':-^50}")
     best_loss = float('inf')
-    consecutive_increase = 0
     try:
         for epoch in range(50):
             train_loss = 0.0
@@ -183,10 +173,17 @@ def objective(trial):
                 assert output.shape == target_value.shape, f"Shape mismatch {output.shape} <-> {target_value.shape}"
                 loss = criterion(output, target_value)     # Compute loss
                 loss.backward()
+                total_norm = torch.nn.utils.clip_grad_norm_(
+                    model.parameters(),
+                    max_norm=10,
+                    norm_type=2
+                )
+                if total_norm > 10:
+                    print(f"Clipped from {total_norm:.2f} to 1.0")
                 optimizer.step()
                 train_loss += loss.item()
             train_loss /= len(train_dataloader)  # Average loss for the epoch
-            print(f"Epoch [{epoch+1}/50], Loss: {train_loss:.4f}")
+            print(f"Epoch [{epoch+1}/20], Loss: {train_loss:.4f}")
 
             # Evaluate the model
             model.eval()
@@ -205,7 +202,7 @@ def objective(trial):
                     val_loss += loss.item()
                     # prev_target = output.cpu().detach()
             val_loss /= len(val_dataloader)
-            print(f"Epoch [{epoch+1}/50], Val Loss: {val_loss:.4f}")
+            print(f"Epoch [{epoch+1}/20], Val Loss: {val_loss:.4f}")
             if val_loss < best_loss:
                 best_loss = val_loss
                 best_epoch = epoch
@@ -221,17 +218,13 @@ def objective(trial):
                 # Restore the best weights
                 model.load_state_dict(best_weights)
                 print(f"Early stopping triggered. Restoring model to epoch {best_epoch + 1} with lowest loss {best_loss:.4f}")
-                break 
+                break
     except torch.cuda.OutOfMemoryError:
         print(f"Out of memory error.")
         raise optuna.TrialPruned()
-    except RuntimeError:
-        print(f"Runtime error.")
-        raise optuna.TrialPruned()
-    
+
     model.load_state_dict(best_weights)
     print(f"Best Validation Loss: {best_loss:.4f}")
-    model.load_state_dict(best_weights)  # Restore the best weights
     # Save the model
     model_path = f"{model_dir}model_{trial.number}.pt"
     torch.save(model.state_dict(), model_path)
@@ -283,17 +276,18 @@ def objective(trial):
                test_julday=232, 
                val_julday=savestr, interval=interval_seconds)
 
+
     return val_loss
 
 if __name__ == "__main__":
     study = optuna.create_study(
         direction="minimize",
-        storage="sqlite:///xlstm_tuning.db",
-        study_name="xlstm_tuning_2",
+        storage="sqlite:///lstm_tuning.db",
+        study_name="lstm_tuning_1",
         load_if_exists=True,
         pruner=optuna.pruners.MedianPruner()
     )
-    study.optimize(objective, n_trials=50)
+    study.optimize(objective, n_trials=30)
     print("Best trial:")
     trial = study.best_trial
     print(f"  Value: {trial.value}")

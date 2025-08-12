@@ -6,13 +6,14 @@ import sys
 sys.path.append(paths['BASE_DIR'])
 import numpy as np
 import pandas as pd
+from obspy.core import UTCDateTime
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from scipy.stats import pearsonr
 # from dtaidistance import dtw
 # from scipy.signal import savgol_filter
-from obspy.core import UTCDateTime
 
-from data_processing.read_data import load_label
+
+from functions.data_processing.read_data import load_label
 
 def evaluate_model(model_type:str, test_julday:int, val_julday:int, interval_seconds:int, y_true, y_pred, smoothing:int,out_dir:str, time_to_train:str):
     print(f"{'Evaluating Model':-^50}")

@@ -13,18 +13,16 @@ import argparse
 import numpy as np
 import pandas as pd
 from obspy import UTCDateTime
-from sklearn.preprocessing import MinMaxScaler
 
-from data_processing.read_data import load_seismic_data
-from data_processing.dataloader import SequenceDatasetTest, DataLoader
+from functions.data_processing.read_data import load_data, load_seismic_data
+from functions.data_processing.dataloader import SequenceDatasetTest, DataLoader
 
 from functions.utils import *
 # from functions.train import train_model
 # from functions.evaluation import evaluate_model
-from functions.plot_image import plot_image_test
-
+from functions.evaluation.plot_image import plot_image_test
 from models.LSTM_model import LSTMRegressor
-from models.xLSTM_model import xLSTMRegressor
+from models.xLSTM_model import xLSTMRegressor_v2
 
 def load_model(model_julday:int, model_type:str, interval:int):
     mapping = {161 : 1, 172 : 2, 196 : 3, 207 : 4, 223 : 5, 232 : 6}
@@ -35,7 +33,7 @@ def load_model(model_julday:int, model_type:str, interval:int):
     elif model_type == 'xLSTM':
         with open(f"./config/comparison_baseline/xlstm_default_{interval}sec_config.json", "r") as f:
             config = json.load(f)
-        model = xLSTMRegressor(**config)
+        model = xLSTMRegressor_v2(**config)
     else:
         print(f"Wrong model type entered : {model_type}!")
         exit()
@@ -52,18 +50,14 @@ def main(network:str, station:str, component:str, year:int, julday:int, model_ty
     
     # LOAD DATA
     print("\tLoading Data")
-    st = load_seismic_data(julday= julday, station= station, raw= True, year= year, component= component,
+    st = load_seismic_data(julday= julday, station= station, raw= False, year= year, component= component,
                            network= network, trim=False)
-    data = np.abs(st[0].data[1:])
+    # data = np.abs(st[0].data[1:])
+    data = load_data(julday_list = [julday], station=station, year=year, trim=False, abs=True)
+    timestamps = [UTCDateTime(UTCDateTime(year=year, julday=int(julday)) + i).timestamp for i in range(10 * 60, 60 * 60 * 24, interval_seconds)]
 
     # PREPARE DATALOADER
     print("\tPreparing Dataloader")
-    scaler = MinMaxScaler(feature_range=(0, 2))
-    scaler.data_min_ = np.array([0])
-    scaler.data_max_ = np.array([350])
-    scaler.scale_ = (scaler.feature_range[1] - scaler.feature_range[0]) / (scaler.data_max_ - scaler.data_min_)
-    scaler.min_ = scaler.feature_range[0] - scaler.data_min_ * scaler.scale_
-    timestamps = [UTCDateTime(UTCDateTime(year=year, julday=int(julday)) + i).timestamp for i in range(10 * 60, 60 * 60 * 24, interval_seconds)]
     dataset = SequenceDatasetTest(input_data= data, target_time= timestamps, 
                                 interval_count= num_intervals, sequence_length= interval_seconds * 100)
     dataloader = DataLoader(dataset= dataset, batch_size= get_batch_size(interval_seconds), shuffle=False)
@@ -93,8 +87,7 @@ def main(network:str, station:str, component:str, year:int, julday:int, model_ty
                 output = model(input_sequences).squeeze(1)  # Shape: (batch_size, 1)
                 # Squeeze the output to match target shape
                 in_sequence.append(input_sequences.cpu().numpy())
-                rem = output.cpu().detach().cpu().numpy().shape
-                predicted_output.append(scaler.inverse_transform(output.detach().cpu().numpy().reshape(-1,1)).reshape(rem))
+                predicted_output.append(output.detach().cpu().numpy() * 350)
                 model_timestamps.append(test_timestamps)
         end_time = get_current_time()
         time_to_test = get_time_elapsed(start_time, end_time)
