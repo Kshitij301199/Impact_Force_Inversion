@@ -21,4 +21,29 @@ python smooth_data.py --time_shift "average" --smooth --plot
 ```
 
 ## Model Training
-The model training is carried out using files located in `./functions/model/`.
+The model training is carried out using files located in `./functions/training/`.
+- `train.py` contains the training class used to train both models.
+- `train_xlstm.py` contains the training process for the xLSTM model. It initializes the dataloaders, model and runs the evaluation. Its usage is as follows :
+```bash
+python train_xlstm.py \ 
+    --test_julday 172 \ 
+    --val_julday 232 \ 
+    --time_shift_mins 'average' \ 
+    --interval 5 \ 
+    --station "ILL11" \ 
+    --config_op "default" \ 
+    --task "comparison_baseline" \ 
+    --smoothing 30 
+```
+- `train_lstm.py` contains the training process for the LSTM model. It initializes the dataloaders, model and runs the evaluation. Its usage is similar to the one shown above.
+- `test_models.py` lets the user apply saved models to unseen seismic data in an ensemble approach. It assumes the data is stored in the directory location set in `./config/paths.json` Its usage is as follows :
+```bash
+python test_models.py \ 
+    --network "9S" \ 
+    --station "ILL11" \ 
+    --component "EHZ" \ 
+    --year "2020" \ 
+    --julday 156 \ 
+    --interval 5 \ 
+    --model_type "xLSTM"
+```
