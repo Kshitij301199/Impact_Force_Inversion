@@ -2,7 +2,7 @@
 #SBATCH -t 96:00:00               # time limit: (HH:MM:SS)
 #SBATCH --job-name=abl_xlstm           # job name
 #SBATCH --ntasks=1                # each task in the job array will have a single task associated with it
-#SBATCH --array=1-6%2            # job array id, adjusted for the total number of commands (8 test days * 7 validation days * 4 intervals)
+#SBATCH --array=1-36%2            # job array id, adjusted for the total number of commands (8 test days * 7 validation days * 4 intervals)
 #SBATCH --mem-per-cpu=16G         # Memory Request (per CPU; can use on GLIC)
 #SBATCH --gres=gpu:A30:1             # load GPU A100 could be replace by A40/A30, 509-510 nodes has 4_A100_80G
 #SBATCH --reservation=GPU            # reserve the GPU
@@ -47,4 +47,5 @@ srun --gres=gpu:A30:1 --unbuffered python /storage/vast-gfz-hpc-01/home/kshitkar
     --station "ILL11" \
     --config_op "default" \
     --task "abalation_study_1" \
-    --smoothing 30
+    --smoothing 30 \
+    --num_days $num_day

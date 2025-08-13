@@ -47,5 +47,6 @@ srun --gres=gpu:A30:1 --unbuffered python /storage/vast-gfz-hpc-01/home/kshitkar
     --station "ILL11" \
     --config_op "default" \
     --task "abalation_study_1" \
-    --smoothing 30
+    --smoothing 30 \
+    --num_days $num_day
 
