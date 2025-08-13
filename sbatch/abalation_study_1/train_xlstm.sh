@@ -17,21 +17,31 @@ module use /cluster/spack/2022b/share/spack/modules/linux-almalinux8-icelake
 source /home/kshitkar/miniforge3/bin/activate
 conda activate xlstm_env
 
-num_days=({1..6})
-num_day=${num_days[$SLURM_ARRAY_TASK_ID-1]}
+# Calculate the index for test_julday/val_julday and num_day based on SLURM_ARRAY_TASK_ID (1-36)
+test_juldays=(161 172 196 207 223 232)
+val_juldays=(207 207 161 183 183 161)
+num_days=(1 2 3 4 5 6)
 
-# Log the current parameters
+# SLURM_ARRAY_TASK_ID is 1-based
+task_id=$((SLURM_ARRAY_TASK_ID - 1))
+test_val_idx=$((task_id / 6))
+num_day_idx=$((task_id % 6))
+
+test_julday="${test_juldays[$test_val_idx]}"
+val_julday="${val_juldays[$test_val_idx]}"
+num_day="${num_days[$num_day_idx]}"
+
 echo "Running for:"
 echo "Number of Training days: $num_day"
-echo "Test Julian Day: 232"
-echo "Validation Julian Day: 223"
+echo "Test Julian Day: $test_julday"
+echo "Validation Julian Day: $val_julday"
 echo "Interval: 5"
 echo "Hypothesis Option: default"
 
 # Run the Python script with the selected parameters
-srun --gres=gpu:A30:1 --unbuffered python /storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/functions/train_xlstm.py \
-    --test_julday "$num_day" \
-    --val_julday 0 \
+srun --gres=gpu:A30:1 --unbuffered python /storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/functions/training/train_xlstm.py \
+    --test_julday $test_julday \
+    --val_julday $val_julday \
     --time_shift_mins 'average' \
     --interval 5 \
     --station "ILL11" \

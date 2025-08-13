@@ -44,7 +44,7 @@ interval=${intervals[$interval_index]}
 model=${models[$model_index]}
 
 # Run Python script with selected parameters
-srun --gres=gpu:A40:1 --unbuffered python /storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/functions/test_models.py \
+srun --gres=gpu:A40:1 --unbuffered python /storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/functions/training/test_models.py \
     --network "$network" \
     --station "$station" \
     --component "$component" \

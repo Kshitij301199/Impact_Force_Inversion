@@ -62,7 +62,7 @@ echo "Interval: $interval"
 echo "Hypothesis Option: $hyp_option"
 
 # Run the Python script with the selected parameters
-srun --gres=gpu:A40:1 --unbuffered python /storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/functions/train_lstm.py \
+srun --gres=gpu:A40:1 --unbuffered python /storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/functions/training/train_lstm.py \
     --test_julday "$test_julday" \
     --val_julday "$val_julday" \
     --time_shift_mins 'average' \
