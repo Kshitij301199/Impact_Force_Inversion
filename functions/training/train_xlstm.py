@@ -44,7 +44,7 @@ def set_seed(seed=42):
     torch.backends.cudnn.deterministic = True  # ensure deterministic behavior
     torch.backends.cudnn.benchmark = False     # disable benchmarking for reproducibility
 
-def main(test_julday:int, val_julday:int, time_shift_minutes:int|str, smoothing:int,station:str, interval_seconds:int, config_option:str, task:str):
+def main(test_julday:int, val_julday:int, time_shift_minutes:int|str, smoothing:int,station:str, interval_seconds:int, config_option:str, task:str, num_days=None):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device : {device}")
     set_seed()
@@ -82,10 +82,15 @@ def main(test_julday:int, val_julday:int, time_shift_minutes:int|str, smoothing:
         date_list = ["2019-06-21", "2019-07-01", "2019-07-15", "2019-07-26", "2019-08-11"]
     
     if task == "abalation_study_1":
-        julday_list = julday_list[:test_julday]
-        date_list = date_list[:test_julday]
-        test_julday, test_julday_list, test_date_list = 232, [232], ["2019-08-20"]
-        val_julday, val_julday_list, val_date_list = 223, [223], ["2019-08-11"]
+        test_date = date_list.pop(julday_list.index(test_julday))
+        julday_list.remove(test_julday)
+        val_date = date_list.pop(julday_list.index(val_julday))  
+        julday_list.remove(val_julday)
+        test_julday_list = [test_julday]
+        test_date_list = [test_date]
+        val_julday_list, val_date_list = [val_julday], [val_date]
+        julday_list = julday_list[:num_days]
+        date_list = date_list[:num_days]
     else:
         test_date = date_list.pop(julday_list.index(test_julday))
         julday_list.remove(test_julday)
@@ -203,6 +208,7 @@ if __name__ == "__main__":
     parser.add_argument("--config_op", type=str,default="default", help= "config option")
     parser.add_argument("--task", type=str, default="comparison_baseline", help= "name of the task corresponding to parameter directory")
     parser.add_argument("--smoothing", type=int, default=30, help="enter a value used for smoothing the raw data")
+    parser.add_argument("--num_days", type=int, default=None, help="number of days used for training")
 
     args = parser.parse_args()
     print(f"Running main with {args.test_julday} {args.station} {args.config_op} {args.task}")
@@ -213,4 +219,5 @@ if __name__ == "__main__":
         args.station, 
         args.interval, 
         args.config_op, 
-        args.task)
+        args.task,
+        args.num_days)
