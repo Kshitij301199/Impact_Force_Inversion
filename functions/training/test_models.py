@@ -1,11 +1,16 @@
 import os
 import json
+
 with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/paths.json", "r") as file:
     paths = json.load(file)
+with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/data_parameters.json", "r") as file:
+    data_params = json.load(file)
+
 # Set CUDA environment variables
 os.environ["CUDA_HOME"] = paths['CUDA_HOME']
 os.environ["PATH"] = os.path.join(os.environ["CUDA_HOME"], "bin") + ":" + os.environ.get("PATH", "")
 os.environ["LD_LIBRARY_PATH"] = os.path.join(os.environ["CUDA_HOME"], "lib64") + ":" + os.environ.get("LD_LIBRARY_PATH", "")
+
 import sys
 sys.path.append(paths['BASE_DIR'])
 import torch
@@ -54,13 +59,13 @@ def main(network:str, station:str, component:str, year:int, julday:int, model_ty
                            network= network, trim=False)
     # data = np.abs(st[0].data[1:])
     data = load_data(julday_list = [julday], station=station, year=year, trim=False, abs=True)
-    timestamps = [UTCDateTime(UTCDateTime(year=year, julday=int(julday)) + i).timestamp for i in range(10 * 60, 60 * 60 * 24, interval_seconds)]
+    timestamps = [UTCDateTime(UTCDateTime(year=year, julday=int(julday)) + i).timestamp for i in range(data_params['time_window'] * 60, 60 * 60 * 24, interval_seconds)]
 
     # PREPARE DATALOADER
     print("\tPreparing Dataloader")
     dataset = SequenceDatasetTest(input_data= data, target_time= timestamps, 
                                 interval_count= num_intervals, sequence_length= interval_seconds * 100)
-    dataloader = DataLoader(dataset= dataset, batch_size= get_batch_size(interval_seconds), shuffle=False)
+    dataloader = DataLoader(dataset= dataset, batch_size= 8, shuffle=False)
 
     for model_julday in [161, 172, 196, 207, 223, 232]:
         output_dir = f"./model_test/{model_type}_{interval_seconds}/{year}/{mapping[model_julday]}/"
@@ -74,7 +79,7 @@ def main(network:str, station:str, component:str, year:int, julday:int, model_ty
         # APPLY MODEL
         start_time = get_current_time()
         print(f"{'Start Testing':-^50}")
-        model.eval()
+        # model.eval()
         in_sequence, predicted_output, model_timestamps = [], [], []
         test_epoch_loss = 0.0
         with torch.no_grad():
