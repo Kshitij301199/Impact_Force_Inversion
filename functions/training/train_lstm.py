@@ -37,6 +37,39 @@ def warmup_lambda(epoch):
     warmup_epochs = 5
     return min(1.0, (epoch + 1) / warmup_epochs)
 
+class WeightedMSELoss(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, output: torch.Tensor, target: torch.Tensor):
+        bins = torch.arange(20, 351, 10, device=target.device, dtype=target.dtype)
+        centers = (bins[:-1] + bins[1:]) / 2
+        max_val = target.max().clamp(min=1e-6)   # prevent div by 0
+        weights = centers / max_val  # scaled weights
+
+        # assign bin-based weight per target
+        bin_indices = torch.bucketize(target, bins) - 1
+        sample_weights = weights[bin_indices]
+
+        # weighted squared error
+        se = (output - target) ** 2
+        # rse = torch.sqrt(se)
+        weighted_se = sample_weights * se
+        return weighted_se.mean()
+    
+class CombinedLoss(nn.Module):
+    def __init__(self, alpha=0.7, beta=0.3):
+        super().__init__()
+        self.alpha = alpha
+        self.beta = beta
+        self.mse = nn.MSELoss()
+        self.weighted_mse = WeightedMSELoss()
+
+    def forward(self, output, target):
+        mse_loss = self.mse(output, target)
+        weighted_loss = self.weighted_mse(output, target)
+        return self.alpha * mse_loss + self.beta * weighted_loss
+
 def set_seed(seed=42):
     # np.random.seed(seed)
     # torch.manual_seed(seed)
@@ -51,9 +84,9 @@ def main(test_julday:int, val_julday:int, time_shift_minutes:int|str, smoothing:
     num_intervals = int((data_params['time_window'] * 60) // interval_seconds)
     if task == "abalation_study_1":
         output_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}" 
-        model_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}/model/{test_julday}"
-        image_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}/test_results/lstm/{test_julday}"
-        save_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}/output_df/{test_julday}"
+        model_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}/model/{num_days}"
+        image_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}/test_results/lstm/{num_days}"
+        save_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}/output_df/{num_days}"
         os.makedirs(model_dir, exist_ok=True)
         os.makedirs(image_dir, exist_ok=True)
         os.makedirs(save_dir, exist_ok=True)
@@ -133,7 +166,9 @@ def main(test_julday:int, val_julday:int, time_shift_minutes:int|str, smoothing:
         string = f"lstm :\n{config}\n"
         f.write(string)
     model = LSTMRegressor(**config)
-    criterion = nn.MSELoss()
+    criterion = CombinedLoss(alpha=0.3, beta=0.7)
+    monitor1 = nn.MSELoss()
+    monitor2 = WeightedMSELoss()
     if interval_seconds == 1:
         lr = 5e-4
     else:
@@ -178,7 +213,8 @@ def main(test_julday:int, val_julday:int, time_shift_minutes:int|str, smoothing:
                            warmup_scheduler=warmup_scheduler, main_scheduler=main_scheduler,
                            train_loader=train_dataloader, val_loader=val_dataloader, test_loader=test_dataloader,
                            model_dir=model_dir, interval=interval_seconds,
-                           test_julday=test_julday, val_julday=val_julday, model_type="LSTM", device=device)
+                           test_julday=test_julday, val_julday=val_julday, model_type="LSTM", device=device,
+                           monitor1=monitor1, monitor2=monitor2)
     print(f"{'Starting Training':-^50}")
     trainer.train(num_epochs=200, patience=15)
     print(f"{'Start Testing':-^50}")

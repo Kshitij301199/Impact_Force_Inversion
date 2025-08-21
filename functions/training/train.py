@@ -1,12 +1,21 @@
 import os
 import sys
+import copy
+import json
 import torch
+import numpy as np
 import torch.nn as nn
 torch.set_default_dtype(torch.float32)
 import torch.optim as optim
-import copy
-sys.path.append("..")
-from utils import *
+import matplotlib.pyplot as plt
+
+with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/paths.json", "r") as file:
+    paths = json.load(file)
+with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/data_parameters.json", "r") as file:
+    data_params = json.load(file)
+
+sys.path.append(paths['BASE_DIR'])
+from functions.utils import *
 
 def set_seed(seed=42):
     # torch.manual_seed(seed)
@@ -188,7 +197,8 @@ def set_seed(seed=42):
 class ModelTrainer:
     def __init__(self, model, criterion, optimizer, warmup_scheduler, main_scheduler,
                  train_loader, val_loader, test_loader, model_dir,
-                 interval=None, test_julday=None, val_julday=None, model_type="Model", device=None):
+                 interval=None, test_julday=None, val_julday=None, model_type="Model", device=None,
+                 monitor1=None, monitor2=None):
 
         self.model = model
         self.criterion = criterion
@@ -205,6 +215,9 @@ class ModelTrainer:
         self.model_type = model_type
         self.device = device if device else torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+        self.monitor1 = monitor1
+        self.monitor2 = monitor2
+
         self.model.to(self.device)
         set_seed()
 
@@ -217,8 +230,12 @@ class ModelTrainer:
         start_time = get_current_time()
 
         for epoch in range(num_epochs):
-            train_loss = self._run_epoch(self.train_loader, training=True)
-            val_loss = self._run_epoch(self.val_loader, training=False)
+            if self.monitor1 is not None:
+                train_loss, train_mse, train_wmse = self._run_epoch(self.train_loader, training=True)
+                val_loss, val_mse, val_wmse = self._run_epoch(self.val_loader, training=False)
+            else:
+                train_loss = self._run_epoch(self.train_loader, training=True)
+                val_loss = self._run_epoch(self.val_loader, training=False)
 
             if epoch < 5:
                 self.warmup_scheduler.step()
@@ -228,6 +245,8 @@ class ModelTrainer:
                 print(f"Epoch {epoch+1} Plateau LR: {self.optimizer.param_groups[0]['lr']:.2e}")
 
             print(f"Epoch {epoch + 1}/{num_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
+            if self.monitor1 is not None:
+                print(f"\t\tMonitoring -- MSE : {val_mse:.4f}, Weighted MSE : {val_wmse:.4f}")
 
             if val_loss < best_loss:
                 best_loss = val_loss
@@ -250,6 +269,9 @@ class ModelTrainer:
 
     def _run_epoch(self, dataloader, training=False):
         epoch_loss = 0.0
+        if self.monitor1 is not None:
+            epoch_mse = 0.0
+            epoch_wmse = 0.0
         self.model.train() if training else self.model.eval()
 
         for input_sequences, target_value, _ in dataloader:
@@ -265,13 +287,19 @@ class ModelTrainer:
             output = self.model(input_sequences).squeeze(1)
 
             loss = self.criterion(output, target_value)
+            if self.monitor1 is not None:
+                epoch_mse += self.monitor1(output, target_value).item()
+                epoch_wmse += self.monitor2(output, target_value).item()
+
             if training:
                 loss.backward()
                 self.optimizer.step()
 
             epoch_loss += loss.item()
-
-        return epoch_loss / len(dataloader)
+        if self.monitor1 is not None:
+            return epoch_loss / len(dataloader), epoch_mse / len(dataloader), epoch_wmse / len(dataloader)
+        else:
+            return epoch_loss / len(dataloader)
 
     def test(self):
         return self._evaluate(self.test_loader, save_path=f"{self.model_dir}/t{self.test_julday}_v{self.val_julday}_{self.interval}_{self.model_type}_model.pt")
@@ -287,6 +315,9 @@ class ModelTrainer:
 
         in_seq, preds, targets, timestamps = [], [], [], []
         total_loss = 0.0
+        if self.monitor1 is not None:
+            total_mse = 0.0
+            total_wmse = 0.0
 
         with torch.no_grad():
             for input_sequences, target_value, ts in dataloader:
@@ -299,6 +330,9 @@ class ModelTrainer:
 
                 loss = self.criterion(output, target_value)
                 total_loss += loss.item()
+                if self.monitor1 is not None:
+                    total_mse += self.monitor1(output, target_value)
+                    total_wmse += self.monitor2(output, target_value)
 
                 pred_unscaled = output.cpu().numpy() * 350
                 target_unscaled = target_value.cpu().numpy() * 350
@@ -309,5 +343,7 @@ class ModelTrainer:
                 timestamps.append(ts)
 
         print(f"Test Loss: {total_loss / len(dataloader):.4f}")
+        if self.monitor1 is not None:
+            print(f"\t\tMonitoring -- MSE : {total_mse / len(dataloader):.4f}, Weighted MSE : {total_wmse / len(dataloader):.4f}")
         return in_seq, preds, targets, timestamps, str(timedelta(seconds=self.time_to_train))
 
