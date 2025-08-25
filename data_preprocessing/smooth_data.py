@@ -67,7 +67,7 @@ def make_plot(date):
     ax.legend()
     fig.tight_layout()
     os.makedirs("./smoothing/img", exist_ok = True)
-    fig.savefig("./smoothing/img/2019-08-20.png", dpi=300);
+    fig.savefig(f"./smoothing/img/{date}.png", dpi=300);
     plt.close(fig)
 
     fig, ax = plt.subplots(1, 3, sharex=True, sharey=True, figsize=(12,4))
@@ -86,7 +86,7 @@ def make_plot(date):
 
     fig.tight_layout()
     os.makedirs("./smoothing/dist", exist_ok = True)
-    fig.savefig("./smoothing/dist/2019-08-20.png", dpi=300);
+    fig.savefig(f"./smoothing/dist/{date}.png", dpi=300);
 
     return None
 
@@ -104,7 +104,7 @@ def main(time_shift:str, smooth:bool, plot:bool):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Smooth data and make plots")
-    parser.add_arguement("--time_shift", type=str, default="average", help="Time shift method to use for smoothing")
+    parser.add_argument("--time_shift", type=str, default="average", help="Time shift method to use for smoothing")
     parser.add_argument("--smooth", action="store_true", help="Whether to smooth the data")
     parser.add_argument("--plot", action="store_true", help="Whether to plot the data")
     args = parser.parse_args()

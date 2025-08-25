@@ -43,8 +43,8 @@ def main(time_shift_minutes, from_velocity:bool=False, avg_peak_shift:bool=False
         # print(f"{data_start_time1.datetime} \n{data_start_time2.datetime}")
         time_diff1, time_diff2 = data_start_time1 - df_start_times.iloc[0], data_start_time2 - df_start_times.iloc[1]
 
-        data1['Time'] = data1.iloc[:,-1].apply(UTCDateTime) - (6 * 60) + (time_shift_minutes * 60)
-        data2['Time'] = data2.iloc[:,-1].apply(UTCDateTime) - (1 * 60) + (time_shift_minutes * 60)
+        data1['Time'] = data1.iloc[:,-1].apply(UTCDateTime) - (5.2 * 60) + (time_shift_minutes * 60)
+        data2['Time'] = data2.iloc[:,-1].apply(UTCDateTime) - (4.9 * 60) + (time_shift_minutes * 60)
         data = pd.concat([data1, data2])
         complete_data = pd.DataFrame(columns= ['Time'])
         start_time = UTCDateTime("2019-06-10T00:00:00")
@@ -69,8 +69,8 @@ def main(time_shift_minutes, from_velocity:bool=False, avg_peak_shift:bool=False
         data_start_time1, data_start_time2 = UTCDateTime(data1.iloc[0,-1]), UTCDateTime(data2.iloc[0,-1])
         # print(f"{data_start_time1.datetime} \n{data_start_time2.datetime}")
         time_diff1, time_diff2 = data_start_time1 - df_start_times.iloc[0], data_start_time2 - df_start_times.iloc[1]
-        data1['Time'] = data1.iloc[:,-1].apply(UTCDateTime) - (61 * 60) + (time_shift_minutes * 60)
-        data2['Time'] = data2.iloc[:,-1].apply(UTCDateTime) - (68 * 60) + (time_shift_minutes * 60)
+        data1['Time'] = data1.iloc[:,-1].apply(UTCDateTime) - (61.2 * 60) + (time_shift_minutes * 60)
+        data2['Time'] = data2.iloc[:,-1].apply(UTCDateTime) - (68.1 * 60) + (time_shift_minutes * 60)
 
         data = pd.concat([data1, data2])
         complete_data = pd.DataFrame(columns= ['Time'])
@@ -94,7 +94,7 @@ def main(time_shift_minutes, from_velocity:bool=False, avg_peak_shift:bool=False
         date_ends = ["2019-06-22","2019-07-16","2019-07-27","2019-08-12","2019-08-21"]
         shift_values = [time_shift_minutes] * 5
         # peak_diff_values = [59, 69, 61, 57, 62] # OLD
-        peak_diff_values = [60, 68, 62, 57, 62]
+        peak_diff_values = [61.2, 69.5, 61.3, 57.5, 62.4]
 
         for date_start, date_end, shift, peak_diff in tqdm(zip(date_starts, date_ends, shift_values, peak_diff_values), total=5):
             DataStart = date_start
@@ -139,8 +139,8 @@ def main(time_shift_minutes, from_velocity:bool=False, avg_peak_shift:bool=False
         print(f"date: {start_date}, vel: {temp.iloc[0,2]}, time_shift: {distance / temp.iloc[0,2] : .2f}")
         print(f"date: {start_date}, vel: {temp.iloc[1,2]}, time_shift: {distance / temp.iloc[1,2] : .2f}")
 
-        data1['Time'] = data1.iloc[:,-1].apply(UTCDateTime) - (6 * 60) + int(distance / temp.iloc[0,2]) # - peak_to_peak difference + time shift by velocity
-        data2['Time'] = data2.iloc[:,-1].apply(UTCDateTime) - (1 * 60) + int(distance / temp.iloc[1,2]) # - peak_to_peak difference + time shift by velocity
+        data1['Time'] = data1.iloc[:,-1].apply(UTCDateTime) - (5.2 * 60) + int(distance / temp.iloc[0,2]) # - peak_to_peak difference + time shift by velocity
+        data2['Time'] = data2.iloc[:,-1].apply(UTCDateTime) - (4.9 * 60) + int(distance / temp.iloc[1,2]) # - peak_to_peak difference + time shift by velocity
         data = pd.concat([data1, data2])
         complete_data = pd.DataFrame(columns= ['Time'])
         start_time = UTCDateTime("2019-06-10T00:00:00")
@@ -168,9 +168,8 @@ def main(time_shift_minutes, from_velocity:bool=False, avg_peak_shift:bool=False
         print(f"date: {DataStart}, vel: {temp.iloc[1,2]}, time_shift: {distance / temp.iloc[1,2] : .2f}")
         # print(f"{data_start_time1.datetime} \n{data_start_time2.datetime}")
         time_diff1, time_diff2 = data_start_time1 - df_start_times.iloc[0], data_start_time2 - df_start_times.iloc[1]
-        data1['Time'] = data1.iloc[:,-1].apply(UTCDateTime) - (61 * 60) + int(distance / temp.iloc[0,2])
-        data2['Time'] = data2.iloc[:,-1].apply(UTCDateTime) - (68 * 60) + int(distance / temp.iloc[1,2])
-
+        data1['Time'] = data1.iloc[:,-1].apply(UTCDateTime) - (61.95 * 60) + int(distance / temp.iloc[0,2])
+        data2['Time'] = data2.iloc[:,-1].apply(UTCDateTime) - (68.1 * 60) + int(distance / temp.iloc[1,2])
         data = pd.concat([data1, data2])
         complete_data = pd.DataFrame(columns= ['Time'])
         start_time = UTCDateTime("2019-07-01T00:00:00")
@@ -191,7 +190,8 @@ def main(time_shift_minutes, from_velocity:bool=False, avg_peak_shift:bool=False
         # peak_shift_df = pd.read_csv("peak_times.csv", index_col=False)
         date_starts = ["2019-06-21","2019-07-15","2019-07-26","2019-08-11","2019-08-20"]
         date_ends = ["2019-06-22","2019-07-16","2019-07-27","2019-08-12","2019-08-21"]
-        peak_diff_values = [60, 68, 62, 57, 62]
+        # peak_diff_values = [60, 68, 62, 57, 62]
+        peak_diff_values = [61.2, 69.5, 61.3, 57.5, 62.5]
         for date_start, date_end, peak_diff in tqdm(zip(date_starts, date_ends, peak_diff_values), total=5):
             temp = vel_df[vel_df['Event_Date'] == date_start]
             DataStart = date_start
@@ -239,8 +239,8 @@ def main(time_shift_minutes, from_velocity:bool=False, avg_peak_shift:bool=False
         print(f"date: {start_date}, vel: {avg_velocity}, time_shift: {distance / avg_velocity : .2f}")
         print(f"date: {start_date}, vel: {avg_velocity}, time_shift: {distance / avg_velocity : .2f}")
 
-        data1['Time'] = data1.iloc[:,-1].apply(UTCDateTime) - (6 * 60) + int(distance / avg_velocity) # - peak_to_peak difference + time shift by velocity
-        data2['Time'] = data2.iloc[:,-1].apply(UTCDateTime) - (1 * 60) + int(distance / avg_velocity) # - peak_to_peak difference + time shift by velocity
+        data1['Time'] = data1.iloc[:,-1].apply(UTCDateTime) - (5.2 * 60) + int(distance / avg_velocity) # - peak_to_peak difference + time shift by velocity
+        data2['Time'] = data2.iloc[:,-1].apply(UTCDateTime) - (4.9 * 60) + int(distance / avg_velocity) # - peak_to_peak difference + time shift by velocity
         data = pd.concat([data1, data2])
         complete_data = pd.DataFrame(columns= ['Time'])
         start_time = UTCDateTime("2019-06-10T00:00:00")
@@ -268,8 +268,8 @@ def main(time_shift_minutes, from_velocity:bool=False, avg_peak_shift:bool=False
         print(f"date: {DataStart}, vel: {avg_velocity}, time_shift: {distance / avg_velocity : .2f}")
         # print(f"{data_start_time1.datetime} \n{data_start_time2.datetime}")
         time_diff1, time_diff2 = data_start_time1 - df_start_times.iloc[0], data_start_time2 - df_start_times.iloc[1]
-        data1['Time'] = data1.iloc[:,-1].apply(UTCDateTime) - (61 * 60) + int(distance / avg_velocity)
-        data2['Time'] = data2.iloc[:,-1].apply(UTCDateTime) - (67 * 60) + int(distance / avg_velocity)
+        data1['Time'] = data1.iloc[:,-1].apply(UTCDateTime) - (61.95 * 60) + int(distance / avg_velocity)
+        data2['Time'] = data2.iloc[:,-1].apply(UTCDateTime) - (68.1 * 60) + int(distance / avg_velocity)
 
         data = pd.concat([data1, data2])
         complete_data = pd.DataFrame(columns= ['Time'])
@@ -291,7 +291,9 @@ def main(time_shift_minutes, from_velocity:bool=False, avg_peak_shift:bool=False
         # peak_shift_df = pd.read_csv("peak_times.csv", index_col=False)
         date_starts = ["2019-06-21","2019-07-15","2019-07-26","2019-08-11","2019-08-20"]
         date_ends = ["2019-06-22","2019-07-16","2019-07-27","2019-08-12","2019-08-21"]
-        peak_diff_values = [60, 68, 62, 57, 62]
+        # peak_diff_values = [60, 68, 62, 57, 62]
+        peak_diff_values = [61.2, 69.5, 61.3, 57.5, 62.5]
+
         for date_start, date_end, peak_diff in tqdm(zip(date_starts, date_ends, peak_diff_values), total=5):
             temp = vel_df[vel_df['Event_Date'] == date_start]
             DataStart = date_start
@@ -319,7 +321,7 @@ def main(time_shift_minutes, from_velocity:bool=False, avg_peak_shift:bool=False
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Shift Impact Force Peak Times")
-    parser.add_arguement("--time_shift", type=int, default=None, help="Time shift in minutes, can be None")
+    parser.add_argument("--time_shift", type=int, default=None, help="Time shift in minutes, can be None")
     parser.add_argument("--from_velocity", action="store_true", help="Shift based on velocity")
     parser.add_argument("--avg_shift", action="store_true", help="Shift based on average peak shift")
     
