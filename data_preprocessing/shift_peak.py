@@ -44,19 +44,21 @@ def main(time_shift_minutes, from_velocity:bool=False, avg_peak_shift:bool=False
         time_diff1, time_diff2 = data_start_time1 - df_start_times.iloc[0], data_start_time2 - df_start_times.iloc[1]
 
         data1['Time'] = data1.iloc[:,-1].apply(UTCDateTime) - (5.2 * 60) + (time_shift_minutes * 60)
-        data2['Time'] = data2.iloc[:,-1].apply(UTCDateTime) - (4.9 * 60) + (time_shift_minutes * 60)
+        data2['Time'] = data2.iloc[:,-1].apply(UTCDateTime) - (2.1 * 60) + (time_shift_minutes * 60)
         data = pd.concat([data1, data2])
         complete_data = pd.DataFrame(columns= ['Time'])
         start_time = UTCDateTime("2019-06-10T00:00:00")
         time_list1 = []
-        for i in range(0, 1440 * 60 + 1):
+        for i in range(0, (2 * 1440 * 60) + 1):
             time_list1.append(start_time + i)
         complete_data['Time'] = time_list1
         merged_data = pd.merge(left= complete_data, right= data, how="left", on='Time')
         merged_data.drop(columns=['Time UTC+1', 'Time UTC+0'], inplace=True)
         merged_data['Fv [kN]'] = merged_data['Fv [kN]'].apply(fill_missing_from_Gaussian, **{"mean": min_Fv, "std": sigma*min_Fv_std})
         merged_data = merged_data.fillna(value={"Fv std": min_Fv_std, "Fv min": 0, "Fv max": 0})
-        merged_data.to_csv(f"{output_dir}/{start_date}.csv", index=False)
+        merged_data[merged_data['Time'].between(UTCDateTime("2019-06-10"), UTCDateTime("2019-06-11"))].to_csv(f"{output_dir}/2019-06-10.csv", index=False)
+        merged_data[merged_data['Time'].between(UTCDateTime("2019-06-11"), UTCDateTime("2019-06-12"))].to_csv(f"{output_dir}/2019-06-11.csv", index=False)
+
 
         # Unique Cases 2
         print("Running Unique Case 2")
@@ -140,19 +142,20 @@ def main(time_shift_minutes, from_velocity:bool=False, avg_peak_shift:bool=False
         print(f"date: {start_date}, vel: {temp.iloc[1,2]}, time_shift: {distance / temp.iloc[1,2] : .2f}")
 
         data1['Time'] = data1.iloc[:,-1].apply(UTCDateTime) - (5.2 * 60) + int(distance / temp.iloc[0,2]) # - peak_to_peak difference + time shift by velocity
-        data2['Time'] = data2.iloc[:,-1].apply(UTCDateTime) - (4.9 * 60) + int(distance / temp.iloc[1,2]) # - peak_to_peak difference + time shift by velocity
+        data2['Time'] = data2.iloc[:,-1].apply(UTCDateTime) - (2.1 * 60) + int(distance / temp.iloc[1,2]) # - peak_to_peak difference + time shift by velocity
         data = pd.concat([data1, data2])
         complete_data = pd.DataFrame(columns= ['Time'])
         start_time = UTCDateTime("2019-06-10T00:00:00")
         time_list1 = []
-        for i in range(0, 1440 * 60 + 1):
+        for i in range(0, (2 * 1440 * 60) + 1):
             time_list1.append(start_time + i)
         complete_data['Time'] = time_list1
         merged_data = pd.merge(left= complete_data, right= data, how="left", on='Time')
         merged_data.drop(columns=['Time UTC+1', 'Time UTC+0'], inplace=True)
         merged_data['Fv [kN]'] = merged_data['Fv [kN]'].apply(fill_missing_from_Gaussian, **{"mean": min_Fv, "std": sigma*min_Fv_std})
         merged_data = merged_data.fillna(value={"Fv std": min_Fv_std, "Fv min": 0, "Fv max": 0})
-        merged_data.to_csv(f"{output_dir}/{start_date}.csv", index=False)
+        merged_data[merged_data['Time'].between(UTCDateTime("2019-06-10"), UTCDateTime("2019-06-11"))].to_csv(f"{output_dir}/2019-06-10.csv", index=False)
+        merged_data[merged_data['Time'].between(UTCDateTime("2019-06-11"), UTCDateTime("2019-06-12"))].to_csv(f"{output_dir}/2019-06-11.csv", index=False)
 
         # Unique Cases 2
         print("Running Unique Case 2")
@@ -240,19 +243,20 @@ def main(time_shift_minutes, from_velocity:bool=False, avg_peak_shift:bool=False
         print(f"date: {start_date}, vel: {avg_velocity}, time_shift: {distance / avg_velocity : .2f}")
 
         data1['Time'] = data1.iloc[:,-1].apply(UTCDateTime) - (5.2 * 60) + int(distance / avg_velocity) # - peak_to_peak difference + time shift by velocity
-        data2['Time'] = data2.iloc[:,-1].apply(UTCDateTime) - (4.9 * 60) + int(distance / avg_velocity) # - peak_to_peak difference + time shift by velocity
+        data2['Time'] = data2.iloc[:,-1].apply(UTCDateTime) - (2.1 * 60) + int(distance / avg_velocity) # - peak_to_peak difference + time shift by velocity
         data = pd.concat([data1, data2])
         complete_data = pd.DataFrame(columns= ['Time'])
         start_time = UTCDateTime("2019-06-10T00:00:00")
         time_list1 = []
-        for i in range(0, 1440 * 60 + 1):
+        for i in range(0, (2 * 1440 * 60) + 1):
             time_list1.append(start_time + i)
         complete_data['Time'] = time_list1
         merged_data = pd.merge(left= complete_data, right= data, how="left", on='Time')
         merged_data.drop(columns=['Time UTC+1', 'Time UTC+0'], inplace=True)
         merged_data['Fv [kN]'] = merged_data['Fv [kN]'].apply(fill_missing_from_Gaussian, **{"mean": min_Fv, "std": sigma*min_Fv_std})
         merged_data = merged_data.fillna(value={"Fv std": min_Fv_std, "Fv min": 0, "Fv max": 0})
-        merged_data.to_csv(f"{output_dir}/{start_date}.csv", index=False)
+        merged_data[merged_data['Time'].between(UTCDateTime("2019-06-10"), UTCDateTime("2019-06-11"))].to_csv(f"{output_dir}/2019-06-10.csv", index=False)
+        merged_data[merged_data['Time'].between(UTCDateTime("2019-06-11"), UTCDateTime("2019-06-12"))].to_csv(f"{output_dir}/2019-06-11.csv", index=False)
 
         # Unique Cases 2
         print("Running Unique Case 2")
@@ -328,6 +332,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(time_shift_minutes=args.time_shift, from_velocity=args.from_velocity, avg_peak_shift=args.avg_shift)
+
+    # python shift_peak.py --time_shift 0
+    # python shift_peak.py --from_velocity --avg_shift
 
 
 

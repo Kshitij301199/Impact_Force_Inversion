@@ -33,17 +33,18 @@ from utils import fill_missing_from_Gaussian, get_mean_and_std
 def do_smoothing(input_dir):
     min_Fv, min_Fv_std = get_mean_and_std()
     sigma = 1
-    for date in tqdm(["2019-06-10", "2019-06-21", "2019-07-01", "2019-07-02", "2019-07-03", "2019-07-15", "2019-07-26", "2019-08-11", "2019-08-20"], desc="Smoothing data"):
+    for date in tqdm(["2019-06-10", "2019-06-11", "2019-06-21", "2019-07-01", "2019-07-02", "2019-07-03", "2019-07-15", "2019-07-26", "2019-08-11", "2019-08-20"], desc="Smoothing data"):
         df = pd.read_csv(f"{input_dir}/{date}.csv", index_col=None)
         for n in [10, 30, 60]:
             window_size = 2 * n + 1  # total window size (symmetric around the center)
             df[f'moving_avg_{n}'] = df['Fv [kN]'].rolling(window=window_size, center=True).mean().apply(lambda x: np.round(x, 4))
-            df[f'moving_avg_{n}'] = df[f'moving_avg_{n}'].apply(fill_missing_from_Gaussian, **{"mean": min_Fv, "std": sigma*min_Fv_std})
+            # df[f'moving_avg_{n}'] = df[f'moving_avg_{n}'].apply(fill_missing_from_Gaussian, **{"mean": min_Fv, "std": sigma*min_Fv_std})
+            df[f"moving_avg_{n}"] = df[f"moving_avg_{n}"].fillna(df['Fv [kN]'])
         df.to_csv(f"{input_dir}/{date}.csv", index=False)
     return None
 
 def make_plot(date):
-    df = pd.read_csv(f"../label/data_processed_dynamic/ILL11/{date}.csv")
+    df = pd.read_csv(f"../label/data_processed_average/ILL11/{date}.csv")
     df['Time'] = df['Time'].apply(UTCDateTime)
 
     for n in [10, 30, 60]:
@@ -97,7 +98,7 @@ def main(time_shift:str, smooth:bool, plot:bool):
         do_smoothing(input_dir)
     
     if plot:
-        for date in ["2019-06-10", "2019-06-21", "2019-07-01", "2019-07-02", "2019-07-03", "2019-07-15", "2019-07-26", "2019-08-11", "2019-08-20"]:
+        for date in ["2019-06-10", "2019-06-11", "2019-06-21", "2019-07-01", "2019-07-02", "2019-07-03", "2019-07-15", "2019-07-26", "2019-08-11", "2019-08-20"]:
             make_plot(date)
 
     return None
@@ -111,6 +112,7 @@ if __name__ == "__main__":
 
     main(time_shift=args.time_shift, smooth=args.smooth, plot=args.plot)
 
-
+# python smooth_data.py --time_shift 0 --smooth
+# python smooth_data.py --time_shift 'average' --smooth --plot
 
 

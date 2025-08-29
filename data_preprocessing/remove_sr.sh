@@ -3,7 +3,7 @@
 #SBATCH --job-name=rem_resp     # job name
 #SBATCH --ntasks=1               # each task in the job array will have a single task associated with it
 #SBATCH --array=1-21            # job array id, adjusted for the total number of commands
-#SBATCH --mem-per-cpu=2G         # Memory Request (per CPU; can use on GLIC)
+#SBATCH --mem-per-cpu=8G         # Memory Request (per CPU; can use on GLIC)
 #SBATCH --mail-type=all
 #SBATCH --mail-user=kshitkar@gfz-potsdam.de
 #SBATCH --chdir=/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/
