@@ -7,6 +7,8 @@ with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/
     paths = json.load(file)
 with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/data_parameters.json", "r") as file:
     data_params = json.load(file)
+with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/event_id_map.json", "r") as file:
+    time_config = json.load(file)
 
 # Set CUDA environment variables
 os.environ["CUDA_HOME"] = paths['CUDA_HOME']
@@ -20,6 +22,7 @@ import numpy as np
 import pandas as pd
 import torch.nn as nn
 import torch.optim as optim
+import torch.nn.functional as F
 from obspy import UTCDateTime
 from torch.optim.lr_scheduler import ReduceLROnPlateau, LambdaLR
 
@@ -28,7 +31,7 @@ from functions.data_processing.dataloader import SequenceDataset, DataLoader
 
 from functions.utils import *
 from functions.training.train import ModelTrainer
-from functions.evaluation.eval import evaluate_model
+from functions.evaluation.eval import evaluate_model, sanity_check_train
 from functions.evaluation.plot_image import plot_image
 
 from models.xLSTM_model import xLSTMRegressor_v2
@@ -44,8 +47,8 @@ class WeightedMSELoss(nn.Module):
     def forward(self, output: torch.Tensor, target: torch.Tensor):
         bins = torch.arange(20, 351, 10, device=target.device, dtype=target.dtype)
         centers = (bins[:-1] + bins[1:]) / 2
-        max_val = target.max().clamp(min=1e-6)   # prevent div by 0
-        weights = centers / max_val  # scaled weights
+        # max_val = target.max().clamp(min=1e-6)   # prevent div by 0
+        weights = centers / 150  # scaled weights
 
         # assign bin-based weight per target
         bin_indices = torch.bucketize(target, bins) - 1
@@ -57,18 +60,42 @@ class WeightedMSELoss(nn.Module):
         weighted_se = sample_weights * se
         return weighted_se.mean()
     
-class CombinedLoss(nn.Module):
-    def __init__(self, alpha=0.7, beta=0.3):
-        super().__init__()
-        self.alpha = alpha
-        self.beta = beta
-        self.mse = nn.MSELoss()
-        self.weighted_mse = WeightedMSELoss()
+# class KLLoss(nn.Module):
+#     def __init__(self, bins=torch.arange(0, 351, 3)):
+#         super().__init__()
+#         self.bins = bins
 
-    def forward(self, output, target):
-        mse_loss = self.mse(output, target)
-        weighted_loss = self.weighted_mse(output, target)
-        return self.alpha * mse_loss + self.beta * weighted_loss
+#     def forward(self, output: torch.Tensor, target: torch.Tensor):
+#         # Bin the outputs and targets
+#         output_hist = torch.histc(output, bins=len(self.bins)-1, min=self.bins[0].item(), max=self.bins[-1].item())
+#         target_hist = torch.histc(target, bins=len(self.bins)-1, min=self.bins[0].item(), max=self.bins[-1].item())
+
+#         # Normalize to get probability distributions
+#         output_prob = output_hist / (output_hist.sum() + 1e-8)
+#         target_prob = target_hist / (target_hist.sum() + 1e-8)
+
+#         # Add epsilon to avoid log(0)
+#         output_prob = output_prob + 1e-8
+#         target_prob = target_prob + 1e-8
+
+#         # KL Divergence (use F.kl_div, which expects log-probabilities for input)
+#         kl = F.kl_div(output_prob.log(), target_prob, reduction='batchmean')
+#         return kl
+    
+# class CombinedLoss(nn.Module):
+#     def __init__(self, alpha=0.7, beta=0.3):
+#         super().__init__()
+#         self.alpha = alpha
+#         self.beta = beta
+#         self.mse = nn.MSELoss()
+#         self.weighted_mse = WeightedMSELoss()
+#         # self.kl_loss = KLLoss()
+
+#     def forward(self, output, target):
+#         mse_loss = self.mse(output, target)
+#         weighted_loss = self.weighted_mse(output, target)
+#         # kl_loss = self.kl_loss(output, target)
+#         return self.alpha * mse_loss + self.beta * weighted_loss
 
 def set_seed(seed=42):
     # np.random.seed(seed)
@@ -77,11 +104,7 @@ def set_seed(seed=42):
     torch.backends.cudnn.deterministic = True  # ensure deterministic behavior
     torch.backends.cudnn.benchmark = False     # disable benchmarking for reproducibility
 
-def main(test_julday:int, val_julday:int, time_shift_minutes:int|str, smoothing:int,station:str, interval_seconds:int, config_option:str, task:str, num_days=None):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Device : {device}")
-    set_seed()
-    num_intervals = int((data_params['time_window'] * 60) // interval_seconds)
+def make_dirs(task:str, time_shift_minutes, smoothing, config_option, num_days):
     if task == "abalation_study_1":
         output_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}" 
         model_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}/model/{num_days}"
@@ -106,55 +129,70 @@ def main(test_julday:int, val_julday:int, time_shift_minutes:int|str, smoothing:
         os.makedirs(model_dir, exist_ok=True)
         os.makedirs(image_dir, exist_ok=True)
         os.makedirs(save_dir, exist_ok=True)
+    return output_dir, model_dir, image_dir, save_dir
 
+def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, station:str, interval_seconds:int, config_option:str, task:str, num_days=None):
+    test_id, val_id = str(test_id), str(val_id)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Device : {device}")
+    set_seed()
+    num_intervals = int((data_params['time_window'] * 60) // interval_seconds)
+    output_dir, model_dir, image_dir, save_dir = make_dirs(task, time_shift_minutes, smoothing, config_option, num_days)
     if time_shift_minutes == "average":
-        julday_list = [161, 172, 182, 183, 196, 207, 223, 232]
-        date_list = ["2019-06-10", "2019-06-21", "2019-07-01", "2019-07-02", "2019-07-15", "2019-07-26", "2019-08-11", "2019-08-20"]
+        event_id_list = ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
+        # julday_list = [161, 172, 182, 183, 196, 207, 223, 232]
+        # date_list = ["2019-06-10", "2019-06-21", "2019-07-01", "2019-07-02", "2019-07-15", "2019-07-26", "2019-08-11", "2019-08-20"]
     elif time_shift_minutes == "dynamic":
-        julday_list = [172, 182, 196, 207, 223]
-        date_list = ["2019-06-21", "2019-07-01", "2019-07-15", "2019-07-26", "2019-08-11"]
+        event_id_list = ["2", "3", "4", "6", "7", "8"]
+        # julday_list = [172, 182, 196, 207, 223]
+        # date_list = ["2019-06-21", "2019-07-01", "2019-07-15", "2019-07-26", "2019-08-11"]
     
+    test_info = time_config[str(test_id)]
+    val_info = time_config[str(val_id)]
+    test_julday = test_info['julday'] if type(test_info['julday']) is int else test_info['julday'][0]
+    val_julday = val_info['julday'] if type(val_info['julday']) is int else val_info['julday'][0]
     if task == "abalation_study_1":
-        test_date = date_list.pop(julday_list.index(test_julday))
-        julday_list.remove(test_julday)
-        val_date = date_list.pop(julday_list.index(val_julday))  
-        julday_list.remove(val_julday)
-        test_julday_list = [test_julday]
-        test_date_list = [test_date]
-        val_julday_list, val_date_list = [val_julday], [val_date]
-        julday_list = julday_list[:num_days]
-        date_list = date_list[:num_days]
+        train_id_list = event_id_list
+        train_id_list.remove(test_id)
+        train_id_list.remove(val_id)
+        train_id_list = train_id_list[:num_days]
     else:
-        test_date = date_list.pop(julday_list.index(test_julday))
-        julday_list.remove(test_julday)
-        val_date = date_list.pop(julday_list.index(val_julday))  
-        julday_list.remove(val_julday)
-        test_julday_list = [test_julday]
-        test_date_list = [test_date]
-        val_julday_list, val_date_list = [val_julday], [val_date]
+        if test_id == val_id:
+            train_id_list = event_id_list
+            train_id_list.remove(test_id)
+        else:    
+            train_id_list = event_id_list
+            train_id_list.remove(test_id)
+            train_id_list.remove(val_id)
 
     # LOAD DATA
+    train_juldays = []
+    [train_juldays.extend([time_config[i]['julday']]) for i in train_id_list];
+    train_juldays = [x for item in train_juldays for x in (item if isinstance(item, list) else [item])]
+    train_juldays
+
+    print(f"Train Day List : {train_juldays}, Val Day List : {val_julday}, Test Day List : {test_julday}")
     smoothing = smoothing
     print(f"{'Loading Data':-^50}")
-    total_data = load_data(julday_list, station, trim=True, abs=True)
-    val_data = load_data(val_julday_list, station, trim=False, abs=True)
-    test_data = load_data(test_julday_list, station, trim=False, abs=True)
-    st_test = load_seismic_data(test_julday, station, year=2019, trim=False)
+    total_data = load_data(train_id_list, station, trim=True, abs=True)
+    val_data = load_data([val_id], station, trim=True, abs=True)
+    test_data = load_data([test_id], station, trim=True, abs=True)
+    st_test = load_seismic_data(test_id, station, year=2019, trim=True)
     print(f"Data --> Train : {len(total_data)} Test : {len(test_data)}")
-    total_target = load_label(date_list= date_list, station= station, 
+    total_target = load_label(event_id_list= train_id_list, station= station, 
                                 interval_seconds= interval_seconds,
                                 time_shift_minutes= time_shift_minutes,
                                 smoothing=smoothing)
-    val_target = load_label(date_list= val_date_list, station= station, 
+    val_target = load_label(event_id_list= [val_id], station= station, 
                                 interval_seconds= interval_seconds,
                                 time_shift_minutes= time_shift_minutes,
                                 smoothing=smoothing,
-                                trim=False)
-    test_target = load_label(date_list= test_date_list, station= station, 
+                                trim=True)
+    test_target = load_label(event_id_list= [test_id], station= station, 
                                 interval_seconds= interval_seconds,
                                 time_shift_minutes= time_shift_minutes,
                                 smoothing=smoothing,
-                                trim=False)
+                                trim=True)
     print(f"Target --> Train : {len(total_target)} Test : {len(test_target)}")
     print(f"RAM usage = {get_memory_usage_in_gb():.2f} GB")
 
@@ -167,9 +205,11 @@ def main(test_julday:int, val_julday:int, time_shift_minutes:int|str, smoothing:
         string = f"xlstm :\n{config}\n"
         f.write(string)
     model = xLSTMRegressor_v2(**config)
-    criterion = CombinedLoss(alpha=0.3, beta=0.7)
+    criterion = nn.MSELoss()
     monitor1 = nn.MSELoss()
     monitor2 = WeightedMSELoss()
+    # monitor2 = KLLoss()
+
     if interval_seconds == 1:
         lr = 5e-5
         batch_size = 32
@@ -182,7 +222,7 @@ def main(test_julday:int, val_julday:int, time_shift_minutes:int|str, smoothing:
     warmup_scheduler = LambdaLR(optimizer, lr_lambda=warmup_lambda)
 
     # Main scheduler: Reduce on plateau after warmup ends
-    main_scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5)
+    main_scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.25, patience=5)
     # scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=3)
 
     # INIT DATALOADERS
@@ -209,20 +249,29 @@ def main(test_julday:int, val_julday:int, time_shift_minutes:int|str, smoothing:
                            monitor1=monitor1, monitor2=monitor2)
     print(f"{'Starting Training':-^50}")
     trainer.train(num_epochs=200, patience=15)
+    print(f"{'End Training':-^50}")
+    print("Sanity check the training")
+    in_seq, pred_out, target_out, timestamps, time_to_train = trainer.check_train()
+    sanity_check_train(target = np.concatenate(target_out),
+                       pred = np.concatenate(pred_out),
+                       model_type="xLSTM",
+                       interval_seconds=interval_seconds,
+                       test_julday=test_julday, val_julday=val_julday,
+                       out_dir=output_dir)
     print(f"{'Start Testing':-^50}")
     in_seq, pred_out, target_out, timestamps, time_to_train = trainer.test()
     print(f"Saving output to {save_dir}/xLSTM_t{test_julday}_v{val_julday}.csv")
-    print(f"{'End Testing':-^50}")
-
     times = [UTCDateTime(t) for t in np.concatenate(timestamps)]
     df = pd.DataFrame(data={"Timestamps":times, "Output":np.concatenate(target_out), "Predicted_Output":np.concatenate(pred_out)})
     df.to_csv(f"{save_dir}/xLSTM_t{test_julday}_v{val_julday}.csv", index=False)
+    print(f"{'End Testing':-^50}")
+
     print("Making Plot")
     start_time = get_current_time()
     plot_image(st_test, pred_out, target_out, timestamps, image_dir, test_julday, val_julday, interval_seconds, trim=True, smoothing=smoothing)
     evaluate_model(model_type=f"xLSTM,{config_option}", 
-                   test_julday=test_julday, 
-                   val_julday=val_julday, 
+                   test_id=test_id, 
+                   val_id=val_id, 
                    interval_seconds=interval_seconds, 
                    y_true=np.concatenate(target_out), 
                    y_pred=np.concatenate(pred_out), 
@@ -236,8 +285,8 @@ def main(test_julday:int, val_julday:int, time_shift_minutes:int|str, smoothing:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--test_julday", type=int, default=161, help= "test julday")
-    parser.add_argument("--val_julday", type=int, default=172, help= "val julday")
+    parser.add_argument("--test_event_id", type=int, default=161, help= "test julday")
+    parser.add_argument("--val_event_id", type=int, default=172, help= "val julday")
     parser.add_argument("--time_shift_mins", default=10, help= "enter label time shift")
     parser.add_argument("--station", type=str, default="ILL13", help= "input station")
     parser.add_argument("--interval", type=int, default=30, help= "interval seconds")
@@ -247,9 +296,9 @@ if __name__ == "__main__":
     parser.add_argument("--num_days", type=int, default=None, help="number of days used for training")
 
     args = parser.parse_args()
-    print(f"Running main with {args.test_julday} {args.station} {args.config_op} {args.task}")
-    main(args.test_julday,
-        args.val_julday, 
+    print(f"Running main with {args.test_event_id} {args.station} {args.config_op} {args.task}")
+    main(args.test_event_id,
+        args.val_event_id, 
         args.time_shift_mins, 
         args.smoothing,
         args.station, 

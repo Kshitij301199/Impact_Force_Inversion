@@ -301,6 +301,9 @@ class ModelTrainer:
         else:
             return epoch_loss / len(dataloader)
 
+    def check_train(self):
+        return self._evaluate(self.train_loader, save_path=f"{self.model_dir}/t{self.test_julday}_v{self.val_julday}_{self.interval}_{self.model_type}_model.pt")
+    
     def test(self):
         return self._evaluate(self.test_loader, save_path=f"{self.model_dir}/t{self.test_julday}_v{self.val_julday}_{self.interval}_{self.model_type}_model.pt")
 

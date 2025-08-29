@@ -63,9 +63,9 @@ def main(network:str, station:str, component:str, year:int, julday:int, model_ty
 
     # PREPARE DATALOADER
     print("\tPreparing Dataloader")
-    dataset = SequenceDatasetTest(input_data= data, target_time= timestamps, 
+    dataset = SequenceDatasetTest(input_data= data, target_time= np.array(timestamps),
                                 interval_count= num_intervals, sequence_length= interval_seconds * 100)
-    dataloader = DataLoader(dataset= dataset, batch_size= 8, shuffle=False)
+    dataloader = DataLoader(dataset= dataset, batch_size= 256, shuffle=False)
 
     for model_julday in [161, 172, 196, 207, 223, 232]:
         output_dir = f"./model_test/{model_type}_{interval_seconds}/{year}/{mapping[model_julday]}/"
@@ -79,7 +79,7 @@ def main(network:str, station:str, component:str, year:int, julday:int, model_ty
         # APPLY MODEL
         start_time = get_current_time()
         print(f"{'Start Testing':-^50}")
-        # model.eval()
+        model.eval()
         in_sequence, predicted_output, model_timestamps = [], [], []
         test_epoch_loss = 0.0
         with torch.no_grad():
