@@ -268,7 +268,7 @@ def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, sta
 
     print("Making Plot")
     start_time = get_current_time()
-    plot_image(st_test, pred_out, target_out, timestamps, image_dir, test_julday, val_julday, interval_seconds, trim=True, smoothing=smoothing)
+    plot_image(st_test, pred_out, target_out, timestamps, image_dir, test_id, val_id, interval_seconds, trim=True, smoothing=smoothing)
     evaluate_model(model_type=f"xLSTM,{config_option}", 
                    test_id=test_id, 
                    val_id=val_id, 

@@ -2,6 +2,8 @@ import os
 import json
 with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/paths.json", "r") as file:
     paths = json.load(file)
+with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/event_id_map.json", "r") as file:
+    time_config = json.load(file)
 import sys
 sys.path.append(paths['BASE_DIR'])
 import numpy as np
@@ -31,27 +33,20 @@ mpl.rcParams['path.simplify_threshold'] = 0.5  # Adjust this value if needed
 from functions.data_processing.read_data import load_label
 
 def plot_image(st, predicted_output, target_output, timestamps,
-                image_dir:str, test_julday, val_julday, interval, trim=True, smoothing=30):    
+                image_dir:str, test_id, val_id, interval, trim=True, smoothing=30):    
     print(f"{'Plotting Image':-^30}")
     times = [UTCDateTime(t).matplotlib_date for t in np.concatenate(timestamps)]
     target_output = np.concatenate(target_output)
     predicted_output = np.concatenate(predicted_output)
-    julday_list = [161, 172, 182, 183, 196, 207, 223, 232]
-    date_list = ["2019-06-10", "2019-06-21", "2019-07-01", "2019-07-02", "2019-07-15", "2019-07-26", "2019-08-11", "2019-08-20"]
-
-    zero_label = load_label([date_list.pop(julday_list.index(test_julday))], "ILL11", interval, 0, trim, smoothing, divide_by=None)
+    test_info = time_config[str(test_id)]
+    val_info = time_config[str(val_id)]
+    test_julday = test_info['julday'] if type(test_info['julday']) is int else test_info['julday'][0]
+    val_julday = val_info['julday'] if type(val_info['julday']) is int else val_info['julday'][0]
+    zero_label = load_label([test_id], "ILL11", interval, 0, trim, smoothing, divide_by=None)
     if trim:
-        time_window = pd.read_csv("./label/correct_metrics_time_window.csv", index_col=False)
-        time_window['Start_Time'] = time_window['Start_Time'].apply(lambda x: UTCDateTime(x))
-        time_window['End_Time'] = time_window['End_Time'].apply(lambda x: UTCDateTime(x))
-        time_window = time_window[time_window['Start_Time'] < UTCDateTime(year=2020, julday = 1)]
-        time_window['Julday'] = time_window['Start_Time'].apply(lambda x: x.julday)
-        time_window = time_window[time_window['Julday'] == test_julday]
-        time_window.reset_index(inplace=True, drop=True)
-        print(time_window)
-        start_time, end_time = UTCDateTime(time_window.iloc[0,0]), UTCDateTime(time_window.iloc[0,-2])
+        start_time, end_time = UTCDateTime(test_info['start_time']), UTCDateTime(test_info['end_time'])
         print(start_time, end_time)
-        st.trim(starttime=start_time, endtime=end_time)
+        # st.trim(starttime=start_time, endtime=end_time)
         mat_start_time = start_time.matplotlib_date
         mat_end_time = end_time.matplotlib_date
         idx_start = np.where(np.equal(times, mat_start_time))[0][0]  # Index of mat_start_time
