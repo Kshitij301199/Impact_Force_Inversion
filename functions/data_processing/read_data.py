@@ -77,7 +77,7 @@ def load_label(event_id_list: list, station: str, interval_seconds: int, time_sh
     total_target = None
     for i, event_id in enumerate(event_id_list):
         event_id = str(event_id)
-        julday = time_config[event_id]['julday']
+        julday = time_config[event_id]['julday'] if type(time_config[event_id]['julday']) is int else time_config[event_id]['julday'][0]
         date = time_config[event_id]['date']
         start_time, end_time = UTCDateTime(time_config[event_id]['start_time']), UTCDateTime(time_config[event_id]['end_time'])
 

@@ -104,7 +104,7 @@ def set_seed(seed=42):
     torch.backends.cudnn.deterministic = True  # ensure deterministic behavior
     torch.backends.cudnn.benchmark = False     # disable benchmarking for reproducibility
 
-def make_dirs(task:str, time_shift_minutes, smoothing, config_option, num_days):
+def make_dirs(task:str, time_shift_minutes, smoothing, interval_seconds, config_option, num_days):
     if task == "abalation_study_1":
         output_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}" 
         model_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}/model/{num_days}"
@@ -137,7 +137,7 @@ def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, sta
     print(f"Device : {device}")
     set_seed()
     num_intervals = int((data_params['time_window'] * 60) // interval_seconds)
-    output_dir, model_dir, image_dir, save_dir = make_dirs(task, time_shift_minutes, smoothing, config_option, num_days)
+    output_dir, model_dir, image_dir, save_dir = make_dirs(task, time_shift_minutes, smoothing, interval_seconds, config_option, num_days)
     if time_shift_minutes == "average":
         event_id_list = ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
         # julday_list = [161, 172, 182, 183, 196, 207, 223, 232]
