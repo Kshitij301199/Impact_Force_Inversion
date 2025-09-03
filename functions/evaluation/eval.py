@@ -55,12 +55,14 @@ def evaluate_model(model_type:str, test_id:str, val_id:str, interval_seconds:int
     except FileExistsError:
         pass
 
-    zero_label = load_label([test_id], "ILL11", interval_seconds, 0, trim=True, smoothing=smoothing)
+    zero_label = load_label([test_id], "ILL11", interval_seconds, 0, trim=False, smoothing=smoothing)
     zero_label['Timestamp'] = zero_label['Timestamp'].apply(UTCDateTime)
     zero_label = zero_label.iloc[:len(y_true)]
     zero_label['True_Value'] = y_true
     zero_label['Pred_Value'] = y_pred
     
+    zero_label['Timestamp'] = zero_label['Timestamp'].between(UTCDateTime(test_info['start_time']), UTCDateTime(test_info['end_time']))
+
     fig, ax = plt.subplots()
     bins = np.arange(10, 351, 10)
     heights1, width, _ = ax.hist(zero_label['True_Value'].to_numpy(), bins=bins, color='red', alpha=0.8, label="Impact Force [kN]")

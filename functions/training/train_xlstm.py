@@ -174,9 +174,9 @@ def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, sta
     print(f"Train Day List : {train_juldays}, Val Day List : {val_julday}, Test Day List : {test_julday}")
     smoothing = smoothing
     print(f"{'Loading Data':-^50}")
-    total_data = load_data(train_id_list, station, trim=True, abs=True)
-    val_data = load_data([val_id], station, trim=True, abs=True)
-    test_data = load_data([test_id], station, trim=True, abs=True)
+    total_data, _ = load_data(train_id_list, station, trim=True, abs=True)
+    val_data, _ = load_data([val_id], station, trim=False, abs=True)
+    test_data, _ = load_data([test_id], station, trim=True, abs=True)
     st_test = load_seismic_data(test_id, station, year=2019, trim=True)
     print(f"Data --> Train : {len(total_data)} Test : {len(test_data)}")
     total_target = load_label(event_id_list= train_id_list, station= station, 
@@ -187,7 +187,7 @@ def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, sta
                                 interval_seconds= interval_seconds,
                                 time_shift_minutes= time_shift_minutes,
                                 smoothing=smoothing,
-                                trim=True)
+                                trim=False)
     test_target = load_label(event_id_list= [test_id], station= station, 
                                 interval_seconds= interval_seconds,
                                 time_shift_minutes= time_shift_minutes,
@@ -208,7 +208,6 @@ def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, sta
     criterion = nn.MSELoss()
     monitor1 = nn.MSELoss()
     monitor2 = WeightedMSELoss()
-    # monitor2 = KLLoss()
 
     if interval_seconds == 1:
         lr = 5e-5

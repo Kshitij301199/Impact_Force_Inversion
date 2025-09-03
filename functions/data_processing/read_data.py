@@ -20,16 +20,20 @@ from obspy.core import UTCDateTime # default is UTC+0 time zone
 
 def load_data(event_id_list:list, station:str, year:int=2019, trim:bool=True, abs:bool=True) -> np.array:
     total_data = None
+    total_times = None
     for event_id in event_id_list:
         st = load_seismic_data(event_id = str(event_id), station= station, year=year, trim= trim)
         data = st[0].data[1:]
+        times = st[0].times("matplotlib")[1:]
         if total_data is None:
             total_data = data
+            total_times = times
         else:
             total_data = np.concatenate([total_data, data])
+            total_times = np.concatenate([total_times, times])
     if abs:
         total_data = np.abs(total_data)
-    return total_data
+    return total_data, total_times
 
 def load_seismic_data(event_id:str|int, station:str, 
                       year:int=None, component:str='EHZ', network:str="9S", 
@@ -60,8 +64,8 @@ def load_seismic_data(event_id:str|int, station:str,
         raise TypeError
     # TRIM THE DATA
     if trim:
-        st.trim(starttime=UTCDateTime(event_info['start_time']) - (time_window * 120), 
-                endtime=UTCDateTime(event_info['end_time']) + (time_window * 120))
+        st.trim(starttime=UTCDateTime(event_info['start_time']) - (time_window * 60 * 2), 
+                endtime=UTCDateTime(event_info['end_time']) + (time_window * 60 * 2))
     return st
 
 def load_label(event_id_list: list, station: str, interval_seconds: int, time_shift_minutes, trim:bool = True, smoothing: int | None = 30, divide_by: int | None = 350) -> pd.DataFrame:
@@ -105,12 +109,18 @@ def load_label(event_id_list: list, station: str, interval_seconds: int, time_sh
 
         # Filter data to start after the target start time
         if trim:
-            target = target[target['Time'].between(start_time - (time_window * 60) , end_time + (time_window * 120))]
-        else:
-            if type(date) is list:
-                target = target[target['Time'] >= UTCDateTime(f"{date[0]}") + (time_window * 60)]
+            if i == 0:
+                target = target[target['Time'].between(start_time - (time_window * 60 * 1) , end_time + (time_window * 60 * 2))]
             else:
-                target = target[target['Time'] >= UTCDateTime(f"{date}") + (time_window * 60)]
+                target = target[target['Time'].between(start_time - (time_window * 60 * 2) , end_time + (time_window * 60 * 2))]
+        else:
+            if i == 0:
+                if type(date) is list:
+                    target = target[target['Time'] >= UTCDateTime(f"{date[0]}") + (time_window * 60)]
+                else:
+                    target = target[target['Time'] >= UTCDateTime(f"{date}") + (time_window * 60)]
+            else:
+                pass
 
         # Convert Time to Timestamp
         target['Timestamp'] = target['Time'].apply(UTCDateTime).apply(UTCDateTime._get_timestamp)
