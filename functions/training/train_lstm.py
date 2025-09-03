@@ -22,7 +22,6 @@ import numpy as np
 import pandas as pd
 import torch.nn as nn
 import torch.optim as optim
-import torch.nn.functional as F
 from obspy import UTCDateTime
 from torch.optim.lr_scheduler import ReduceLROnPlateau, LambdaLR
 
@@ -56,50 +55,12 @@ class WeightedMSELoss(nn.Module):
 
         # weighted squared error
         se = (output - target) ** 2
-        # rse = torch.sqrt(se)
         weighted_se = sample_weights * se
         return weighted_se.mean()
-    
-# class KLLoss(nn.Module):
-#     def __init__(self, bins=torch.arange(20, 351, 3)):
-#         super().__init__()
-#         self.bins = bins
-
-#     def forward(self, output: torch.Tensor, target: torch.Tensor):
-#         # Bin the outputs and targets
-#         output_hist = torch.histc(output, bins=len(self.bins)-1, min=self.bins[0].item(), max=self.bins[-1].item())
-#         target_hist = torch.histc(target, bins=len(self.bins)-1, min=self.bins[0].item(), max=self.bins[-1].item())
-
-#         # Normalize to get probability distributions
-#         output_prob = output_hist / (output_hist.sum() + 1e-8)
-#         target_prob = target_hist / (target_hist.sum() + 1e-8)
-
-#         # Add epsilon to avoid log(0)
-#         output_prob = output_prob + 1e-8
-#         target_prob = target_prob + 1e-8
-
-#         # KL Divergence (use F.kl_div, which expects log-probabilities for input)
-#         kl = F.kl_div(output_prob.log(), target_prob, reduction='batchmean')
-#         return kl
-    
-# class CombinedLoss(nn.Module):
-#     def __init__(self, alpha=0.7, beta=0.3):
-#         super().__init__()
-#         self.alpha = alpha
-#         self.beta = beta
-#         self.mse = nn.MSELoss()
-#         self.weighted_mse = WeightedMSELoss()
-#         # self.kl_loss = KLLoss()
-
-#     def forward(self, output, target):
-#         mse_loss = self.mse(output, target)
-#         weighted_loss = self.weighted_mse(output, target)
-#         # kl_loss = self.kl_loss(output, target)
-#         return self.alpha * mse_loss + self.beta * weighted_loss
 
 def set_seed(seed=42):
-    # np.random.seed(seed)
-    # torch.manual_seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True  # ensure deterministic behavior
     torch.backends.cudnn.benchmark = False     # disable benchmarking for reproducibility
@@ -182,16 +143,19 @@ def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, sta
     total_target = load_label(event_id_list= train_id_list, station= station, 
                                 interval_seconds= interval_seconds,
                                 time_shift_minutes= time_shift_minutes,
-                                smoothing=smoothing)
+                                smoothing=smoothing, 
+                                divide_by=150)
     val_target = load_label(event_id_list= [val_id], station= station, 
                                 interval_seconds= interval_seconds,
                                 time_shift_minutes= time_shift_minutes,
-                                smoothing=smoothing,
+                                smoothing=smoothing, 
+                                divide_by=150,
                                 trim=False)
     test_target = load_label(event_id_list= [test_id], station= station, 
                                 interval_seconds= interval_seconds,
                                 time_shift_minutes= time_shift_minutes,
-                                smoothing=smoothing,
+                                smoothing=smoothing, 
+                                divide_by=150,
                                 trim=True)
     print(f"Target --> Train : {len(total_target)} Test : {len(test_target)}")
     print(f"RAM usage = {get_memory_usage_in_gb():.2f} GB")
@@ -221,7 +185,6 @@ def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, sta
 
     # Main scheduler: Reduce on plateau after warmup ends
     main_scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.25, patience=5)
-    # scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=3)
 
     # INIT DATALOADERS
     print("Initialising Dataloaders")
@@ -239,10 +202,6 @@ def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, sta
     test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)  # Adjust batch size as needed
 
     print("Training Model")
-    # in_seq, pred_out, target_out, timestamps, time_to_train = train_model(model, criterion, optimizer,
-    #                                                        100, 15, interval_seconds, test_julday, val_julday,
-    #                                                        'LSTM', train_dataloader, val_dataloader,
-    #                                                        test_dataloader, model_dir, scaler, warmup_scheduler, main_scheduler)
     trainer = ModelTrainer(model=model, criterion=criterion, optimizer=optimizer,
                            warmup_scheduler=warmup_scheduler, main_scheduler=main_scheduler,
                            train_loader=train_dataloader, val_loader=val_dataloader, test_loader=test_dataloader,
@@ -252,16 +211,18 @@ def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, sta
     print(f"{'Starting Training':-^50}")
     trainer.train(num_epochs=200, patience=15)
     print(f"{'End Training':-^50}")
+    
     print("Sanity check the training")
-    in_seq, pred_out, target_out, timestamps, time_to_train = trainer.check_train()
+    in_seq, pred_out, target_out, timestamps, time_to_train = trainer.check_train(mult_by=150)
     sanity_check_train(target = np.concatenate(target_out),
                        pred = np.concatenate(pred_out),
                        model_type="LSTM",
                        interval_seconds=interval_seconds,
                        test_julday=test_julday, val_julday=val_julday,
                        out_dir=output_dir)
+    
     print(f"{'Start Testing':-^50}")
-    in_seq, pred_out, target_out, timestamps, time_to_train = trainer.test()
+    in_seq, pred_out, target_out, timestamps, time_to_train = trainer.test(mult_by=150)
     print(f"Saving output to {save_dir}/LSTM_t{test_julday}_v{val_julday}.csv")
     times = [UTCDateTime(t) for t in np.concatenate(timestamps)]
     df = pd.DataFrame(data={"Timestamps":times, "Output":np.concatenate(target_out), "Predicted_Output":np.concatenate(pred_out)})
