@@ -2,9 +2,9 @@
 #SBATCH -t 96:00:00               # time limit: (HH:MM:SS)
 #SBATCH --job-name=base_lstm           # job name
 #SBATCH --ntasks=1                # each task in the job array will have a single task associated with it
-#SBATCH --array=1-42%2            # job array id, adjusted for the total number of commands (8 test days * 7 validation days * 4 intervals)
-#SBATCH --mem-per-cpu=24G         # Memory Request (per CPU; can use on GLIC)
-#SBATCH --gres=gpu:A40:1             # load GPU A100 could be replace by A40/A30, 509-510 nodes has 4_A100_80G
+#SBATCH --array=1-112%4           # job array id, adjusted for the total number of commands (8 test days * 7 validation days * 4 intervals)
+#SBATCH --mem-per-cpu=16G         # Memory Request (per CPU; can use on GLIC)
+#SBATCH --gres=gpu:A40:1             # load GPU A100 could be replace by A40/A40, 509-510 nodes has 4_A100_80G
 #SBATCH --reservation=GPU            # reserve the GPU
 #SBATCH --mail-type=all
 #SBATCH --mail-user=kshitkar@gfz-potsdam.de
@@ -19,55 +19,59 @@ conda activate xlstm_env
 
 # Define the arrays
 intervals=(5)
-juldays=(161 172 183 196 207 223 232) # 42
-# juldays=(172 196 207 223) # 12
-# juldays=(161 183 232) # 6
-
+event_ids=(1 3 4 5 6 7 8 9)
 hyp_options=('default')
+smoothings=(0 60)
+# smoothings=(30)
 
 # Calculate the total number of combinations per test day
-num_val_days=$(( ${#juldays[@]} - 1 ))
+num_event_ids=${#event_ids[@]}
+num_val_ids=$(( num_event_ids - 1 ))
 num_intervals=${#intervals[@]}
+num_smoothings=${#smoothings[@]}
 num_hyp_options=${#hyp_options[@]}
-num_combinations=$(( num_val_days * num_intervals * num_hyp_options ))
+num_combinations=$(( num_val_ids * num_intervals * num_smoothings * num_hyp_options ))
 
 # Calculate the indices for the current task
-test_day_idx=$(( ($SLURM_ARRAY_TASK_ID - 1) / $num_combinations ))
+test_id_idx=$(( ($SLURM_ARRAY_TASK_ID - 1) / $num_combinations ))
 remaining_idx=$(( ($SLURM_ARRAY_TASK_ID - 1) % $num_combinations ))
 
-val_day_idx=$(( $remaining_idx / (num_intervals * num_hyp_options) ))
-remaining_idx=$(( $remaining_idx % (num_intervals * num_hyp_options) ))
+val_id_idx=$(( $remaining_idx / (num_intervals * num_smoothings * num_hyp_options) ))
+remaining_idx=$(( $remaining_idx % (num_intervals * num_smoothings * num_hyp_options) ))
 
-interval_idx=$(( $remaining_idx / $num_hyp_options ))
-hyp_option_idx=$(( $remaining_idx % $num_hyp_options ))
+interval_idx=$(( $remaining_idx / (num_smoothings * num_hyp_options) ))
+remaining_idx=$(( $remaining_idx % (num_smoothings * num_hyp_options) ))
 
-# Get the current test day
-test_julday=${juldays[$test_day_idx]}
+smoothing_idx=$(( $remaining_idx / num_hyp_options ))
+hyp_option_idx=$(( $remaining_idx % num_hyp_options ))
 
-# Get the validation days (exclude the test day)
-val_juldays=("${juldays[@]:0:$test_day_idx}" "${juldays[@]:$((test_day_idx + 1))}")
-val_julday=${val_juldays[$val_day_idx]}
+# Get the current test event id
+test_event_id=${event_ids[$test_id_idx]}
 
-# Get the current interval
+# Get the validation event ids (exclude the test event id)
+val_event_ids=("${event_ids[@]:0:$test_id_idx}" "${event_ids[@]:$((test_id_idx + 1))}")
+val_event_id=${val_event_ids[$val_id_idx]}
+
+# Get the current interval, smoothing, and hyp option
 interval=${intervals[$interval_idx]}
-
-# Get the current hyperparameter option
+smoothing=${smoothings[$smoothing_idx]}
 hyp_option=${hyp_options[$hyp_option_idx]}
 
 # Log the current parameters
 echo "Running for:"
-echo "Test Julian Day: $test_julday"
-echo "Validation Julian Day: $val_julday"
+echo "Test Event ID: $test_event_id"
+echo "Validation Event ID: $val_event_id"
 echo "Interval: $interval"
-echo "Hypothesis Option: $hyp_option"
+echo "Smoothing: $smoothing"
+echo "Hyp Option: $hyp_option"
 
 # Run the Python script with the selected parameters
 srun --gres=gpu:A40:1 --unbuffered python /storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/functions/training/train_lstm.py \
-    --test_julday "$test_julday" \
-    --val_julday "$val_julday" \
+    --test_event_id "$test_event_id" \
+    --val_event_id "$val_event_id" \
     --time_shift_mins 'average' \
     --interval "$interval" \
     --station "ILL11" \
-    --config_op "$hyp_option" \
     --task "comparison_baseline" \
-    --smoothing 30
+    --smoothing "$smoothing" \
+    --config_op "$hyp_option"
