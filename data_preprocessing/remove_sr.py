@@ -31,7 +31,10 @@ def load_write_data(year:str, julday:str, station:str):
     st._cleanup()
     st.detrend('linear')
     st.detrend('demean')
-    inv = read_inventory(f"{paths["META_DATA_DIR"]}/9S_2017_2020.xml")
+    if year == "2022":
+        inv = read_inventory(f"/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/meta_data/9S_2022.xml")
+    else:
+        inv = read_inventory(f"{paths["META_DATA_DIR"]}/9S_2017_2020.xml")
     st.remove_response(inventory=inv)
     st.filter("bandpass", freqmin=data_params['fmin'], freqmax=data_params['fmax'])
     st.trim(starttime=UTCDateTime(year=int(year), julday=int(julday)), endtime=UTCDateTime(year=int(year), julday=int(next_julday)))
