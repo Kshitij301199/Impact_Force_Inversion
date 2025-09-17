@@ -33,7 +33,7 @@ from functions.training.train import ModelTrainer
 from functions.evaluation.eval import evaluate_model, sanity_check_train
 from functions.evaluation.plot_image import plot_image
 
-from models.xLSTM_model import xLSTMRegressor_v2
+from models.xLSTM_model import xLSTMRegressor
 
 def warmup_lambda(epoch):
     warmup_epochs = 5
@@ -164,7 +164,7 @@ def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, sta
     with open(f"{output_dir}/model_config.txt", "a") as f:
         string = f"xlstm :\n{config}\n"
         f.write(string)
-    model = xLSTMRegressor_v2(**config)
+    model = xLSTMRegressor(**config)
     criterion = nn.MSELoss()
     monitor1 = nn.MSELoss()
     monitor2 = WeightedMSELoss()

@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 from obspy import UTCDateTime
 
-from functions.data_processing.read_data import load_data, load_seismic_data
+from functions.data_processing.read_data import load_data_test, load_seismic_data_test
 from functions.data_processing.dataloader import SequenceDatasetTest, DataLoader
 
 from functions.utils import *
@@ -30,7 +30,7 @@ from models.LSTM_model import LSTMRegressor
 from models.xLSTM_model import xLSTMRegressor_v2
 
 def load_model(model_julday:int, model_type:str, interval:int):
-    mapping = {161 : 1, 172 : 2, 196 : 3, 207 : 4, 223 : 5, 232 : 6}
+    mapping = {161 : 1, 172 : 2, 182 : 3, 183 : 4, 196 : 5, 207 : 6, 223 : 7, 232 : 8}
     if model_type == 'LSTM':
         with open(f"./config/comparison_baseline/lstm_default_{interval}sec_config.json", "r") as f:
             config = json.load(f)
@@ -51,14 +51,14 @@ def main(network:str, station:str, component:str, year:int, julday:int, model_ty
     julday = str(julday).zfill(3)
     num_intervals = int((5 * 60) // interval_seconds)
 
-    mapping = {161 : 1, 172 : 2, 196 : 3, 207 : 4, 223 : 5, 232 : 6}
+    mapping = {161 : 1, 172 : 2, 182 : 3, 183 : 4, 196 : 5, 207 : 6, 223 : 7, 232 : 8}
     
     # LOAD DATA
     print("\tLoading Data")
-    st = load_seismic_data(julday= julday, station= station, raw= False, year= year, component= component,
-                           network= network, trim=False)
+    st = load_seismic_data_test(julday= int(julday), station= station, year= year, component= component,
+                           network= network)
     # data = np.abs(st[0].data[1:])
-    data = load_data(julday_list = [julday], station=station, year=year, trim=False, abs=True)
+    data, _ = load_data_test(julday_list = [julday], station=station, year=year, abs=True)
     timestamps = [UTCDateTime(UTCDateTime(year=year, julday=int(julday)) + i).timestamp for i in range(data_params['time_window'] * 60, 60 * 60 * 24, interval_seconds)]
 
     # PREPARE DATALOADER
@@ -67,8 +67,8 @@ def main(network:str, station:str, component:str, year:int, julday:int, model_ty
                                 interval_count= num_intervals, sequence_length= interval_seconds * 100)
     dataloader = DataLoader(dataset= dataset, batch_size= 256, shuffle=False)
 
-    for model_julday in [161, 172, 196, 207, 223, 232]:
-        output_dir = f"./model_test/{model_type}_{interval_seconds}/{year}/{mapping[model_julday]}/"
+    for model_julday in [161, 172, 182, 183, 196, 207, 223, 232]:
+        output_dir = f"./model_test_{station}/{model_type}_{interval_seconds}/{year}/{mapping[model_julday]}/"
         output_file_dir = f"{output_dir}/df"
         output_img_dir = f"{output_dir}/img"
         os.makedirs(output_file_dir, exist_ok=True)
@@ -92,7 +92,7 @@ def main(network:str, station:str, component:str, year:int, julday:int, model_ty
                 output = model(input_sequences).squeeze(1)  # Shape: (batch_size, 1)
                 # Squeeze the output to match target shape
                 in_sequence.append(input_sequences.cpu().numpy())
-                predicted_output.append(output.detach().cpu().numpy() * 350)
+                predicted_output.append(output.detach().cpu().numpy() * 150)
                 model_timestamps.append(test_timestamps)
         end_time = get_current_time()
         time_to_test = get_time_elapsed(start_time, end_time)
