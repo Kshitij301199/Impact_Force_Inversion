@@ -106,7 +106,8 @@ class ModelTrainer:
         for input_sequences, target_value, _ in dataloader:
             if input_sequences.dim() == 2:
                 continue
-
+            # if self.model_type == "LinReg":
+            #     input_sequences = input_sequences.squeeze(1)
             input_sequences = input_sequences.float().to(self.device)
             target_value = target_value.float().to(self.device)
 
@@ -150,6 +151,8 @@ class ModelTrainer:
             for input_sequences, target_value, ts in dataloader:
                 if input_sequences.dim() == 2:
                     continue
+                # if self.model_type == "LinReg":
+                #     input_sequences = input_sequences.squeeze(1)
                 input_sequences = input_sequences.float().to(self.device)
                 target_value = target_value.float().to(self.device)
 

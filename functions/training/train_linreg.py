@@ -33,7 +33,7 @@ from functions.training.train import ModelTrainer
 from functions.evaluation.eval import evaluate_model, sanity_check_train
 from functions.evaluation.plot_image import plot_image
 
-from models.xLSTM_model import xLSTMRegressor_v2
+from models.LSTM_model import LinearRegressor
 
 def warmup_lambda(epoch):
     warmup_epochs = 5
@@ -70,7 +70,7 @@ def make_dirs(task:str, time_shift_minutes, smoothing, divide_by, interval_secon
     if task == "abalation_study_1":
         output_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}" 
         model_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}/model/{num_days}"
-        image_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}/test_results/xlstm/{num_days}"
+        image_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}/test_results/linreg/{num_days}"
         save_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}/output_df/{num_days}"
         os.makedirs(model_dir, exist_ok=True)
         os.makedirs(image_dir, exist_ok=True)
@@ -86,7 +86,7 @@ def make_dirs(task:str, time_shift_minutes, smoothing, divide_by, interval_secon
     else:
         output_dir = f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}_{smoothing}_{divide_by}" 
         model_dir = f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}_{smoothing}_{divide_by}/model/{config_option}/{interval_seconds}"
-        image_dir = f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}_{smoothing}_{divide_by}/test_results/xlstm/{config_option}/{interval_seconds}"
+        image_dir = f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}_{smoothing}_{divide_by}/test_results/linreg/{config_option}/{interval_seconds}"
         save_dir = f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}_{smoothing}_{divide_by}/output_df/{config_option}/{interval_seconds}"
         os.makedirs(model_dir, exist_ok=True)
         os.makedirs(image_dir, exist_ok=True)
@@ -102,8 +102,12 @@ def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, div
     output_dir, model_dir, image_dir, save_dir = make_dirs(task, time_shift_minutes, smoothing, divide_by, interval_seconds, config_option, num_days)
     if time_shift_minutes == "average":
         event_id_list = ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
+        # julday_list = [161, 172, 182, 183, 196, 207, 223, 232]
+        # date_list = ["2019-06-10", "2019-06-21", "2019-07-01", "2019-07-02", "2019-07-15", "2019-07-26", "2019-08-11", "2019-08-20"]
     elif time_shift_minutes == "dynamic":
         event_id_list = ["2", "3", "4", "6", "7", "8"]
+        # julday_list = [172, 182, 196, 207, 223]
+        # date_list = ["2019-06-21", "2019-07-01", "2019-07-15", "2019-07-26", "2019-08-11"]
     
     test_info = time_config[str(test_id)]
     val_info = time_config[str(val_id)]
@@ -157,26 +161,26 @@ def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, div
     print(f"Target --> Train : {len(total_target)} Test : {len(test_target)}")
     print(f"RAM usage = {get_memory_usage_in_gb():.2f} GB")
 
-
     # INITIALIZE MODEL
     print("Initialising Model")
-    with open(f"./config/{task}/xlstm_{config_option}_{interval_seconds}sec_config.json", "r") as f:
+    with open(f"./config/{task}/lstm_{config_option}_{interval_seconds}sec_config.json", "r") as f:
         config = json.load(f)
     with open(f"{output_dir}/model_config.txt", "a") as f:
-        string = f"xlstm :\n{config}\n"
+        string = f"linreg :\n{config}\n"
         f.write(string)
-    model = xLSTMRegressor_v2(**config)
+    input_size = config['input_size']
+    model = LinearRegressor(input_size=input_size * num_intervals)
     criterion = nn.MSELoss()
     monitor1 = nn.MSELoss()
     monitor2 = WeightedMSELoss(divide_by)
 
     if interval_seconds == 1:
-        lr = 5e-5
-        batch_size = 32
+        lr = 5e-4
     else:
         lr = 1e-4
-        batch_size = 128
-    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=5e-5)
+
+    batch_size = 128
+    optimizer = optim.Adam(model.parameters(), lr=lr)
 
     # Warmup scheduler
     warmup_scheduler = LambdaLR(optimizer, lr_lambda=warmup_lambda)
@@ -204,7 +208,7 @@ def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, div
                            warmup_scheduler=warmup_scheduler, main_scheduler=main_scheduler,
                            train_loader=train_dataloader, val_loader=val_dataloader, test_loader=test_dataloader,
                            model_dir=model_dir, interval=interval_seconds,
-                           test_julday=test_julday, val_julday=val_julday, model_type="xLSTM", device=device,
+                           test_julday=test_julday, val_julday=val_julday, model_type="LinReg", device=device,
                            monitor1=monitor1, monitor2=monitor2)
     print(f"{'Starting Training':-^50}")
     trainer.train(num_epochs=200, patience=15)
@@ -214,23 +218,24 @@ def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, div
     in_seq, pred_out, target_out, timestamps, time_to_train = trainer.check_train(mult_by=divide_by)
     sanity_check_train(target = np.concatenate(target_out),
                        pred = np.concatenate(pred_out),
-                       model_type="xLSTM",
+                       model_type="LinReg",
                        interval_seconds=interval_seconds,
                        test_julday=test_julday, val_julday=val_julday,
                        out_dir=output_dir)
     
     print(f"{'Start Testing':-^50}")
     in_seq, pred_out, target_out, timestamps, time_to_train = trainer.test(mult_by=divide_by)
-    print(f"Saving output to {save_dir}/xLSTM_t{test_julday}_v{val_julday}.csv")
+    print(f"Saving output to {save_dir}/LinReg_t{test_julday}_v{val_julday}.csv")
     times = [UTCDateTime(t) for t in np.concatenate(timestamps)]
     df = pd.DataFrame(data={"Timestamps":times, "Output":np.concatenate(target_out), "Predicted_Output":np.concatenate(pred_out)})
-    df.to_csv(f"{save_dir}/xLSTM_t{test_julday}_v{val_julday}.csv", index=False)
+    df.to_csv(f"{save_dir}/LinReg_t{test_julday}_v{val_julday}.csv", index=False)
     print(f"{'End Testing':-^50}")
 
+    
     print("Making Plot")
     start_time = get_current_time()
-    plot_image(st_test, pred_out, target_out, timestamps, image_dir, test_id, val_id, interval_seconds, trim=True, smoothing=smoothing)
-    evaluate_model(model_type=f"xLSTM,{config_option}", 
+    plot_image(st_test, pred_out, target_out, timestamps, image_dir, test_id, val_id, interval_seconds, trim=False, smoothing=smoothing)
+    evaluate_model(model_type=f"LinReg,{config_option}", 
                    test_id=test_id, 
                    val_id=val_id, 
                    interval_seconds=interval_seconds, 
@@ -243,6 +248,7 @@ def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, div
     end_time = get_current_time()
     get_time_elapsed(start_time, end_time)
     return None
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

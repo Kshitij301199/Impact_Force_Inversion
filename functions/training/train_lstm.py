@@ -40,14 +40,15 @@ def warmup_lambda(epoch):
     return min(1.0, (epoch + 1) / warmup_epochs)
 
 class WeightedMSELoss(nn.Module):
-    def __init__(self):
+    def __init__(self, divide_by):
         super().__init__()
+        self.divide_by = divide_by
 
     def forward(self, output: torch.Tensor, target: torch.Tensor):
         bins = torch.arange(20, 351, 10, device=target.device, dtype=target.dtype)
         centers = (bins[:-1] + bins[1:]) / 2
         # max_val = target.max().clamp(min=1e-6)   # prevent div by 0
-        weights = centers / 150  # scaled weights
+        weights = centers / self.divide_by  # scaled weights
 
         # assign bin-based weight per target
         bin_indices = torch.bucketize(target, bins) - 1
@@ -65,7 +66,7 @@ def set_seed(seed=42):
     torch.backends.cudnn.deterministic = True  # ensure deterministic behavior
     torch.backends.cudnn.benchmark = False     # disable benchmarking for reproducibility
 
-def make_dirs(task:str, time_shift_minutes, smoothing, interval_seconds, config_option, num_days):
+def make_dirs(task:str, time_shift_minutes, smoothing, divide_by, interval_seconds, config_option, num_days):
     if task == "abalation_study_1":
         output_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}" 
         model_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}/model/{num_days}"
@@ -83,22 +84,22 @@ def make_dirs(task:str, time_shift_minutes, smoothing, interval_seconds, config_
         os.makedirs(image_dir, exist_ok=True)
         os.makedirs(save_dir, exist_ok=True)
     else:
-        output_dir = f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}_{smoothing}" 
-        model_dir = f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}_{smoothing}/model/{config_option}/{interval_seconds}"
-        image_dir = f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}_{smoothing}/test_results/lstm/{config_option}/{interval_seconds}"
-        save_dir = f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}_{smoothing}/output_df/{config_option}/{interval_seconds}"
+        output_dir = f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}_{smoothing}_{divide_by}" 
+        model_dir = f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}_{smoothing}_{divide_by}/model/{config_option}/{interval_seconds}"
+        image_dir = f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}_{smoothing}_{divide_by}/test_results/lstm/{config_option}/{interval_seconds}"
+        save_dir = f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}_{smoothing}_{divide_by}/output_df/{config_option}/{interval_seconds}"
         os.makedirs(model_dir, exist_ok=True)
         os.makedirs(image_dir, exist_ok=True)
         os.makedirs(save_dir, exist_ok=True)
     return output_dir, model_dir, image_dir, save_dir
 
-def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, station:str, interval_seconds:int, config_option:str, task:str, num_days=None):
+def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, divide_by:int, station:str, interval_seconds:int, config_option:str, task:str, num_days=None):
     test_id, val_id = str(test_id), str(val_id)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device : {device}")
-    set_seed()
+    # set_seed()
     num_intervals = int((data_params['time_window'] * 60) // interval_seconds)
-    output_dir, model_dir, image_dir, save_dir = make_dirs(task, time_shift_minutes, smoothing, interval_seconds, config_option, num_days)
+    output_dir, model_dir, image_dir, save_dir = make_dirs(task, time_shift_minutes, smoothing, divide_by, interval_seconds, config_option, num_days)
     if time_shift_minutes == "average":
         event_id_list = ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
         # julday_list = [161, 172, 182, 183, 196, 207, 223, 232]
@@ -144,18 +145,18 @@ def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, sta
                                 interval_seconds= interval_seconds,
                                 time_shift_minutes= time_shift_minutes,
                                 smoothing=smoothing, 
-                                divide_by=150)
+                                divide_by=divide_by)
     val_target = load_label(event_id_list= [val_id], station= station, 
                                 interval_seconds= interval_seconds,
                                 time_shift_minutes= time_shift_minutes,
                                 smoothing=smoothing, 
-                                divide_by=150,
+                                divide_by=divide_by,
                                 trim=False)
     test_target = load_label(event_id_list= [test_id], station= station, 
                                 interval_seconds= interval_seconds,
                                 time_shift_minutes= time_shift_minutes,
                                 smoothing=smoothing, 
-                                divide_by=150,
+                                divide_by=divide_by,
                                 trim=True)
     print(f"Target --> Train : {len(total_target)} Test : {len(test_target)}")
     print(f"RAM usage = {get_memory_usage_in_gb():.2f} GB")
@@ -170,7 +171,7 @@ def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, sta
     model = LSTMRegressor(**config)
     criterion = nn.MSELoss()
     monitor1 = nn.MSELoss()
-    monitor2 = WeightedMSELoss()
+    monitor2 = WeightedMSELoss(divide_by)
 
     if interval_seconds == 1:
         lr = 5e-4
@@ -213,7 +214,7 @@ def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, sta
     print(f"{'End Training':-^50}")
     
     print("Sanity check the training")
-    in_seq, pred_out, target_out, timestamps, time_to_train = trainer.check_train(mult_by=150)
+    in_seq, pred_out, target_out, timestamps, time_to_train = trainer.check_train(mult_by=divide_by)
     sanity_check_train(target = np.concatenate(target_out),
                        pred = np.concatenate(pred_out),
                        model_type="LSTM",
@@ -222,7 +223,7 @@ def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, sta
                        out_dir=output_dir)
     
     print(f"{'Start Testing':-^50}")
-    in_seq, pred_out, target_out, timestamps, time_to_train = trainer.test(mult_by=150)
+    in_seq, pred_out, target_out, timestamps, time_to_train = trainer.test(mult_by=divide_by)
     print(f"Saving output to {save_dir}/LSTM_t{test_julday}_v{val_julday}.csv")
     times = [UTCDateTime(t) for t in np.concatenate(timestamps)]
     df = pd.DataFrame(data={"Timestamps":times, "Output":np.concatenate(target_out), "Predicted_Output":np.concatenate(pred_out)})
@@ -258,6 +259,7 @@ if __name__ == "__main__":
     parser.add_argument("--config_op", type=str,default="default", help= "config option")
     parser.add_argument("--task", type=str, default="comparison_baseline", help= "name of the task corresponding to parameter directory")
     parser.add_argument("--smoothing", type=int, default=30, help="enter a value used for smoothing the raw data")
+    parser.add_argument("--divide_by", type=int, default=350, help="enter a value to divide impact force values")
     parser.add_argument("--num_days", type=int, default=None, help="number of days used for training")
 
     args = parser.parse_args()
@@ -266,6 +268,7 @@ if __name__ == "__main__":
         args.val_event_id, 
         args.time_shift_mins, 
         args.smoothing,
+        args.divide_by,
         args.station, 
         args.interval, 
         args.config_op, 
