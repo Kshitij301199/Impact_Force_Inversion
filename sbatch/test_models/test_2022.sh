@@ -2,7 +2,7 @@
 #SBATCH -t 8:00:00               # time limit: (HH:MM:SS)
 #SBATCH --job-name=test_models           # job name
 #SBATCH --ntasks=1                # each task in the job array will have a single task associated with it
-#SBATCH --array=1-6%2            # job array id, adjusted for the total number of commands (stations * juldays * intervals)
+#SBATCH --array=1-12%2            # job array id, adjusted for the total number of commands (stations * juldays * intervals)
 #SBATCH --mem-per-cpu=16G         # Memory Request (per CPU; can use on GLIC)
 #SBATCH --gres=gpu:A40:1             # load GPU A100 could be replace by A40/A30, 509-510 nodes has 4_A100_80G
 #SBATCH --reservation=GPU            # reserve the GPU
@@ -22,8 +22,8 @@ network="9S"
 station_list=("ILL12")
 component="EHZ"
 year=2022
-julday_list=(156 185 251)
-intervals=(5)
+julday_list=(156 185)
+intervals=(5 15 30)
 models=('xLSTM' 'LSTM')
 
 # Compute total job count
@@ -44,7 +44,7 @@ interval=${intervals[$interval_index]}
 model=${models[$model_index]}
 
 # Run Python script with selected parameters
-srun --gres=gpu:A40:1 --unbuffered python /storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/functions/test_models.py \
+srun --gres=gpu:A40:1 --unbuffered python /storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/functions/training/test_models.py \
     --network "$network" \
     --station "$station" \
     --component "$component" \

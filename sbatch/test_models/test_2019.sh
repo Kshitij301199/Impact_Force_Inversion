@@ -19,7 +19,7 @@ conda activate xlstm_env
 
 # Define parameters
 network="9S"
-station_list=("ILL11")
+station_list=("ILL12")
 component="EHZ"
 year=2019
 julday_list=(161 171 172 182 183 184 196 207 223 232)

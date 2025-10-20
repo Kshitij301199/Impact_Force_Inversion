@@ -2,7 +2,7 @@
 #SBATCH -t 96:00:00               # time limit: (HH:MM:SS)
 #SBATCH --job-name=base_lstm           # job name
 #SBATCH --ntasks=1                # each task in the job array will have a single task associated with it
-#SBATCH --array=1-112%4           # job array id, adjusted for the total number of commands (8 test days * 7 validation days * 4 intervals)
+#SBATCH --array=1-56%4           # job array id, adjusted for the total number of commands (8 test days * 7 validation days * 4 intervals)
 #SBATCH --mem-per-cpu=16G         # Memory Request (per CPU; can use on GLIC)
 #SBATCH --gres=gpu:A40:1             # load GPU A100 could be replace by A40/A40, 509-510 nodes has 4_A100_80G
 #SBATCH --reservation=GPU            # reserve the GPU
@@ -21,8 +21,8 @@ conda activate xlstm_env
 intervals=(5)
 event_ids=(1 3 4 5 6 7 8 9)
 hyp_options=('default')
-smoothings=(0 60)
-# smoothings=(30)
+# smoothings=(0 30 60)
+smoothings=(30)
 
 # Calculate the total number of combinations per test day
 num_event_ids=${#event_ids[@]}
@@ -74,4 +74,5 @@ srun --gres=gpu:A40:1 --unbuffered python /storage/vast-gfz-hpc-01/home/kshitkar
     --station "ILL11" \
     --task "comparison_baseline" \
     --smoothing "$smoothing" \
-    --config_op "$hyp_option"
+    --config_op "$hyp_option" \
+    --divide_by 20
