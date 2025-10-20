@@ -16,3 +16,4 @@ old_*
 tuning/*_*/
 models/saved_models
 analysis/
+*comparison_baseline*
