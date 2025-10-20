@@ -131,10 +131,10 @@ class ModelTrainer:
         else:
             return epoch_loss / len(dataloader)
 
-    def check_train(self, mult_by=350):
+    def check_train(self, mult_by=50):
         return self._evaluate(mult_by, self.train_loader, save_path=f"{self.model_dir}/t{self.test_julday}_v{self.val_julday}_{self.interval}_{self.model_type}_model.pt")
     
-    def test(self, mult_by=350):
+    def test(self, mult_by=50):
         return self._evaluate(mult_by, self.test_loader, save_path=f"{self.model_dir}/t{self.test_julday}_v{self.val_julday}_{self.interval}_{self.model_type}_model.pt")
 
     def _evaluate(self, mult_by, dataloader, save_path):

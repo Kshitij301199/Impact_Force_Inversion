@@ -30,7 +30,7 @@ def main(model_type, interval, task, config):
         all_preds.extend(temp['Predicted_Output'].to_numpy())
         
         # bins = np.logspace(np.log10(20), np.log10(350), num=20)
-        bins = np.arange(20, 350, 10)
+        bins = np.arange(1, 51, 5)
 
         fig, ax = plt.subplots()
         sns.histplot(x=trues, bins= bins, ax=ax, color= "blue", alpha= 0.8, label='True', kde=False)#, stat='density');
@@ -45,7 +45,7 @@ def main(model_type, interval, task, config):
         plt.close(fig=fig)
     
     # bins = np.logspace(np.log10(20), np.log10(350), num=20)
-    bins = np.arange(20, 350, 10)
+    bins = np.arange(1, 51, 5)
     fig, ax = plt.subplots()
     sns.histplot(x=all_trues, ax=ax, bins= bins, color= "blue", alpha= 0.8, label='True', kde=False)#, stat='density');
     sns.histplot(x=all_preds, ax=ax, bins= bins, color= "red", alpha= 0.6, label='Predicted', kde=False)#, stat='density');

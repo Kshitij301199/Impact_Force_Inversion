@@ -68,7 +68,7 @@ def plot_image(st, predicted_output, target_output, timestamps,
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d\n%H:%M:%S'))
     ax.set_xlim(times[0], times[-1])
     ax.set_ylabel("Normal Force [kN]");
-    ax.set_ylim(0,350);
+    ax.set_ylim(0,50);
     ax.legend(loc='best')
     fig.tight_layout()
     fig.savefig(f"{image_dir}/{test_julday}_{val_julday}_{interval}.png", dpi=300)
@@ -89,7 +89,7 @@ def plot_image_test(st, predicted_output, timestamps,
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d\n%H:%M:%S'))
     ax.set_xlim(times[0], times[-1])
     ax.set_ylabel("Normal Force [kN]");
-    ax.set_ylim(0,350);
+    ax.set_ylim(0,50);
     ax.legend(loc='best')
     fig.tight_layout()
     fig.savefig(f"{image_dir}/{julday}.png", dpi=300)
