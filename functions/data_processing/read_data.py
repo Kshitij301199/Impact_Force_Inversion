@@ -13,6 +13,7 @@ except FileNotFoundError:
         data_params = json.load(file)
     with open("../config/event_id_map.json", "r") as file:
         time_config = json.load(file)
+import data
 import numpy as np
 import pandas as pd
 from obspy import read, Stream, read_inventory
@@ -168,6 +169,8 @@ def load_label(event_id_list: list, station: str, interval_seconds: int, time_sh
 
         # Convert Time to Timestamp
         target['Timestamp'] = target['Time'].apply(UTCDateTime).apply(UTCDateTime._get_timestamp)
+        # Force <-> Pressure Conversion with plate area 8m*m
+        target[data_col] = target[data_col] / 8
 
         if interval_seconds != 1:
             # Apply sliding window mean using NumPy
@@ -251,6 +254,8 @@ def load_label2(date_list: list, station: str, interval_seconds: int, time_shift
 
         # Convert Time to Timestamp
         target['Timestamp'] = target['Time'].apply(UTCDateTime).apply(UTCDateTime._get_timestamp)
+        # Force <-> Pressure Conversion with plate area 8m*m
+        target[data_col] = target[data_col] / 8
 
         if interval_seconds != 1:
             # Apply sliding window mean using NumPy
