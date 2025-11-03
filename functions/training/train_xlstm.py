@@ -66,7 +66,7 @@ def set_seed(seed=42):
     torch.backends.cudnn.deterministic = True  # ensure deterministic behavior
     torch.backends.cudnn.benchmark = False     # disable benchmarking for reproducibility
 
-def make_dirs(task:str, time_shift_minutes, smoothing, divide_by, interval_seconds, config_option, num_days):
+def make_dirs(task:str, time_shift_minutes, smoothing, divide_by, interval_seconds, config_option, num_days, repeat):
     if task == "abalation_study_1":
         output_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}" 
         model_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}/model/{num_days}"
@@ -84,22 +84,22 @@ def make_dirs(task:str, time_shift_minutes, smoothing, divide_by, interval_secon
         os.makedirs(image_dir, exist_ok=True)
         os.makedirs(save_dir, exist_ok=True)
     else:
-        output_dir = f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}_{smoothing}_{divide_by}" 
-        model_dir = f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}_{smoothing}_{divide_by}/model/{config_option}/{interval_seconds}"
-        image_dir = f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}_{smoothing}_{divide_by}/test_results/xlstm/{config_option}/{interval_seconds}"
-        save_dir = f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params['fmin']}_{data_params['fmax']}/{time_shift_minutes}_{smoothing}_{divide_by}/output_df/{config_option}/{interval_seconds}"
+        output_dir = f"{paths['BASE_DIR']}/{task}_{repeat}/{time_shift_minutes}_{smoothing}_{divide_by}" 
+        model_dir = f"{paths['BASE_DIR']}/{task}_{repeat}/{time_shift_minutes}_{smoothing}_{divide_by}/model/{config_option}/{interval_seconds}"
+        image_dir = f"{paths['BASE_DIR']}/{task}_{repeat}/{time_shift_minutes}_{smoothing}_{divide_by}/test_results/xlstm/{config_option}/{interval_seconds}"
+        save_dir = f"{paths['BASE_DIR']}/{task}_{repeat}/{time_shift_minutes}_{smoothing}_{divide_by}/output_df/{config_option}/{interval_seconds}"
         os.makedirs(model_dir, exist_ok=True)
         os.makedirs(image_dir, exist_ok=True)
         os.makedirs(save_dir, exist_ok=True)
     return output_dir, model_dir, image_dir, save_dir
 
-def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, divide_by:int, station:str, interval_seconds:int, config_option:str, task:str, num_days=None):
+def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, divide_by:int, station:str, interval_seconds:int, config_option:str, task:str, num_days=None, repeat=1):
     test_id, val_id = str(test_id), str(val_id)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device : {device}")
     # set_seed()
     num_intervals = int((data_params['time_window'] * 60) // interval_seconds)
-    output_dir, model_dir, image_dir, save_dir = make_dirs(task, time_shift_minutes, smoothing, divide_by, interval_seconds, config_option, num_days)
+    output_dir, model_dir, image_dir, save_dir = make_dirs(task, time_shift_minutes, smoothing, divide_by, interval_seconds, config_option, num_days, repeat)
     if time_shift_minutes == "average":
         event_id_list = ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
     elif time_shift_minutes == "dynamic":
@@ -256,16 +256,19 @@ if __name__ == "__main__":
     parser.add_argument("--smoothing", type=int, default=30, help="enter a value used for smoothing the raw data")
     parser.add_argument("--divide_by", type=int, default=350, help="enter a value to divide impact force values")
     parser.add_argument("--num_days", type=int, default=None, help="number of days used for training")
+    parser.add_argument("--repeat", type=int, default=1, help="Number to times to repeat process")
 
     args = parser.parse_args()
     print(f"Running main with {args.test_event_id} {args.station} {args.config_op} {args.task}")
-    main(args.test_event_id,
-        args.val_event_id, 
-        args.time_shift_mins, 
-        args.smoothing,
-        args.divide_by,
-        args.station, 
-        args.interval, 
-        args.config_op, 
-        args.task,
-        args.num_days)
+    for repeat in range(1, args.repeat + 1):
+        main(args.test_event_id,
+            args.val_event_id, 
+            args.time_shift_mins, 
+            args.smoothing,
+            args.divide_by,
+            args.station, 
+            args.interval, 
+            args.config_op, 
+            args.task,
+            args.num_days,
+            repeat)
