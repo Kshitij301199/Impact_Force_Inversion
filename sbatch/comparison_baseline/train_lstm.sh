@@ -75,4 +75,5 @@ srun --gres=gpu:A40:1 --unbuffered python /storage/vast-gfz-hpc-01/home/kshitkar
     --task "comparison_baseline" \
     --smoothing "$smoothing" \
     --config_op "$hyp_option" \
-    --divide_by 20
+    --divide_by 20 \
+    --repeat 1

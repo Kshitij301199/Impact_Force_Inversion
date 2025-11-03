@@ -2,7 +2,7 @@
 #SBATCH -t 96:00:00
 #SBATCH --job-name=base_lstm
 #SBATCH --ntasks=1
-#SBATCH --array=1-80%2  # 2 intervals * 1 hyp_option * 8 event_ids * 5 divide_bys * 1 smoothings = 80
+#SBATCH --array=1-16%2  # 2 intervals * 1 hyp_option * 8 event_ids * 5 divide_bys * 1 smoothings = 80
 #SBATCH --mem-per-cpu=16G
 #SBATCH --gres=gpu:A40:1
 #SBATCH --reservation=GPU
@@ -18,7 +18,7 @@ conda activate xlstm_env
 
 intervals=(15 30)
 event_ids=(1 3 4 5 6 7 8 9)
-divide_bys=(1 50 150 250 350)
+divide_bys=(20)
 hyp_options=('default')
 smoothings=(30)
 
@@ -61,4 +61,5 @@ srun --gres=gpu:A40:1 --unbuffered python /storage/vast-gfz-hpc-01/home/kshitkar
     --config_op "$hyp_option" \
     --task "comparison_baseline" \
     --smoothing "$smoothing" \
-    --divide_by "$divide_by"
+    --divide_by "$divide_by" \
+    --repeat 1
