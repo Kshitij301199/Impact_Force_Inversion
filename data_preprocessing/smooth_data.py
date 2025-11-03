@@ -55,10 +55,10 @@ def make_plot(date):
     df_thres = df[df['Fv [kN]'] > threshold]
 
     fig, ax = plt.subplots()
-    ax.plot(df_thres['Time'].apply(lambda x: x.matplotlib_date), df_thres['Fv [kN]'], color='red', label="Raw_Data")
-    ax.plot(df_thres['Time'].apply(lambda x: x.matplotlib_date), df_thres['moving_avg_10'], color='blue', label=r"$\pm$10 MovAvg")
-    ax.plot(df_thres['Time'].apply(lambda x: x.matplotlib_date), df_thres['moving_avg_30'], color='green', label=r"$\pm$30 MovAvg")
-    ax.plot(df_thres['Time'].apply(lambda x: x.matplotlib_date), df_thres['moving_avg_60'], color='yellow', label=r"$\pm$60 MovAvg")
+    ax.plot(df_thres['Time'].apply(lambda x: x.matplotlib_date), df_thres['Fv [kN]'] / 8, color='red', label="Raw_Data")
+    ax.plot(df_thres['Time'].apply(lambda x: x.matplotlib_date), df_thres['moving_avg_10'] / 8, color='blue', label=r"$\pm$10 MovAvg")
+    ax.plot(df_thres['Time'].apply(lambda x: x.matplotlib_date), df_thres['moving_avg_30'] / 8, color='green', label=r"$\pm$30 MovAvg")
+    ax.plot(df_thres['Time'].apply(lambda x: x.matplotlib_date), df_thres['moving_avg_60'] / 8, color='yellow', label=r"$\pm$60 MovAvg")
     # ax.hlines(thres, xmin=UTCDateTime("2019-07-26").matplotlib_date, xmax=UTCDateTime("2019-07-27").matplotlib_date)
     ax.xaxis_date()
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d\n%H:%M'))
@@ -72,13 +72,13 @@ def make_plot(date):
     plt.close(fig)
 
     fig, ax = plt.subplots(1, 3, sharex=True, sharey=True, figsize=(12,4))
-
-    sns.histplot(data=df_thres, x='Fv [kN]', ax=ax[0], color='red', label="Raw_Data", kde=True, stat='density', alpha=0.8)
-    sns.histplot(data=df_thres, x='moving_avg_10', ax=ax[0], color='green', label=r"$\pm$10 MovAvg", kde=True, stat='density', alpha=0.3)
-    sns.histplot(data=df_thres, x='Fv [kN]', ax=ax[1], color='red', label="Raw_Data", kde=True, stat='density', alpha=0.8)
-    sns.histplot(data=df_thres, x='moving_avg_30', ax=ax[1], color='green', label=r"$\pm$30 MovAvg", kde=True, stat='density', alpha=0.3)
-    sns.histplot(data=df_thres, x='Fv [kN]', ax=ax[2], color='red', label="Raw_Data", kde=True, stat='density', alpha=0.8)
-    sns.histplot(data=df_thres, x='moving_avg_60', ax=ax[2], color='green', label=r"$\pm$60 MovAvg", kde=True, stat='density', alpha=0.3)
+    bins = np.arange(0, 45, 2)
+    sns.histplot(x=df_thres['Fv [kN]'] / 8, ax=ax[0], color='red', label="Raw_Data", kde=True, stat='density', alpha=0.8, bins=bins)
+    sns.histplot(x=df_thres['moving_avg_10'] / 8, ax=ax[0], color='green', label=r"$\pm$10 MovAvg", kde=True, stat='density', alpha=0.3, bins=bins)
+    sns.histplot(x=df_thres['Fv [kN]'] / 8, ax=ax[1], color='red', label="Raw_Data", kde=True, stat='density', alpha=0.8, bins=bins)
+    sns.histplot(x=df_thres['moving_avg_30'] / 8, ax=ax[1], color='green', label=r"$\pm$30 MovAvg", kde=True, stat='density', alpha=0.3, bins=bins)
+    sns.histplot(x=df_thres['Fv [kN]'] / 8, ax=ax[2], color='red', label="Raw_Data", kde=True, stat='density', alpha=0.8, bins=bins)
+    sns.histplot(x=df_thres['moving_avg_60'] / 8, ax=ax[2], color='green', label=r"$\pm$60 MovAvg", kde=True, stat='density', alpha=0.3, bins=bins)
 
     for axes in ax:
         # axes.set_xlim(0,350);

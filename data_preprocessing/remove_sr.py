@@ -15,6 +15,7 @@ def load_write_data(year:str, julday:str, station:str):
     prev_julday = int(julday) - 1
     next_julday = int(julday) + 1
     st = Stream()
+    print("Loading data for : ", year, julday, station)
     try:
         st += read(f"{paths['SEISMIC_DATA_DIR']}/{year}/{station}/EHZ/9S.{station}.EHZ.{year}.{str(prev_julday).zfill(3)}.mseed")
     except FileNotFoundError:
@@ -31,12 +32,16 @@ def load_write_data(year:str, julday:str, station:str):
     st._cleanup()
     st.detrend('linear')
     st.detrend('demean')
-    if year == "2022":
+    print("Reading inventory and removing response")
+    if year == "2022" and station == "ILL11":
         inv = read_inventory(f"/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/meta_data/9S_2022.xml")
+    elif station == "ILL12":
+        inv = read_inventory(f"{paths["META_DATA_DIR"]}/9S_2017_2022.xml")
     else:
         inv = read_inventory(f"{paths["META_DATA_DIR"]}/9S_2017_2020.xml")
     st.remove_response(inventory=inv)
     st.filter("bandpass", freqmin=data_params['fmin'], freqmax=data_params['fmax'])
+    # st.filter("bandpass", freqmin=1, freqmax=45)
     st.trim(starttime=UTCDateTime(year=int(year), julday=int(julday)), endtime=UTCDateTime(year=int(year), julday=int(next_julday)))
     output_dir = f"./data_srr/Illgraben/{year}/{station}/EHZ"
     os.makedirs(output_dir, exist_ok=True)
