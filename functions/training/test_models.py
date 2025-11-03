@@ -23,8 +23,6 @@ from functions.data_processing.read_data import load_data_test, load_seismic_dat
 from functions.data_processing.dataloader import SequenceDatasetTest, DataLoader
 
 from functions.utils import *
-# from functions.train import train_model
-# from functions.evaluation import evaluate_model
 from functions.evaluation.plot_image import plot_image_test
 from models.LSTM_model import LSTMRegressor
 from models.xLSTM_model import xLSTMRegressor_v2
@@ -68,7 +66,7 @@ def main(network:str, station:str, component:str, year:int, julday:int, model_ty
     dataloader = DataLoader(dataset= dataset, batch_size= 256, shuffle=False)
 
     for model_julday in [161, 172, 182, 183, 196, 207, 223, 232]:
-        output_dir = f"./model_test_{station}/{model_type}_{interval_seconds}/{year}/{mapping[model_julday]}/"
+        output_dir = f"./model_test/{station}/{model_type}_{interval_seconds}/{year}/{mapping[model_julday]}/"
         output_file_dir = f"{output_dir}/df"
         output_img_dir = f"{output_dir}/img"
         os.makedirs(output_file_dir, exist_ok=True)
@@ -92,7 +90,7 @@ def main(network:str, station:str, component:str, year:int, julday:int, model_ty
                 output = model(input_sequences).squeeze(1)  # Shape: (batch_size, 1)
                 # Squeeze the output to match target shape
                 in_sequence.append(input_sequences.cpu().numpy())
-                predicted_output.append(output.detach().cpu().numpy() * 150)
+                predicted_output.append(output.detach().cpu().numpy() * 20)
                 model_timestamps.append(test_timestamps)
         end_time = get_current_time()
         time_to_test = get_time_elapsed(start_time, end_time)
