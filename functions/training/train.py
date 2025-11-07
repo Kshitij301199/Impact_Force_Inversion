@@ -23,9 +23,13 @@ def set_seed(seed=42):
     torch.backends.cudnn.deterministic = True  # ensure deterministic behavior
     torch.backends.cudnn.benchmark = False     # disable benchmarking for reproducibility
 
+def grad_stats(model):
+    norms = [p.grad.norm().item() for p in model.parameters() if p.grad is not None]
+    return np.mean(norms).item(), np.max(norms).item()
+
 class ModelTrainer:
     def __init__(self, model, criterion, optimizer, warmup_scheduler, main_scheduler,
-                 train_loader, val_loader, test_loader, model_dir,
+                 train_loader, val_loader, test_loader, model_dir, curve_file, 
                  interval=None, test_julday=None, val_julday=None, model_type="Model", device=None,
                  monitor1=None, monitor2=None):
 
@@ -38,6 +42,7 @@ class ModelTrainer:
         self.val_loader = val_loader
         self.test_loader = test_loader
         self.model_dir = model_dir
+        self.curve_file = curve_file
         self.interval = interval
         self.test_julday = test_julday
         self.val_julday = val_julday
@@ -60,24 +65,39 @@ class ModelTrainer:
 
         for epoch in range(num_epochs):
             if self.monitor1 is not None:
-                train_loss, train_mse, train_wmse = self._run_epoch(self.train_loader, training=True)
-                val_loss, val_mse, val_wmse = self._run_epoch(self.val_loader, training=False)
+                train_loss, train_mse, train_wmse, mean_gs, max_gs = self._run_epoch(self.train_loader, training=True)
+                val_loss, val_mse, val_wmse, val_mean_gs, val_max_gs = self._run_epoch(self.val_loader, training=False)
             else:
-                train_loss = self._run_epoch(self.train_loader, training=True)
-                val_loss = self._run_epoch(self.val_loader, training=False)
+                train_loss, mean_gs, max_gs = self._run_epoch(self.train_loader, training=True)
+                val_loss, val_mean_gs, val_max_gs = self._run_epoch(self.val_loader, training=False)
 
-            if epoch < 5:
-                self.warmup_scheduler.step()
-                print(f"Epoch {epoch+1} Warmup LR: {self.warmup_scheduler.get_last_lr()[0]:.2e}")
-            else:
+            with open(self.curve_file, "a") as file:
+                file.write(f"{epoch};{train_loss:.5f};{val_loss:.5f};{self.optimizer.param_groups[0]['lr']:.2e};{mean_gs};{max_gs}\n")
+            
+            if self.warmup_scheduler is None:
                 self.main_scheduler.step(val_loss)
                 print(f"Epoch {epoch+1} Plateau LR: {self.optimizer.param_groups[0]['lr']:.2e}")
+            else:
+                if epoch < 10:
+                    self.warmup_scheduler.step()
+                    print(f"Epoch {epoch+1} Warmup LR: {self.warmup_scheduler.get_last_lr()[0]:.2e}")
+                else:
+                    self.main_scheduler.step(val_loss)
+                    print(f"Epoch {epoch+1} Plateau LR: {self.optimizer.param_groups[0]['lr']:.2e}")
 
             print(f"Epoch {epoch + 1}/{num_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
             if self.monitor1 is not None:
                 print(f"\t\tMonitoring -- MSE : {val_mse:.4f}, Weighted MSE : {val_wmse:.4f}")
 
+            if epoch < 50:
+                tolerance = 0.05  # acceptable deviation, e.g., 0.5% or absolute value (adjust as needed)
+            elif (epoch < 100) & (epoch >= 50):
+                tolerance = 0.01
+            else:
+                tolerance = 0.005 
+
             if val_loss < best_loss:
+                # not strictly better
                 best_loss = val_loss
                 best_epoch = epoch
                 best_weights = copy.deepcopy(self.model.state_dict())
@@ -85,8 +105,17 @@ class ModelTrainer:
                 torch.save(best_weights, model_path)
                 print(f"New best model saved at epoch {epoch + 1} with loss {best_loss:.4f}")
                 consecutive_increase = 0
+
+            elif val_loss <= best_loss + (best_loss * tolerance):
+                # within tolerance range, don't penalize
+                print(f"Epoch {epoch + 1}: Validation loss {val_loss:.4f} within tolerance of best ({best_loss:.4f}).")
+                # reset patience counter or leave unchanged, depending on your preference
+                # consecutive_increase = 0
+
             else:
+                # worse beyond tolerance
                 consecutive_increase += 1
+                print(f"Epoch {epoch + 1}: Validation loss increased ({val_loss:.4f}). Patience {consecutive_increase}/{patience}")
 
             if consecutive_increase > patience:
                 print(f"Early stopping at epoch {epoch + 1}. Best epoch was {best_epoch + 1} with val loss {best_loss:.4f}")
@@ -102,8 +131,8 @@ class ModelTrainer:
             epoch_mse = 0.0
             epoch_wmse = 0.0
         self.model.train() if training else self.model.eval()
-
-        for input_sequences, target_value, _ in dataloader:
+        mean_gs, max_gs = [], []
+        for i, (input_sequences, target_value, _) in enumerate(dataloader):
             if input_sequences.dim() == 2:
                 continue
             # if self.model_type == "LinReg":
@@ -124,12 +153,16 @@ class ModelTrainer:
             if training:
                 loss.backward()
                 self.optimizer.step()
-
+                if i % 5 == 0:  # every 5 steps
+                    mean_g, max_g = grad_stats(self.model)
+                    mean_gs.append(mean_g)
+                    max_gs.append(max_g)
+                    
             epoch_loss += loss.item()
         if self.monitor1 is not None:
-            return epoch_loss / len(dataloader), epoch_mse / len(dataloader), epoch_wmse / len(dataloader)
+            return epoch_loss / len(dataloader), epoch_mse / len(dataloader), epoch_wmse / len(dataloader), mean_gs, max_gs
         else:
-            return epoch_loss / len(dataloader)
+            return epoch_loss / len(dataloader), mean_gs, max_gs
 
     def check_train(self, mult_by=50):
         return self._evaluate(mult_by, self.train_loader, save_path=f"{self.model_dir}/t{self.test_julday}_v{self.val_julday}_{self.interval}_{self.model_type}_model.pt")

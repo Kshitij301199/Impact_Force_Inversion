@@ -35,29 +35,29 @@ from functions.evaluation.plot_image import plot_image
 
 from models.LSTM_model import LSTMRegressor
 
-def warmup_lambda(epoch):
-    warmup_epochs = 5
-    return min(1.0, (epoch + 1) / warmup_epochs)
+# def warmup_lambda(epoch):
+#     warmup_epochs = 10
+#     return min(1.0, (epoch + 1) / warmup_epochs)
 
-class WeightedMSELoss(nn.Module):
-    def __init__(self, divide_by):
-        super().__init__()
-        self.divide_by = divide_by
+# class WeightedMSELoss(nn.Module):
+#     def __init__(self, divide_by):
+#         super().__init__()
+#         self.divide_by = divide_by
 
-    def forward(self, output: torch.Tensor, target: torch.Tensor):
-        bins = torch.arange(20, 351, 10, device=target.device, dtype=target.dtype)
-        centers = (bins[:-1] + bins[1:]) / 2
-        # max_val = target.max().clamp(min=1e-6)   # prevent div by 0
-        weights = centers / self.divide_by  # scaled weights
+#     def forward(self, output: torch.Tensor, target: torch.Tensor):
+#         bins = torch.arange(20, 351, 10, device=target.device, dtype=target.dtype)
+#         centers = (bins[:-1] + bins[1:]) / 2
+#         # max_val = target.max().clamp(min=1e-6)   # prevent div by 0
+#         weights = centers / self.divide_by  # scaled weights
 
-        # assign bin-based weight per target
-        bin_indices = torch.bucketize(target, bins) - 1
-        sample_weights = weights[bin_indices]
+#         # assign bin-based weight per target
+#         bin_indices = torch.bucketize(target, bins) - 1
+#         sample_weights = weights[bin_indices]
 
-        # weighted squared error
-        se = (output - target) ** 2
-        weighted_se = sample_weights * se
-        return weighted_se.mean()
+#         # weighted squared error
+#         se = (output - target) ** 2
+#         weighted_se = sample_weights * se
+#         return weighted_se.mean()
 
 def set_seed(seed=42):
     np.random.seed(seed)
@@ -85,13 +85,15 @@ def make_dirs(task:str, time_shift_minutes, smoothing, divide_by, interval_secon
         os.makedirs(save_dir, exist_ok=True)
     else:
         output_dir = f"{paths['BASE_DIR']}/{task}_{repeat}/{time_shift_minutes}_{smoothing}_{divide_by}" 
-        model_dir = f"{paths['BASE_DIR']}/{task}_{repeat}/{time_shift_minutes}_{smoothing}_{divide_by}/model/{config_option}/{interval_seconds}"
-        image_dir = f"{paths['BASE_DIR']}/{task}_{repeat}/{time_shift_minutes}_{smoothing}_{divide_by}/test_results/lstm/{config_option}/{interval_seconds}"
-        save_dir = f"{paths['BASE_DIR']}/{task}_{repeat}/{time_shift_minutes}_{smoothing}_{divide_by}/output_df/{config_option}/{interval_seconds}"
+        model_dir = f"{output_dir}/model/{config_option}/{interval_seconds}"
+        image_dir = f"{output_dir}/test_results/lstm/{config_option}/{interval_seconds}"
+        save_dir = f"{output_dir}/output_df/{config_option}/{interval_seconds}"
+        curve_dir = f"{output_dir}/loss_curves/{config_option}/{interval_seconds}"
         os.makedirs(model_dir, exist_ok=True)
         os.makedirs(image_dir, exist_ok=True)
         os.makedirs(save_dir, exist_ok=True)
-    return output_dir, model_dir, image_dir, save_dir
+        os.makedirs(curve_dir, exist_ok=True)
+    return output_dir, model_dir, image_dir, save_dir, curve_dir
 
 def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, divide_by:int, station:str, interval_seconds:int, config_option:str, task:str, num_days=None, repeat=1):
     test_id, val_id = str(test_id), str(val_id)
@@ -99,7 +101,7 @@ def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, div
     print(f"Device : {device}")
     # set_seed()
     num_intervals = int((data_params['time_window'] * 60) // interval_seconds)
-    output_dir, model_dir, image_dir, save_dir = make_dirs(task, time_shift_minutes, smoothing, divide_by, interval_seconds, config_option, num_days, repeat)
+    output_dir, model_dir, image_dir, save_dir, curve_dir = make_dirs(task, time_shift_minutes, smoothing, divide_by, interval_seconds, config_option, num_days, repeat)
     if time_shift_minutes == "average":
         event_id_list = ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
         # julday_list = [161, 172, 182, 183, 196, 207, 223, 232]
@@ -126,6 +128,10 @@ def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, div
             train_id_list = event_id_list
             train_id_list.remove(test_id)
             train_id_list.remove(val_id)
+
+    curve_file = f"{curve_dir}/LSTM_t{test_julday}_v{val_julday}.txt"
+    with open(curve_file, "w") as file:
+        file.write("Epoch;Train_Loss;Val_Loss;LR;mean_g;max_g\n")
 
     # LOAD DATA
     train_juldays = []
@@ -170,22 +176,22 @@ def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, div
         f.write(string)
     model = LSTMRegressor(**config)
     criterion = nn.MSELoss()
-    monitor1 = nn.MSELoss()
-    monitor2 = WeightedMSELoss(divide_by)
+    # monitor1 = nn.MSELoss()
+    # monitor2 = WeightedMSELoss(divide_by)
 
     if interval_seconds == 1:
         lr = 5e-4
     else:
         lr = 1e-4
 
-    batch_size = 128
+    batch_size = 64
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
     # Warmup scheduler
-    warmup_scheduler = LambdaLR(optimizer, lr_lambda=warmup_lambda)
+    # warmup_scheduler = LambdaLR(optimizer, lr_lambda=warmup_lambda)
 
     # Main scheduler: Reduce on plateau after warmup ends
-    main_scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.25, patience=5)
+    main_scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.50, patience=10)
 
     # INIT DATALOADERS
     print("Initialising Dataloaders")
@@ -204,13 +210,12 @@ def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, div
 
     print("Training Model")
     trainer = ModelTrainer(model=model, criterion=criterion, optimizer=optimizer,
-                           warmup_scheduler=warmup_scheduler, main_scheduler=main_scheduler,
+                           warmup_scheduler=None, main_scheduler=main_scheduler,
                            train_loader=train_dataloader, val_loader=val_dataloader, test_loader=test_dataloader,
-                           model_dir=model_dir, interval=interval_seconds,
-                           test_julday=test_julday, val_julday=val_julday, model_type="LSTM", device=device,
-                           monitor1=monitor1, monitor2=monitor2)
+                           model_dir=model_dir, curve_file=curve_file, interval=interval_seconds,
+                           test_julday=test_julday, val_julday=val_julday, model_type="LSTM", device=device)
     print(f"{'Starting Training':-^50}")
-    trainer.train(num_epochs=200, patience=15)
+    trainer.train(num_epochs=200, patience=25)
     print(f"{'End Training':-^50}")
     
     print("Sanity check the training")
