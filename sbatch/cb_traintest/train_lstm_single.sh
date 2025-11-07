@@ -59,7 +59,7 @@ srun --gres=gpu:A40:1 --unbuffered python /storage/vast-gfz-hpc-01/home/kshitkar
     --interval "$interval" \
     --station "ILL11" \
     --config_op "$hyp_option" \
-    --task "comparison_baseline" \
+    --task "comparison_baseline_tt" \
     --smoothing "$smoothing" \
     --divide_by "$divide_by" \
-    --repeat 1
+    --repeat 3

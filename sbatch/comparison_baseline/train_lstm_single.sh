@@ -72,8 +72,8 @@ srun --gres=gpu:A40:1 --unbuffered python /storage/vast-gfz-hpc-01/home/kshitkar
     --time_shift_mins 'average' \
     --interval "$interval" \
     --station "ILL11" \
-    --task "comparison_baseline" \
+    --task "comparison_baseline_cv" \
     --smoothing "$smoothing" \
     --config_op "$hyp_option" \
     --divide_by 20 \
-    --repeat 1
+    --repeat 3
