@@ -42,7 +42,7 @@ def plot_image(st, predicted_output, target_output, timestamps,
     val_info = time_config[str(val_id)]
     test_julday = test_info['julday'] if type(test_info['julday']) is int else test_info['julday'][0]
     val_julday = val_info['julday'] if type(val_info['julday']) is int else val_info['julday'][0]
-    zero_label = load_label([test_id], "ILL11", interval, 0, trim, smoothing, divide_by=None)
+    zero_label = load_label([test_id], "ILL11", interval, "average", trim, smoothing=None, divide_by=None)
     if trim:
         start_time, end_time = UTCDateTime(test_info['start_time']), UTCDateTime(test_info['end_time'])
         print(start_time, end_time)
@@ -56,19 +56,19 @@ def plot_image(st, predicted_output, target_output, timestamps,
         predicted_output = predicted_output[idx_start: idx_end]
 
     fig, ax1 = plt.subplots(1,1)
-    ax1.plot(st[0].times('matplotlib'), st[0].data, color="black", label= "ILL11", alpha=0.5)
+    ax1.plot(st[0].times('matplotlib'), st[0].data, color="black", label= "ILL11", alpha=0.5, linewidth=1)
     ax1.set_ylabel(r"Amplitude (mm/s)");
-    ax1.set_ylim(-1.7, 1.7);
+    ax1.set_ylim(-2, 2);
     ax = ax1.twinx()
     ax.plot(times, target_output, label="Impact Force Target [kN]", alpha=0.8, color='r',linewidth=1)
     ax.plot(times, predicted_output, label="Model Prediction", alpha=0.8, color='b',linewidth=1)
     times2 = [UTCDateTime(t).matplotlib_date for t in zero_label['Timestamp'].to_numpy()]
-    ax.plot(times2, zero_label['Fv [kN]'], label="Zero Label", alpha=0.5, color="green")
+    ax.plot(times2, zero_label['Fv [kN]'], label="Without Smoothing", alpha=0.8, color="green", linewidth=1)
     ax.xaxis_date()
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d\n%H:%M:%S'))
     ax.set_xlim(times[0], times[-1])
     ax.set_ylabel("Normal Force [kN]");
-    ax.set_ylim(0,50);
+    ax.set_ylim(0,45);
     ax.legend(loc='best')
     fig.tight_layout()
     fig.savefig(f"{image_dir}/{test_julday}_{val_julday}_{interval}.png", dpi=300)

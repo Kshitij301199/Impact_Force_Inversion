@@ -64,11 +64,11 @@ def evaluate_model(model_type:str, test_id:str, val_id:str, interval_seconds:int
     zero_label['Timestamp'] = zero_label['Timestamp'].between(UTCDateTime(test_info['start_time']), UTCDateTime(test_info['end_time']))
 
     fig, ax = plt.subplots()
-    bins = np.arange(1, 51, 5)
+    bins = np.arange(3, 45, 2)
     heights1, width, _ = ax.hist(zero_label['True_Value'].to_numpy(), bins=bins, color='red', alpha=0.8, label="Impact Force [kN]")
     heights2, _, _ = ax.hist(zero_label['Pred_Value'].to_numpy(), bins=bins, color='blue', alpha=0.6, label="Model Prediction")
     centers = width[:-1] + (width[1:] - width[:-1]) / 2
-    weights = centers / 50
+    weights = centers / 45
     ax.set_xlabel("Normal Force [kN]")
     ax.set_ylabel("Count")
     ax.set_title(f"{model_type.split(",")[0]} {interval_seconds} test {test_julday} val {val_julday}")
