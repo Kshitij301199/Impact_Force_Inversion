@@ -5,7 +5,7 @@ logs/*
 *test_results_*
 *__pycache__*
 *pycache*
-data_srr/
+data_srr_*/
 label/
 model_test/
 comparison_baseline*/
