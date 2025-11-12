@@ -84,7 +84,7 @@ def make_dirs(task:str, time_shift_minutes, smoothing, divide_by, interval_secon
         os.makedirs(image_dir, exist_ok=True)
         os.makedirs(save_dir, exist_ok=True)
     else:
-        output_dir = f"{paths['BASE_DIR']}/{task}_{repeat}/{time_shift_minutes}_{smoothing}_{divide_by}" 
+        output_dir = f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params["fmax"]}_{repeat}/{time_shift_minutes}_{smoothing}_{divide_by}"
         model_dir = f"{output_dir}/model/{config_option}/{interval_seconds}"
         image_dir = f"{output_dir}/test_results/lstm/{config_option}/{interval_seconds}"
         save_dir = f"{output_dir}/output_df/{config_option}/{interval_seconds}"
@@ -184,7 +184,7 @@ def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, div
     else:
         lr = 1e-4
 
-    batch_size = 64
+    batch_size = 128
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
     # Warmup scheduler
