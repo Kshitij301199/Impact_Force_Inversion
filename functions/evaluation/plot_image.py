@@ -63,7 +63,7 @@ def plot_image(st, predicted_output, target_output, timestamps,
     ax.plot(times, target_output, label="Impact Force Target [kN]", alpha=0.8, color='r',linewidth=1)
     ax.plot(times, predicted_output, label="Model Prediction", alpha=0.8, color='b',linewidth=1)
     times2 = [UTCDateTime(t).matplotlib_date for t in zero_label['Timestamp'].to_numpy()]
-    ax.plot(times2, zero_label['Fv [kN]'], label="Without Smoothing", alpha=0.8, color="green", linewidth=1)
+    ax.plot(times2, zero_label['Fv [kN]'], label="Without Smoothing", alpha=0.5, color="green", linewidth=0.5)
     ax.xaxis_date()
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d\n%H:%M:%S'))
     ax.set_xlim(times[0], times[-1])

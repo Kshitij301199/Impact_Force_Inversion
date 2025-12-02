@@ -68,6 +68,11 @@ def evaluate_model(model_type:str, test_id:str, val_id:str, interval_seconds:int
     heights1, width, _ = ax.hist(zero_label['True_Value'].to_numpy(), bins=bins, color='red', alpha=0.8, label="Impact Force [kN]", density=True)
     heights2, _, _ = ax.hist(zero_label['Pred_Value'].to_numpy(), bins=bins, color='blue', alpha=0.6, label="Model Prediction", density=True)
     n = len(bins)
+    ax.set_xlabel("Normal Force [kN]")
+    ax.set_ylabel("Frequency")
+    ax.set_title(f"{model_type} {interval_seconds} test {test_julday} val {val_julday}")
+    ax.legend(loc='best')
+    fig.savefig(f"{dist_dir}/{model_type}_{val_julday}.png", dpi=300)
     fig.tight_layout()
     plt.close(fig=fig)
     centers = width[:-1] + (width[1:] - width[:-1]) / 2
