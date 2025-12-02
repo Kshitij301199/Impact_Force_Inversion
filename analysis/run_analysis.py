@@ -113,7 +113,7 @@ def plot_grouped_bar_with_error(data, x, y, hue, hue_order, ax,
     ax.grid(True, axis='y', linestyle='--', alpha=0.5)
     return None    
 
-def make_evaluation_plots(data, intervals, hue, base_dir, output_file_name, features):
+def make_evaluation_plots(data, intervals, hue, base_dir, output_file_name, features, image_dir):
     # data = data[(data['Test'] != 182)]
     for interval in intervals:
         fig, ax = plt.subplots(1, len(features), figsize=(len(features) * 4, 3.5))
@@ -121,99 +121,68 @@ def make_evaluation_plots(data, intervals, hue, base_dir, output_file_name, feat
         
         for idx, feature in enumerate(features):
             plot_grouped_bar_with_error(data = plot_data, x="Test", y=feature, hue=hue, palette="viridis", ax=ax[idx], hue_order=["LSTM", "xLSTM"])
-        # plot_grouped_bar_with_error(data = plot_data, x="Test", y="R2_ts", hue=hue, palette="viridis", ax=ax[1], hue_order=["LSTM", "xLSTM"], ylim=(0, 1))
-        # plot_grouped_bar_with_error(data = plot_data, x="Test", y='MAE_ts', hue=hue, palette="viridis", ax=ax[2], hue_order=["LSTM", "xLSTM"])
-        # plot_grouped_bar_with_error(data = plot_data, x="Test", y='PearsonR_ts', hue=hue, palette="viridis", ax=ax[2], hue_order=["LSTM", "xLSTM"], ylim=(0, 1))
 
         fig.tight_layout()
-        fig.savefig(f"{base_dir}/{output_file_name}_{interval}.png", dpi=300)
+        fig.savefig(f"{image_dir}/{output_file_name}_{interval}.png", dpi=300)
         plt.close(fig=fig)
 
-        # fig, ax = plt.subplots(1,3, figsize=(14, 3.5))
-        # plot_grouped_bar_with_error(data = plot_data, x="Test", y="MSE_0", hue=hue, palette="viridis", ax=ax[0], hue_order=["LSTM", "xLSTM"])
-        # plot_grouped_bar_with_error(data = plot_data, x="Test", y="R2_0", hue=hue, palette="viridis", ax=ax[1], hue_order=["LSTM", "xLSTM"], ylim=(0,1))
-        # # plot_grouped_bar_with_error(data = plot_data, x="Test", y='MAE_0', hue=hue, palette="viridis", ax=ax[2], hue_order=["LSTM", "xLSTM"])
-        # plot_grouped_bar_with_error(data = plot_data, x="Test", y='PearsonR_0', hue=hue, palette="viridis", ax=ax[2], hue_order=["LSTM", "xLSTM"], ylim=(0,1))
-
-        # fig.tight_layout()
-        # fig.savefig(f"{base_dir}/{output_file_name}_{interval}_0.png", dpi=300)
-        # plt.close(fig=fig)
-
-    # fig, ax = plt.subplots(1, 4, figsize=(14,3.5))
-    # sns.barplot(data= data, x='Interval', y='MSE_ts', hue=hue, palette="viridis", ax=ax[0], errorbar = 'se', hue_order=["LSTM", "xLSTM"])
-    # sns.barplot(data= data, x='Interval', y='R2_ts', hue=hue, palette="viridis", ax=ax[1], errorbar = 'se', hue_order=["LSTM", "xLSTM"])
-    # sns.barplot(data= data, x='Interval', y='MAE_ts', hue=hue, palette="viridis", ax=ax[2], errorbar = 'se', hue_order=["LSTM", "xLSTM"])
-    # sns.barplot(data= data, x='Interval', y='PearsonR_ts', hue=hue, palette="viridis", ax=ax[3], errorbar = 'se', hue_order=["LSTM", "xLSTM"])
     fig, ax = plt.subplots(1, len(features), figsize=(4*len(features),3.5))
     for idx, feature in enumerate(features):
         plot_grouped_bar_with_error(data= data, x='Interval', y=feature, hue=hue, palette="viridis", ax=ax[idx], hue_order=["LSTM", "xLSTM"])
-    # plot_grouped_bar_with_error(data = data, x="Interval", y="R2_ts", hue=hue, palette="viridis", ax=ax[1], hue_order=["LSTM", "xLSTM"], ylim=(0, 1))
-    # plot_grouped_bar_with_error(data = data, x="Interval", y='PearsonR_ts', hue=hue, palette="viridis", ax=ax[2], hue_order=["LSTM", "xLSTM"], ylim=(0, 1))
     for axis in ax:
         axis.set_xlabel("Interval (s)")
     ax[0].set_ylabel("Mean Squared Error (MSE)")
-    # ax[0].set_title("Comparison of MSE by Interval and Model")
-    # ax[2].set_ylabel("Histogram Weighted MSE")
     ax[1].set_ylabel("Pearson Correlation Coefficient")
     ax[0].set_ylim(bottom=0)
-    # # ax[3].set_ylim(0, 100)
-    # # ax.set_ylim(0, 1)
     fig.tight_layout()
-    fig.savefig(f"{base_dir}/{output_file_name}_ts.png", dpi=300)
-    # plt.close()
-
-    # fig, ax = plt.subplots(1, 4, figsize=(14,3.5))
-    # sns.barplot(data= data, x='Interval', y='MSE_0', hue=hue, palette="viridis", ax=ax[0], errorbar = 'se', hue_order=["LSTM", "xLSTM"])
-    # sns.barplot(data= data, x='Interval', y='R2_0', hue=hue, palette="viridis", ax=ax[1], errorbar = 'se', hue_order=["LSTM", "xLSTM"])
-    # sns.barplot(data= data, x='Interval', y='MAE_0', hue=hue, palette="viridis", ax=ax[2], errorbar = 'se', hue_order=["LSTM", "xLSTM"])
-    # sns.barplot(data= data, x='Interval', y='PearsonR_0', hue=hue, palette="viridis", ax=ax[3], errorbar = 'se', hue_order=["LSTM", "xLSTM"])
-    # fig, ax = plt.subplots(1,1, figsize=(5.5,3.5))
-    # plot_grouped_bar_with_error(data= data, x='Interval', y='MSE_0', hue=hue, palette="viridis", ax=ax, hue_order=["LSTM", "xLSTM"])
-    # ax.set_xlabel("Interval (s)")
-    # ax.set_ylabel("Mean Squared Error (MSE)")
-    # ax.set_title("Comparison of MSE by Interval and Model")
-    # ax.set_ylim(bottom=0)
-    # # # ax[3].set_ylim(0, 100)
-    # # # ax[1].set_ylim(0, 1)
-    # fig.tight_layout()
-    # fig.savefig(f"{base_dir}/{output_file_name}_0.png", dpi=300)
-    # plt.close()
-
-    # fig, ax = plt.subplots(1, 1)
-    # sns.barplot(data= data, x='Interval', y='FT_RMSE', hue="Model", palette="viridis", ax=ax, errorbar='sd')
-    # fig.tight_layout()
-    # fig.savefig(f"{base_dir}/FT_RMSE.png", dpi=300)
-    # plt.close()
+    fig.savefig(f"{image_dir}/{output_file_name}_ts.png", dpi=300)
+    plt.close(fig=fig)
 
     fig, ax = plt.subplots()
     data["Time_To_Train"] = pd.to_timedelta(data["Time_To_Train"]).dt.total_seconds()
     plot_grouped_bar_with_error(data=data, x="Interval", y="Time_To_Train", hue=hue, palette="viridis", ax=ax, hue_order=["LSTM", "xLSTM"])
+    # plot_grouped_bar_with_error(data=data, x="Interval", y="Time_To_Train", hue=hue, palette="viridis", ax=ax, hue_order=["LinReg"])
     ax.set_xlabel("Interval (s)")
     ax.set_ylabel("Mean Training Time (seconds)")
     ax.set_title("Comparison of Training Time by Interval and Model")
     ax.legend(title="Model")
     fig.tight_layout()
     fig.savefig(f"{base_dir}/TimetoTrain.png", dpi=300)
-    plt.close()
+    plt.close(fig=fig)
 
     return None
 
 def move_plots(df, model_types, configs, time_intervals, base_dir):
-    mapping = {161 : 1, 172 : 2, 182:3, 183:4, 196 : 5, 207 : 6, 223 : 7, 232 : 8}
+    mapping = {161 : 1, 172 : 2, 182 : 3, 183 : 4, 196 : 5, 207 : 6, 223 : 7, 232 : 8}
     for model_type in tqdm(model_types, desc="Model Progress"):
         for config in configs:
             for interval in time_intervals:
                 temp = df[(df['Model'] == model_type) & (df['Config'] == config) & (df['Interval'] == interval)]
                 for idx, row in tqdm(temp.iterrows(), desc=f"Moving Plots ({model_type}, {config}, {interval})"):
-                    # Move best models
-                    # if row['Test'] == 232:
+                    # MOVING BEST MODELS
                     from_path = f"{base_dir}/model/{config}/{interval}/t{row['Test']}_v{row['Val']}_{interval}_{model_type}_model.pt"
-                    to_dir = f"{base_dir}/best_models/{mapping[row['Test']]}"
+                    to_dir = f"{base_dir}/best_models/{config}/{mapping[row['Test']]}"
                     os.makedirs(to_dir, exist_ok=True)
                     with open(f"{to_dir}/best_models.txt", "a") as f:
                         f.write(f"{config} {interval} {model_type} {row['Test']} {row['Val']}\n")
                     to_path = f"{to_dir}/{interval}_{model_type}.pt"
                     shutil.copy(from_path, to_path)
+                    # MOVING BEST COMBINATION LOSS CURVES
+                    from_path = f"{base_dir}/loss_curves/{config}/{interval}/{model_type}_t{row['Test']}_v{row['Val']}.txt"
+                    to_dir = f"{base_dir}/best_loss_curves/{config}/"
+                    os.makedirs(to_dir, exist_ok=True)
+                    with open(f"{to_dir}/best_losscurves.txt", "a") as f:
+                        f.write(f"{config} {interval} {model_type} {row['Test']} {row['Val']}\n")
+                    to_path = f"{to_dir}/{model_type}_{interval}_{row['Test']}.txt"
+                    shutil.copy(from_path, to_path)
+                    # MOVING BEST DISTRIBUTIONS
+                    # from_path = f"{base_dir}/dist_plots/test/{interval}/{row['Test']}/{model_type}_{row['Val']}.png"
+                    # to_dir = f"{base_dir}/best_loss_curves/{config}/"
+                    # os.makedirs(to_dir, exist_ok=True)
+                    # with open(f"{to_dir}/best_losscurves.txt", "a") as f:
+                    #     f.write(f"{config} {interval} {model_type} {row['Test']} {row['Val']}\n")
+                    # to_path = f"{to_dir}/{model_type}_{interval}.txt"
+                    # shutil.copy(from_path, to_path)
 
 def check_velocity_estimates(best_comb, task_dir):
     true_vel = pd.read_csv("../label/DF_characteristics.csv")
@@ -314,113 +283,61 @@ def check_velocity_estimates(best_comb, task_dir):
     return None
 
 def calc_ref_scores(base_dir, output_dir, time_shift):
-    # eval_out = pd.read_csv(f"{output_dir}/evaluation_output.txt")
     eval_out_cons = pd.read_csv(f"{output_dir}/evaluation_output_constrained.txt")
     if "ref_MSE" in eval_out_cons.columns:
         print("Reference scores already calculated. Skipping...")
         return None
-    # eval_out.sort_values(by=["Test", "Interval", "Val"], inplace=True)
     eval_out_cons.sort_values(by=["Test", "Interval", "Val"], inplace=True)
 
     old_test, old_interval = 1, 1
     list1 = []
     event_id_map = {161: "1", 172: "3", 182: "4", 183: "5", 196: "6", 207: "7", 223: "8", 232: "9"}
-    # constraint_df = pd.read_csv(f"../label/correct_metrics_time_window.csv", index_col=False)
 
     for idx, row in tqdm(eval_out_cons.iterrows(), total=len(eval_out_cons), desc="Calculating Reference Scores"):
-        # julday_list = [161, 172, 182, 183, 196, 207, 223, 232]
-        # date_list = ["2019-06-10", "2019-06-21", "2019-07-01", "2019-07-02", "2019-07-15", "2019-07-26", "2019-08-11", "2019-08-20"]
-        # row_cons = eval_out_cons.loc[idx]
         test = row['Test']
         val = row['Val']
         interval = row['Interval']
         model = row['Model']
         event_id = event_id_map[test]
-        # if test == 161:
-        #     window_df = constraint_df.iloc[:2]
-        #     # print(window_df)
-        #     window_start_1, window_end_1 = UTCDateTime(window_df['Start_Time'].iloc[0]), UTCDateTime(window_df['End_Time'].iloc[0])
-        #     window_start_2, window_end_2 = UTCDateTime(window_df['Start_Time'].iloc[1]), UTCDateTime(window_df['End_Time'].iloc[1])
-        # else:
-        #     window_df = constraint_df.iloc[julday_list.index(test) + 1]
-        #     # print(window_df)
-        #     window_start, window_end = UTCDateTime(window_df['Start_Time']), UTCDateTime(window_df['End_Time'])
 
         if (test == old_test) and (interval == old_interval):
             pass
         else:
             print(f"Loading Label {test} {interval}")
-            # julday_list = [161, 172, 182, 183, 196, 207, 223, 232]
-            # date_list = ["2019-06-10", "2019-06-21", "2019-07-01", "2019-07-02", "2019-07-15", "2019-07-26", "2019-08-11", "2019-08-20"]
-            label = load_label([event_id], "ILL11", interval, time_shift, trim=True, smoothing=None, divide_by=None)
-            # julday_list = [161, 172, 182, 183, 196, 207, 223, 232]
-            # date_list = ["2019-06-10", "2019-06-21", "2019-07-01", "2019-07-02", "2019-07-15", "2019-07-26", "2019-08-11", "2019-08-20"]
-            # label_zero = load_label([date_list.pop(julday_list.index(test))], "ILL11", interval, 0, trim=False, smoothing=None, divide_by=None)
+            label = load_label([event_id], "ILL11", interval, time_shift, trim=True, smoothing=30, divide_by=None)
             label['Timestamp'] = label['Timestamp'].apply(lambda x: UTCDateTime(x))
-            # label_zero['Timestamp'] = label_zero['Timestamp'].apply(lambda x: UTCDateTime(x))
             old_test = test
             old_interval = interval
         output_df = pd.read_csv(f"{base_dir}/output_df/{row['Config']}/{row['Interval']}/{model}_t{test}_v{val}.csv", index_col=None)
         output_df['Timestamps'] = output_df["Timestamps"].apply(lambda x: UTCDateTime(x))
         assert len(output_df) == len(label), f"Length mismatch {len(output_df)} -|- {len(label)}"
-        # print("Calculating MSE")
         list1.append(np.round(mean_squared_error(label['Fv [kN]'].to_numpy(), output_df['Predicted_Output'].to_numpy()),4))
-        # list2.append(np.round(mean_squared_error(label_zero['Fv [kN]'].to_numpy(), output_df['Predicted_Output'].to_numpy()),4))
-
-        # print("Calculating constrained MSE")
-        # if test == 161:
-        #     label_temp = label[label['Timestamp'].between(window_start_1, window_end_1)]
-        #     label_trim = pd.concat([label_temp, label[label['Timestamp'].between(window_start_2, window_end_2)]])
-        #     # zero_label_temp = label_zero[label_zero['Timestamp'].between(window_start_1, window_end_1)]
-        #     # label_zero_trim = pd.concat([zero_label_temp, label_zero[label_zero['Timestamp'].between(window_start_2, window_end_2)]])
-        #     output_df_temp = output_df[output_df['Timestamps'].between(window_start_1, window_end_1)]
-        #     output_df_trim = pd.concat([output_df_temp, output_df[output_df['Timestamps'].between(window_start_2, window_end_2)]])
-        # else:
-        #     label_trim = label[label['Timestamp'].between(window_start, window_end)]
-        #     # label_zero_trim = label_zero[label_zero['Timestamp'].between(window_start, window_end)]
-        #     output_df_trim = output_df[output_df['Timestamps'].between(window_start, window_end)]
-
-        # list3.append(np.round(mean_squared_error(label_trim['Fv [kN]'].to_numpy(), output_df_trim['Predicted_Output'].to_numpy()),4))
-        # list4.append(np.round(mean_squared_error(label_zero_trim['Fv [kN]'].to_numpy(), output_df_trim['Predicted_Output'].to_numpy()),4))
-
-    # eval_out['ref_MSE_ts'] = list1
-    # eval_out['ref_MSE_0'] = list2
+        
     eval_out_cons['ref_MSE'] = list1
-    # eval_out_cons['ref_MSE_0'] = list4
-
-    # eval_out.to_csv(f"{output_dir}/evaluation_output.txt", index=False)
     eval_out_cons.to_csv(f"{output_dir}/evaluation_output_constrained.txt", index=False)
     
     return None
 
 def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
-    smoothing = 0
+    divide_by = 45
+    smoothing = 60
     time_intervals = [5, 15, 30]
-    # if task.startswith("comparison_baseline"):
-    #     hue = 'Model'
-    # else:
-    #     hue = 'Config'
+    
     if time_shift == "average":
         julday_list = [161, 172, 182, 183, 196, 207, 223, 232]
-        # date_list = ["2019-06-10", "2019-06-21", "2019-07-15", "2019-07-26", "2019-08-11", "2019-08-20"]
         event_id_list = [1, 3, 4, 5, 6, 7, 8, 9]
     elif time_shift == "dynamic":
-        # julday_list = [172, 196, 207, 223]
-        # date_list = ["2019-06-21", "2019-07-15", "2019-07-26", "2019-08-11"]
+        julday_list = [172, 196, 207, 223]
         event_id_list = [3, 6, 7, 8]
-    # task = "06_04_"+task
-    base_dir = f"../{task}/{time_shift}_{smoothing}"
-    output_dir = f"../{task}/{time_shift}_{smoothing}/model_evaluation"
-    # model_output_dir = {c : f"../{task}/{time_shift}_{smoothing}/output_df/{c}" for c in configs}
-    # data = pd.read_csv(f"{output_dir}/evaluation_output_constrained.txt", index_col=False)
-    # data = data[(data['Test'] != 182) & (data['Test'] != 183)]
+    # task = "by150_"+task
+    base_dir = f"../{task}/{time_shift}_{smoothing}_{divide_by}"
+    image_dir1 = f"{base_dir}/images/with_noise"
+    image_dir2 = f"{base_dir}/images/without_noise"
+    os.makedirs(image_dir1, exist_ok=True)
+    os.makedirs(image_dir2, exist_ok=True)
+    output_dir = f"../{task}/{time_shift}_{smoothing}_{divide_by}/model_evaluation"
     
-    # if not os.path.exists(f"{base_dir}/fourier_transform/"):
-    #     make_fourier_transform_plots_and_metrics(data, base_dir, model_output_dir)
-    # else:
-    #     pass
-    
-    calc_ref_scores(base_dir, output_dir, time_shift)
+    # calc_ref_scores(base_dir, output_dir, time_shift)
 
     if os.path.exists(f"{output_dir}/best_combinations.csv"):
         best_combinations_df = pd.read_csv(f"{output_dir}/best_combinations.csv", index_col=False)
@@ -431,34 +348,72 @@ def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
         for model_type in tqdm(model_types, desc="Model Progress"):
             for config in tqdm(configs, desc="Config Progress"):
                 temp_data = data[(data["Model"] == model_type) & (data['Config'] == config)]
+                # print(temp_data)
                 for interval in tqdm(time_intervals, desc=f"Interval Progress ({model_type}, {config})"):
                     for test_julday in tqdm(julday_list, desc=f"Julday Progress"):
                             # print(f"Processing {model_type} {config} {interval} {test_julday}")
                             temp = temp_data[(temp_data["Test"] == test_julday) & (temp_data["Interval"] == interval)]
                             temp.reset_index(inplace=True, drop=True)
-                            temp = temp.iloc[temp.nsmallest(1, "MSE").index]
-                            # temp = temp.iloc[temp.nlargest(2, "PearsonR").nsmallest(1, "MSE").index]
+                            # print(temp)
+                            # temp = temp.iloc[temp.nsmallest(1, "MSE").index]
+                            if test_julday == 223:
+                                temp = temp[temp['Val'] == 207]
+                            else:
+                                temp = temp.iloc[temp.nsmallest(1, "MSE").index]
                             best_combinations_df.loc[len(best_combinations_df)] = temp.values[0]
         best_combinations_df.to_csv(f"{output_dir}/best_combinations.csv", index=False)
 
-    
+    if os.path.exists(f"{output_dir}/best_combinations_wo_noise.csv"):
+        best_combinations_df = pd.read_csv(f"{output_dir}/best_combinations_wo_noise.csv", index_col=False)
+    else:
+        print("\tSelecting Best Combinations")
+        data = pd.read_csv(f"{output_dir}/evaluation_output_wo_noise.txt", index_col=False)
+        best_combinations_df = pd.DataFrame(columns = data.columns.values)
+        for model_type in tqdm(model_types, desc="Model Progress"):
+            for config in tqdm(configs, desc="Config Progress"):
+                temp_data = data[(data["Model"] == model_type) & (data['Config'] == config)]
+                # print(temp_data)
+                for interval in tqdm(time_intervals, desc=f"Interval Progress ({model_type}, {config})"):
+                    for test_julday in tqdm(julday_list, desc=f"Julday Progress"):
+                            # print(f"Processing {model_type} {config} {interval} {test_julday}")
+                            temp = temp_data[(temp_data["Test"] == test_julday) & (temp_data["Interval"] == interval)]
+                            temp.reset_index(inplace=True, drop=True)
+                            # print(temp)
+                            if test_julday == 223:
+                                temp = temp[temp['Val'] == 207]
+                            else:
+                                temp = temp.iloc[temp.nsmallest(1, "MSE").index]
+                            best_combinations_df.loc[len(best_combinations_df)] = temp.values[0]
+        best_combinations_df.to_csv(f"{output_dir}/best_combinations_wo_noise.csv", index=False)
+
     print("\tMaking Plots and Moving Images")
-    fig, ax = plt.subplots()
-    data = pd.read_csv(f"{output_dir}/best_combinations.csv", index_col=False)
-    # data = data[(data['Test'] != 182) & (data['Test'] != 183)]
-    plot_grouped_bar_with_error(data= data, x='Interval', y='ref_MSE', hue='Model', palette="viridis", ax=ax, hue_order=['LSTM', 'xLSTM'], bar_width=0.25)
-    fig.savefig(f"{base_dir}/ref_MSE.png", dpi=300)
-    plt.close(fig=fig)
-    
-    features = ['MSE', 'R2', 'Hist_WMSE']
-    make_evaluation_plots(data, time_intervals, 'Model', base_dir, "Best_Comparison_Plot", features)
-    
-    data = pd.read_csv(f"{output_dir}/evaluation_output_constrained.txt", index_col=False)
-    # data = data[data['Test'] != 183]
-    make_evaluation_plots(data, time_intervals, 'Model', base_dir, "Comparison_Plot", features)
+    for config in configs:
+        data = pd.read_csv(f"{output_dir}/best_combinations.csv", index_col=False)
+        data = data[data['Config'] == config]
+        image_dir1t = image_dir1+f"/{config}"
+        image_dir2t = image_dir2+f"/{config}"
+        os.makedirs(image_dir1t, exist_ok=True)
+        os.makedirs(image_dir2t, exist_ok=True)
+        features = ['MSE', 'Hist_WMSE']
+        make_evaluation_plots(data, time_intervals, 'Model', base_dir, "Best_Comparison_Plot", features, image_dir1t)
+        data = data[data['Test'] != 183]
+        make_evaluation_plots(data, time_intervals, 'Model', base_dir, "Best_Comparison_Plot_without183", features, image_dir1t)
+        data = pd.read_csv(f"{output_dir}/evaluation_output_constrained.txt", index_col=False)
+        make_evaluation_plots(data, time_intervals, 'Model', base_dir, "Comparison_Plot", features, image_dir1t)
+
+        data = pd.read_csv(f"{output_dir}/best_combinations_wo_noise.csv", index_col=False)
+        data = data[data['Config'] == config]
+        features = ['MSE', 'Hist_WMSE']
+        make_evaluation_plots(data, time_intervals, 'Model', base_dir, "Best_Comparison_Plot", features, image_dir2t)
+        data = data[data['Test'] != 183]
+        make_evaluation_plots(data, time_intervals, 'Model', base_dir, "Best_Comparison_Plot_without183", features, image_dir2t)
+        
+        data = pd.read_csv(f"{output_dir}/evaluation_output_wo_noise.txt", index_col=False)
+        make_evaluation_plots(data, time_intervals, 'Model', base_dir, "Comparison_Plot", features, image_dir2t)
     
     data = pd.read_csv(f"{output_dir}/best_combinations.csv", index_col=False)
     move_plots(data, model_types, configs, time_intervals, base_dir)
+    # move_dists(data, model_types, configs, time_intervals, base_dir)
 
     # if os.path.exists(f"{base_dir}/dist_plots/"):
     #     pass
@@ -479,14 +434,15 @@ def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
     # check_velocity_estimates(data, base_dir)
 
     print("\tMaking Explaination Plots")
-    data = pd.read_csv(f"../{task}/{time_shift}_{smoothing}/model_evaluation/best_combinations.csv", index_col=False)
+    data = pd.read_csv(f"../{task}/{time_shift}_{smoothing}_{divide_by}/model_evaluation/best_combinations.csv", index_col=False)
+    data = data[data['Config'] == 'v_larger']
     # zoom_df = pd.read_csv("../label/correct_metrics_time_window.csv", index_col=False)
     # if time_shift == "average":
     #     zoom_df = zoom_df.iloc[[0,2,5,6,7,8],:].reset_index(drop=True)
     # elif time_shift == "dynamic":
     #     zoom_df = zoom_df.iloc[[2,5,6,7],:].reset_index(drop=True)
 
-    output_file_dir = f"../{task}/{time_shift}_{smoothing}/output_df/default"
+    output_file_dir = f"../{task}/{time_shift}_{smoothing}_{divide_by}/output_df/v_larger"
 
     i = 0
     if time_shift == "average":
@@ -549,7 +505,7 @@ def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
                     ax2.set_ylabel("Normal Force [kN]");
                     ax2.set_ylim(bottom=0)
                     ax2.legend(loc='best');
-                    ax2.set_ylim(0, 350);
+                    ax2.set_ylim(0, 50);
 
                 elif model_type == 'LSTM':
                     # ax[0,1].plot(st[0].times('matplotlib'), st[0].data, color="black", label= "ILL11", alpha=0.5)
@@ -569,7 +525,7 @@ def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
                     ax[1].plot(st[0].times('matplotlib'), st[0].data, color="black", label= "ILL11", alpha=0.5)
                     ax[1].set_ylabel(r"Amplitude (mm/s)");
                     ax[1].set_ylim(-1.5, 1.5);
-                    ax4 = ax[1].twinx(sharex=True)
+                    ax4 = ax[1].twinx()
                     ax4.plot(target_times, target_output['Fv [kN]'].to_numpy(), label="Impact Force Target [kN]", alpha=0.9, color='r',linewidth=1)
                     ax4.plot(times, predicted_output, label="Model Prediction", alpha=0.8, color='b',linewidth=1)
                     ax4.xaxis_date()
@@ -579,7 +535,7 @@ def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
                     ax4.set_ylabel("Normal Force [kN]");
                     ax4.set_ylim(bottom=0)
                     ax4.legend(loc='best');
-                    ax4.set_ylim(0, 350);
+                    ax4.set_ylim(0, 50);
 
             ax[0].set_title("xLSTM Model");
             ax[1].set_title("LSTM Model");
