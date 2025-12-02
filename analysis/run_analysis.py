@@ -413,43 +413,17 @@ def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
     
     data = pd.read_csv(f"{output_dir}/best_combinations.csv", index_col=False)
     move_plots(data, model_types, configs, time_intervals, base_dir)
-    # move_dists(data, model_types, configs, time_intervals, base_dir)
-
-    # if os.path.exists(f"{base_dir}/dist_plots/"):
-    #     pass
-    # else:
-    #     print("Making distribution plots!")
-    #     if 'comparison_baseline' in task:
-    #         config = "default"
-    #         for option in model_types:
-    #             # option = "xLSTM"
-    #             for interval in time_intervals:
-    #                 main2(option, interval, f"{task}/{time_shift}_{smoothing}", config)
-    #                 plt.close()
-    #     else:
-    #         pass
-
-    # print("Checking Velocity estimates")
-    # data = pd.read_csv(f"{output_dir}/best_combinations.csv", index_col=False)
-    # check_velocity_estimates(data, base_dir)
-
+    
     print("\tMaking Explaination Plots")
     data = pd.read_csv(f"../{task}/{time_shift}_{smoothing}_{divide_by}/model_evaluation/best_combinations.csv", index_col=False)
     data = data[data['Config'] == 'v_larger']
-    # zoom_df = pd.read_csv("../label/correct_metrics_time_window.csv", index_col=False)
-    # if time_shift == "average":
-    #     zoom_df = zoom_df.iloc[[0,2,5,6,7,8],:].reset_index(drop=True)
-    # elif time_shift == "dynamic":
-    #     zoom_df = zoom_df.iloc[[2,5,6,7],:].reset_index(drop=True)
-
+    
     output_file_dir = f"../{task}/{time_shift}_{smoothing}_{divide_by}/output_df/v_larger"
 
     i = 0
     if time_shift == "average":
-        # julday_list = [161, 172, 196, 207, 223, 232]
         event_id_list = [1, 3, 4, 5, 6, 7, 8, 9]
     elif time_shift == "dynamic":
-        # julday_list = [172, 196, 207, 223]
         event_id_list = [3, 6, 7, 8]
     for event_id in tqdm(event_id_list, desc= "Julday Progress"):
         event_info = time_config[str(event_id)]
@@ -458,11 +432,6 @@ def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
         for interval in time_intervals:
             temp = data[(data['Test'] == julday) & (data['Interval'] == interval)]
             fig, ax = plt.subplots(2, 1, figsize=(8.0, 6.0), sharey=True, sharex=True)
-            # if time_shift == "average":
-            #     date_list = ["2019-06-10", "2019-06-21", "2019-07-15", "2019-07-26", "2019-08-11", "2019-08-20"]
-            # elif time_shift == "dynamic":
-            #     date_list = ["2019-06-21", "2019-07-15", "2019-07-26", "2019-08-11"]
-            # date = date_list.pop(julday_list.index(julday))
             target_output = load_label([str(event_id)], "ILL11", interval, time_shift, trim=False, smoothing=smoothing, divide_by=None)
             target_times = [UTCDateTime(i).matplotlib_date for i in target_output['Timestamp'].to_numpy()]
             for idx, row in temp.iterrows():
@@ -478,20 +447,6 @@ def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
                 predicted_output = file['Predicted_Output'].to_numpy()
                 
                 if model_type == 'xLSTM':
-                    # ax[0,0].plot(st[0].times('matplotlib'), st[0].data, color="black", label= "ILL11", alpha=0.5)
-                    # ax[0,0].set_ylabel(r"Amplitude (mm/s)");
-                    # ax[0,0].set_ylim(-1.5, 1.5);
-                    # ax1 = ax[0,0].twinx()
-                    # ax1.plot(target_times, target_output['Fv [kN]'].to_numpy(), label="Impact Force Target [kN]", alpha=0.9, color='r',linewidth=1)
-                    # ax1.plot(times, predicted_output, label="Model Prediction", alpha=0.8, color='b',linewidth=1)
-                    # ax1.xaxis_date()
-                    # ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d\n%H:%M:%S'))
-                    # ax1.xaxis.set_major_locator(mdates.MinuteLocator(interval=240))
-                    # ax1.set_xlim(times[0], times[-1]);
-                    # ax1.set_ylabel("Normal Force [kN]");
-                    # ax1.set_ylim(bottom=0)
-                    # ax1.legend(loc='best');
-
                     ax[0].plot(st[0].times('matplotlib'), st[0].data, color="black", label= "ILL11", alpha=0.5)
                     ax[0].set_ylabel(r"Amplitude (mm/s)");
                     ax[0].set_ylim(-1.5, 1.5);
@@ -508,20 +463,6 @@ def main(task:str, model_types:list[str], configs:list[str], time_shift:int=10):
                     ax2.set_ylim(0, 50);
 
                 elif model_type == 'LSTM':
-                    # ax[0,1].plot(st[0].times('matplotlib'), st[0].data, color="black", label= "ILL11", alpha=0.5)
-                    # ax[0,1].set_ylabel(r"Amplitude (mm/s)");
-                    # ax[0,1].set_ylim(-1.5, 1.5);
-                    # ax3 = ax[0,1].twinx()
-                    # ax3.plot(target_times, target_output['Fv [kN]'].to_numpy(), label="Impact Force Target [kN]", alpha=0.9, color='r',linewidth=1)
-                    # ax3.plot(times, predicted_output, label="Model Prediction", alpha=0.8, color='b',linewidth=1)
-                    # ax3.xaxis_date()
-                    # ax3.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d\n%H:%M:%S'))
-                    # ax3.xaxis.set_major_locator(mdates.MinuteLocator(interval=240))
-                    # ax3.set_xlim(times[0], times[-1]);
-                    # ax3.set_ylabel("Normal Force [kN]");
-                    # ax3.set_ylim(bottom=0)
-                    # ax3.legend(loc='best');
-
                     ax[1].plot(st[0].times('matplotlib'), st[0].data, color="black", label= "ILL11", alpha=0.5)
                     ax[1].set_ylabel(r"Amplitude (mm/s)");
                     ax[1].set_ylim(-1.5, 1.5);
