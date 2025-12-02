@@ -98,13 +98,6 @@ def load_data(event_id_list:list, station:str, year:int=2019, trim:bool=True, ab
         st = load_seismic_data(event_id = str(event_id), station= station, year=year, trim= trim)
         if env:
             data_envelope = obspy.signal.filter.envelope(st[0].data)
-            # num_secs = 0.5
-            # window = int(2*100*num_secs)
-            # kernel = gaussian_kernel(window, sigma=3)
-            # data = np.convolve(data_envelope, kernel, mode='same')
-            # num_seconds = 0.03125
-            # N = int(2 * 100 * num_seconds)
-            # data = moving_max(data_envelope, N)[1:]
             data = data_envelope
             data = data[1:]
         else:
@@ -127,13 +120,6 @@ def load_data_test(julday_list:list, station:str, year:int=2019, abs:bool=True, 
         st = load_seismic_data_test(julday = julday, station= station, year=year)
         if env:
             data_envelope = obspy.signal.filter.envelope(st[0].data)
-            # num_secs = 0.5
-            # window = int(2*100*num_secs)
-            # kernel = gaussian_kernel(window, sigma=3)
-            # data = np.convolve(data_envelope, kernel, mode='same')
-            # num_seconds = 0.03125
-            # N = int(2 * 100 * num_seconds)
-            # data = moving_max(data_envelope, N)[1:]
             data = data_envelope
             data = data[1:]
         else:
@@ -151,7 +137,7 @@ def load_data_test(julday_list:list, station:str, year:int=2019, abs:bool=True, 
 
 
 
-def load_label(event_id_list: list, station: str, interval_seconds: int, time_shift_minutes, trim:bool = True, smoothing: int | None = 30, divide_by: int | None = 350) -> pd.DataFrame:
+def load_label(event_id_list: list, station: str, interval_seconds: int, time_shift_minutes, trim:bool = True, smoothing: int | None = 30, divide_by: int | None = 45) -> pd.DataFrame:
     time_window = data_params['time_window']
     # SELECT COLUMN FOR WHICH THE DATA IS REQUESTED
     if smoothing == 0 or smoothing is None:
