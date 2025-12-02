@@ -2,7 +2,7 @@
 #SBATCH -t 96:00:00               # time limit: (HH:MM:SS)
 #SBATCH --job-name=base_xlstm           # job name
 #SBATCH --ntasks=1                # each task in the job array will have a single task associated with it
-#SBATCH --array=1-8%4            # job array id, adjusted for the total number of commands (8 test days * 7 validation days * 4 intervals)
+#SBATCH --array=1-8%8           # job array id, adjusted for the total number of commands (8 test days * 7 validation days * 4 intervals)
 #SBATCH --mem-per-cpu=16G         # Memory Request (per CPU; can use on GLIC)
 #SBATCH --gres=gpu:A40:1             # load GPU A100 could be replace by A40/A30, 509-510 nodes has 4_A100_80G
 #SBATCH --reservation=GPU            # reserve the GPU
@@ -20,9 +20,9 @@ conda activate xlstm_env
 # Define the arrays
 intervals=(5)
 event_ids=(1 3 4 5 6 7 8 9)
-divide_bys=(20)
-hyp_options=('default')
-smoothings=(30)
+divide_bys=(45)
+hyp_options=('v_larger')
+smoothings=(60) # 144
 
 num_intervals=${#intervals[@]}
 num_hyp_options=${#hyp_options[@]}

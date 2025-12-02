@@ -20,10 +20,10 @@ conda activate xlstm_env
 # Define the arrays
 intervals=(15 30)
 event_ids=(1 3 4 5 6 7 8 9)
-hyp_options=('default')
+hyp_options=('v_larger')
 # hyp_options=('mlstm' 'slstm')
 # smoothings=(0 30 60)
-smoothings=(30)
+smoothings=(60)
 
 # Calculate the total number of combinations per test day
 num_event_ids=${#event_ids[@]}
@@ -76,5 +76,5 @@ srun --gres=gpu:A40:1 --unbuffered python /storage/vast-gfz-hpc-01/home/kshitkar
     --task "comparison_baseline_cv" \
     --smoothing "$smoothing" \
     --config_op "$hyp_option" \
-    --divide_by 20 \
+    --divide_by 45 \
     --repeat 3

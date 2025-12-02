@@ -2,7 +2,7 @@
 #SBATCH -t 96:00:00
 #SBATCH --job-name=base_lstm
 #SBATCH --ntasks=1
-#SBATCH --array=1-8%2
+#SBATCH --array=1-16%4
 #SBATCH --mem-per-cpu=24G
 #SBATCH --gres=gpu:A40:1
 #SBATCH --reservation=GPU
@@ -18,9 +18,9 @@ conda activate xlstm_env
 
 intervals=(5)
 event_ids=(1 3 4 5 6 7 8 9)
-divide_bys=(20)
-hyp_options=('default')
-smoothings=(30)
+divide_bys=(45)
+hyp_options=('smaller' 'larger')
+smoothings=(60)
 
 num_intervals=${#intervals[@]}
 num_hyp_options=${#hyp_options[@]}
