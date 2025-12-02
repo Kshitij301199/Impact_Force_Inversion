@@ -30,11 +30,11 @@ from models.xLSTM_model import xLSTMRegressor_v2
 def load_model(model_julday:int, model_type:str, interval:int):
     mapping = {161 : 1, 172 : 2, 182 : 3, 183 : 4, 196 : 5, 207 : 6, 223 : 7, 232 : 8}
     if model_type == 'LSTM':
-        with open(f"./config/comparison_baseline/lstm_default_{interval}sec_config.json", "r") as f:
+        with open(f"./config/comparison_baseline_cv/lstm_v_larger_{interval}sec_config.json", "r") as f:
             config = json.load(f)
         model = LSTMRegressor(**config)
     elif model_type == 'xLSTM':
-        with open(f"./config/comparison_baseline/xlstm_default_{interval}sec_config.json", "r") as f:
+        with open(f"./config/comparison_baseline_cv/xlstm_v_larger_{interval}sec_config.json", "r") as f:
             config = json.load(f)
         model = xLSTMRegressor_v2(**config)
     else:
@@ -90,7 +90,7 @@ def main(network:str, station:str, component:str, year:int, julday:int, model_ty
                 output = model(input_sequences).squeeze(1)  # Shape: (batch_size, 1)
                 # Squeeze the output to match target shape
                 in_sequence.append(input_sequences.cpu().numpy())
-                predicted_output.append(output.detach().cpu().numpy() * 20)
+                predicted_output.append(output.detach().cpu().numpy() * 45)
                 model_timestamps.append(test_timestamps)
         end_time = get_current_time()
         time_to_test = get_time_elapsed(start_time, end_time)
