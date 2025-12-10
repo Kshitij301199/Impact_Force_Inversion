@@ -2,7 +2,7 @@
 #SBATCH -t 1:00:00               # time limit: (HH:MM:SS)
 #SBATCH --job-name=rem_resp     # job name
 #SBATCH --ntasks=1               # each task in the job array will have a single task associated with it
-#SBATCH --array=1-25%10            # job array id, adjusted for the total number of commands
+#SBATCH --array=1-33%10            # job array id, adjusted for the total number of commands
 #SBATCH --mem-per-cpu=8G         # Memory Request (per CPU; can use on GLIC)
 #SBATCH --mail-type=all
 #SBATCH --mail-user=kshitkar@gfz-potsdam.de
@@ -15,7 +15,7 @@ conda activate seismic_cal
 
 commands=()
 
-stations=("ILL12")
+stations=("ILL11")
 # year=2019
 juldays=(161 162 171 172 182 183 184 196 207 223 232) # 11
 for station in "${stations[@]}"; do
@@ -30,6 +30,13 @@ for station in "${stations[@]}"; do
         commands+=("python ./data_preprocessing/remove_sr.py --station $station --julday $julday --year 2020")
     done
 done
+# year=2021
+juldays=(156 187 197 219 262) # 5
+for station in "${stations[@]}"; do
+    for julday in "${juldays[@]}"; do
+        commands+=("python ./data_preprocessing/remove_sr.py --station $station --julday $julday --year 2021")
+    done
+done
 # year=2022
 juldays=(156 181 185 221) # 4
 for station in "${stations[@]}"; do
@@ -39,7 +46,13 @@ for station in "${stations[@]}"; do
 done
 # Get the command to run for this task
 command_to_run=${commands[$SLURM_ARRAY_TASK_ID-1]}
-
+# year=2023
+juldays=(153 161 193) # 3
+for station in "${stations[@]}"; do
+    for julday in "${juldays[@]}"; do
+        commands+=("python ./data_preprocessing/remove_sr.py --station $station --julday $julday --year 2023")
+    done
+done
 # Print and run the command
 echo "Running: $command_to_run"
 srun $command_to_run

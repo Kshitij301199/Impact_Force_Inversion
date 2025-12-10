@@ -33,12 +33,12 @@ def load_write_data(year:str, julday:str, station:str):
     st.detrend('linear')
     st.detrend('demean')
     print("Reading inventory and removing response")
-    if year == "2022" and station == "ILL11":
-        inv = read_inventory(f"/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/meta_data/9S_2022.xml")
-    elif station == "ILL12":
-        inv = read_inventory(f"{paths["META_DATA_DIR"]}/9S_2017_2022.xml")
-    else:
-        inv = read_inventory(f"{paths["META_DATA_DIR"]}/9S_2017_2020.xml")
+    # if year == "2022" and station == "ILL11":
+    #     inv = read_inventory(f"/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/meta_data/9S_2017_2023.xml")
+    # elif station == "ILL12":
+    inv = read_inventory(f"{paths["META_DATA_DIR"]}/9S_2017_2023.xml")
+    # else:
+    #     inv = read_inventory(f"{paths["META_DATA_DIR"]}/9S_2017_2020.xml")
     st.remove_response(inventory=inv)
     st.filter("bandpass", freqmin=data_params['fmin'], freqmax=data_params['fmax'])
     # st.filter("bandpass", freqmin=1, freqmax=45)
