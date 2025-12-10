@@ -2,7 +2,7 @@
 #SBATCH -t 8:00:00               # time limit: (HH:MM:SS)
 #SBATCH --job-name=test_models           # job name
 #SBATCH --ntasks=1                # each task in the job array will have a single task associated with it
-#SBATCH --array=1-120%2            # job array id, adjusted for the total number of commands (stations * juldays * intervals)
+#SBATCH --array=1-30%2            # job array id, adjusted for the total number of commands (stations * juldays * intervals)
 #SBATCH --mem-per-cpu=16G         # Memory Request (per CPU; can use on GLIC)
 #SBATCH --gres=gpu:A40:1             # load GPU A100 could be replace by A40/A30, 509-510 nodes has 4_A100_80G
 #SBATCH --reservation=GPU            # reserve the GPU
@@ -19,12 +19,12 @@ conda activate xlstm_env
 
 # Define parameters
 network="9S"
-station_list=("ILL11" "ILL12")
+station_list=("ILL11")
 component="EHZ"
 year=2019
 julday_list=(161 171 172 182 183 184 196 207 223 232)
 intervals=(5 15 30)
-models=('xLSTM' 'LSTM')
+models=('xLSTM')
 
 # Compute total job count
 total_jobs=$(( ${#station_list[@]} * ${#julday_list[@]} * ${#intervals[@]} * ${#models[@]} ))

@@ -2,15 +2,15 @@
 #SBATCH -t 8:00:00               # time limit: (HH:MM:SS)
 #SBATCH --job-name=test_models           # job name
 #SBATCH --ntasks=1                # each task in the job array will have a single task associated with it
-#SBATCH --array=1-30%2            # job array id, adjusted for the total number of commands (stations * juldays * intervals)
+#SBATCH --array=1-15%2            # job array id, adjusted for the total number of commands (stations * juldays * intervals)
 #SBATCH --mem-per-cpu=16G         # Memory Request (per CPU; can use on GLIC)
 #SBATCH --gres=gpu:A40:1             # load GPU A100 could be replace by A40/A30, 509-510 nodes has 4_A100_80G
 #SBATCH --reservation=GPU            # reserve the GPU
 #SBATCH --mail-type=all
 #SBATCH --mail-user=kshitkar@gfz-potsdam.de
 #SBATCH --chdir=/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/
-#SBATCH --output=./logs/out/t20_%A_%a.txt   # Standard Output Log File (for Job Arrays)
-#SBATCH --error=./logs/err/t20_%A_%a.txt    # Standard Error Log File (for Job Arrays)
+#SBATCH --output=./logs/out/t21_%A_%a.txt   # Standard Output Log File (for Job Arrays)
+#SBATCH --error=./logs/err/t21_%A_%a.txt    # Standard Error Log File (for Job Arrays)
 
 # GFZ Configuration with GPUs
 module use /cluster/spack/2022b/share/spack/modules/linux-almalinux8-icelake
@@ -21,8 +21,8 @@ conda activate xlstm_env
 network="9S"
 station_list=("ILL11")
 component="EHZ"
-year=2020
-julday_list=(156 159 160 162 168 169 181 210 229 243)
+year=2021
+julday_list=(156 187 197 219 262)
 intervals=(5 15 30)
 models=('xLSTM')
 
