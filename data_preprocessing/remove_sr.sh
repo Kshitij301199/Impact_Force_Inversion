@@ -11,7 +11,7 @@
 #SBATCH --error=./logs/err/rem_resp_err_%A_%a.txt    # Standard Error Log File (for Job Arrays)
 
 source /home/kshitkar/miniforge3/bin/activate
-conda activate seismic_cal
+conda activate xlstm_env
 
 commands=()
 
@@ -44,8 +44,6 @@ for station in "${stations[@]}"; do
         commands+=("python ./data_preprocessing/remove_sr.py --station $station --julday $julday --year 2022")
     done
 done
-# Get the command to run for this task
-command_to_run=${commands[$SLURM_ARRAY_TASK_ID-1]}
 # year=2023
 juldays=(153 161 193) # 3
 for station in "${stations[@]}"; do
@@ -53,6 +51,9 @@ for station in "${stations[@]}"; do
         commands+=("python ./data_preprocessing/remove_sr.py --station $station --julday $julday --year 2023")
     done
 done
+
+# Get the command to run for this task
+command_to_run=${commands[$SLURM_ARRAY_TASK_ID-1]}
 # Print and run the command
 echo "Running: $command_to_run"
 srun $command_to_run
