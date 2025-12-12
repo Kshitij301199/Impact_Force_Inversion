@@ -2,7 +2,7 @@
 #SBATCH -t 1:00:00               # time limit: (HH:MM:SS)
 #SBATCH --job-name=rem_resp     # job name
 #SBATCH --ntasks=1               # each task in the job array will have a single task associated with it
-#SBATCH --array=1-33%10            # job array id, adjusted for the total number of commands
+#SBATCH --array=1-40%10            # job array id, adjusted for the total number of commands
 #SBATCH --mem-per-cpu=8G         # Memory Request (per CPU; can use on GLIC)
 #SBATCH --mail-type=all
 #SBATCH --mail-user=kshitkar@gfz-potsdam.de
@@ -31,14 +31,14 @@ for station in "${stations[@]}"; do
     done
 done
 # year=2021
-juldays=(156 187 197 219 262) # 5
+juldays=(131 136 142 156 173 175 187 194 197 219 262) # 11
 for station in "${stations[@]}"; do
     for julday in "${juldays[@]}"; do
         commands+=("python ./data_preprocessing/remove_sr.py --station $station --julday $julday --year 2021")
     done
 done
 # year=2022
-juldays=(156 181 185 221) # 4
+juldays=(156 181 185 195 221) # 5
 for station in "${stations[@]}"; do
     for julday in "${juldays[@]}"; do
         commands+=("python ./data_preprocessing/remove_sr.py --station $station --julday $julday --year 2022")
