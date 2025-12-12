@@ -2,7 +2,7 @@
 #SBATCH -t 1:00:00               # time limit: (HH:MM:SS)
 #SBATCH --job-name=rem_resp     # job name
 #SBATCH --ntasks=1               # each task in the job array will have a single task associated with it
-#SBATCH --array=1-40%10            # job array id, adjusted for the total number of commands
+#SBATCH --array=1-41%10            # job array id, adjusted for the total number of commands
 #SBATCH --mem-per-cpu=8G         # Memory Request (per CPU; can use on GLIC)
 #SBATCH --mail-type=all
 #SBATCH --mail-user=kshitkar@gfz-potsdam.de
@@ -16,14 +16,14 @@ conda activate xlstm_env
 commands=()
 
 stations=("ILL11")
-# year=2019
+year=2019
 juldays=(161 162 171 172 182 183 184 196 207 223 232) # 11
 for station in "${stations[@]}"; do
     for julday in "${juldays[@]}"; do
         commands+=("python ./data_preprocessing/remove_sr.py --station $station --julday $julday --year 2019")
     done
 done
-# year=2020
+year=2020
 juldays=(156 159 160 162 168 169 181 210 229 243) # 10
 for station in "${stations[@]}"; do
     for julday in "${juldays[@]}"; do
@@ -31,7 +31,7 @@ for station in "${stations[@]}"; do
     done
 done
 # year=2021
-juldays=(131 136 142 156 173 175 187 194 197 219 262) # 11
+juldays=(131 136 141 142 156 173 175 187 194 197 219 262) # 12
 for station in "${stations[@]}"; do
     for julday in "${juldays[@]}"; do
         commands+=("python ./data_preprocessing/remove_sr.py --station $station --julday $julday --year 2021")
