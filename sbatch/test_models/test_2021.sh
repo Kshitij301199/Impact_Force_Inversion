@@ -2,7 +2,7 @@
 #SBATCH -t 8:00:00               # time limit: (HH:MM:SS)
 #SBATCH --job-name=test_models           # job name
 #SBATCH --ntasks=1                # each task in the job array will have a single task associated with it
-#SBATCH --array=1-33%4            # job array id, adjusted for the total number of commands (stations * juldays * intervals)
+#SBATCH --array=1-34%5          # job array id, adjusted for the total number of commands (stations * juldays * intervals)
 #SBATCH --mem-per-cpu=16G         # Memory Request (per CPU; can use on GLIC)
 #SBATCH --gres=gpu:A40:1             # load GPU A100 could be replace by A40/A30, 509-510 nodes has 4_A100_80G
 #SBATCH --reservation=GPU            # reserve the GPU
@@ -22,7 +22,7 @@ network="9S"
 station_list=("ILL11")
 component="EHZ"
 year=2021
-julday_list=(131 136 142 156 173 175 187 194 197 219 262)
+julday_list=(131 136 141 142 156 173 175 187 194 197 219 262)
 intervals=(5 15 30)
 models=('xLSTM')
 
