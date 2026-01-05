@@ -11,7 +11,17 @@ with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/
     data_params = json.load(file)
 from obspy import UTCDateTime, read, read_inventory, Stream, ObsPyException
 
-def load_write_data(year:str, julday:str, station:str):
+def load_write_data(year:str, julday:str, station:str) -> None:
+    """
+    This function reads the seismic data for 3 consecutive days (if available) and
+    removes the sensor response, following which it saves the data for download.
+    Input :
+        - year: str -- year of seismic data
+        - julday: str -- julian day of data
+        - station: str -- station of seismic data
+    Output :
+        - None
+    """
     prev_julday = int(julday) - 1
     next_julday = int(julday) + 1
     st = Stream()
@@ -39,9 +49,11 @@ def load_write_data(year:str, julday:str, station:str):
     except ValueError:
         st.trim(starttime=UTCDateTime(year=int(year), julday=int(julday))-3600, endtime=UTCDateTime(year=int(year), julday=int(next_julday))+3600)
         st.remove_response(inventory=inv)
-    st.filter("bandpass", freqmin=data_params['fmin'], freqmax=data_params['fmax'])
+    # st.filter("bandpass", freqmin=data_params['fmin'], freqmax=data_params['fmax'])
+    st.filter("bandpass", freqmin=1, freqmax=45)
     st.trim(starttime=UTCDateTime(year=int(year), julday=int(julday)), endtime=UTCDateTime(year=int(year), julday=int(next_julday)))
-    output_dir = f"./data_srr_{data_params['fmax']}/Illgraben/{year}/{station}/EHZ"
+    # output_dir = f"./data_srr_{data_params['fmax']}/Illgraben/{year}/{station}/EHZ"
+    output_dir = f"./data_srr_45/Illgraben/{year}/{station}/EHZ"
     os.makedirs(output_dir, exist_ok=True)
     try:
         st.write(f'{output_dir}/9S.{station}.EHZ.{year}.{julday}.mseed', format="MSEED")
@@ -49,6 +61,9 @@ def load_write_data(year:str, julday:str, station:str):
         print("DATA MISSING")
         with open(f"{output_dir}/missing_data.txt", "a") as file:
             file.write(f"DATA MISSING\t{year}\t{station}\t{julday}\n")
+
+    return None
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--year", type=str, default="2019")
