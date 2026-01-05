@@ -47,7 +47,8 @@ def main(network:str, station:str, component:str, year:int, julday:int, model_ty
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device : {device}")
     julday = str(julday).zfill(3)
-    num_intervals = int((5 * 60) // interval_seconds)
+    num_intervals = int((data_params['time_window'] * 60) // interval_seconds)
+    scaling_factor = 45
 
     mapping = {161 : 1, 172 : 2, 182 : 3, 183 : 4, 196 : 5, 207 : 6, 223 : 7, 232 : 8}
     
@@ -55,7 +56,6 @@ def main(network:str, station:str, component:str, year:int, julday:int, model_ty
     print("\tLoading Data")
     st = load_seismic_data_test(julday= int(julday), station= station, year= year, component= component,
                            network= network)
-    # data = np.abs(st[0].data[1:])
     data, _ = load_data_test(julday_list = [julday], station=station, year=year, abs=True)
     timestamps = [UTCDateTime(UTCDateTime(year=year, julday=int(julday)) + i).timestamp for i in range(data_params['time_window'] * 60, 60 * 60 * 24, interval_seconds)]
 
@@ -90,7 +90,7 @@ def main(network:str, station:str, component:str, year:int, julday:int, model_ty
                 output = model(input_sequences).squeeze(1)  # Shape: (batch_size, 1)
                 # Squeeze the output to match target shape
                 in_sequence.append(input_sequences.cpu().numpy())
-                predicted_output.append(output.detach().cpu().numpy() * 45)
+                predicted_output.append(output.detach().cpu().numpy() * scaling_factor)
                 model_timestamps.append(test_timestamps)
         end_time = get_current_time()
         time_to_test = get_time_elapsed(start_time, end_time)

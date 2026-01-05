@@ -67,23 +67,24 @@ def load_seismic_data(event_id:str|int, station:str,
     return st
 
 def load_seismic_data_test(julday:int|str|list, station:str, 
-                      year:int=None, component:str='EHZ', network:str="9S", 
+                      year:int=None, component:str='EHZ', network:str="9S", freq = None,
                       ) -> Stream:
     scaling = 1e3
+    data_freq = data_params['fmax'] if freq is None else freq
     # LOAD THE DATA AND SCALE
     if type(julday) is int or type(julday) is str:
         try:
-            st = read(f"{paths['BASE_DIR']}/{paths['DATA_DIR']}_{data_params['fmax']}/Illgraben/{year}/{station}/{component}/{network}.{station}.{component}.{year}.{str(julday).zfill(3)}.mseed")
+            st = read(f"{paths['BASE_DIR']}/{paths['DATA_DIR']}_{data_freq}/Illgraben/{year}/{station}/{component}/{network}.{station}.{component}.{year}.{str(julday).zfill(3)}.mseed")
         except FileNotFoundError:
-            st = read(f"{paths['LOCAL_BASE_DIR']}/{paths['DATA_DIR']}_{data_params['fmax']}/Illgraben/{year}/{station}/{component}/{network}.{station}.{component}.{year}.{str(julday).zfill(3)}.mseed")
+            st = read(f"{paths['LOCAL_BASE_DIR']}/{paths['DATA_DIR']}_{data_freq}/Illgraben/{year}/{station}/{component}/{network}.{station}.{component}.{year}.{str(julday).zfill(3)}.mseed")
         st[0].data = st[0].data * scaling
     elif type(julday) is list:
         st = Stream()
         for j in julday:
             try:
-                st += read(f"{paths['BASE_DIR']}/{paths['DATA_DIR']}_{data_params['fmax']}/Illgraben/{year}/{station}/{component}/{network}.{station}.{component}.{year}.{str(j).zfill(3)}.mseed")
+                st += read(f"{paths['BASE_DIR']}/{paths['DATA_DIR']}_{data_freq}/Illgraben/{year}/{station}/{component}/{network}.{station}.{component}.{year}.{str(j).zfill(3)}.mseed")
             except:
-                st += read(f"{paths['LOCAL_BASE_DIR']}/{paths['DATA_DIR']}_{data_params['fmax']}/Illgraben/{year}/{station}/{component}/{network}.{station}.{component}.{year}.{str(j).zfill(3)}.mseed")
+                st += read(f"{paths['LOCAL_BASE_DIR']}/{paths['DATA_DIR']}_{data_freq}/Illgraben/{year}/{station}/{component}/{network}.{station}.{component}.{year}.{str(j).zfill(3)}.mseed")
         st.merge(method=1, fill_value='latest', interpolation_samples=0)
         st[0].data = st[0].data * scaling
     else:
@@ -134,8 +135,6 @@ def load_data_test(julday_list:list, station:str, year:int=2019, abs:bool=True, 
     if abs:
         total_data = np.abs(total_data)
     return total_data, total_times
-
-
 
 def load_label(event_id_list: list, station: str, interval_seconds: int, time_shift_minutes, trim:bool = True, smoothing: int | None = 30, divide_by: int | None = 45) -> pd.DataFrame:
     time_window = data_params['time_window']
