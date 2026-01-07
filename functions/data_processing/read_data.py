@@ -22,20 +22,21 @@ import obspy.signal.filter
 from obspy import read, Stream, read_inventory
 from obspy.core import UTCDateTime # default is UTC+0 time zone
 
-def moving_max(arr, N):
-    p = N // 2
-    arr_p = np.pad(arr, p, mode='edge')
-    stacked = [arr_p[i:i+arr.size] for i in range(N)]
-    return np.maximum.reduce(stacked)
-
-def gaussian_kernel(size, sigma=1.0):
-    x = np.linspace(- (size - 1) / 2, (size - 1) / 2, size)
-    kernel = np.exp(-0.5 * (x / sigma) ** 2)
-    return kernel / kernel.sum()
-
 def load_seismic_data(event_id:str|int, station:str, 
                       year:int=None, component:str='EHZ', network:str="9S", 
                       trim:bool = True) -> Stream:
+    """
+    This function loads the seismic data for model training
+    Input -
+        event_id - refer to config/event_id_map for more info
+        station - seismic station
+        year - year of the event event
+        component - component of seismic signal, default EHZ
+        network - associated the seismic network, default 9S
+        trim - cut the data for the debris flow period, default True
+    Output -
+        Stream() object containing the seismic data without sensor response
+    """
     scaling = 1e3
     time_window = data_params['time_window']
     event_id = str(event_id)
@@ -69,6 +70,18 @@ def load_seismic_data(event_id:str|int, station:str,
 def load_seismic_data_test(julday:int|str|list, station:str, 
                       year:int=None, component:str='EHZ', network:str="9S", freq = None,
                       ) -> Stream:
+    """
+    This function loads the seismic data for model training
+    Input -
+        julday - julian day of the debris flow event
+        station - seismic station
+        year - year of the event event
+        component - component of seismic signal, default EHZ
+        network - associated the seismic network, default 9S
+        freq - upper bound for the frequency, either 15 or 45
+    Output -
+        Stream() object containing the seismic data without sensor response
+    """
     scaling = 1e3
     data_freq = data_params['fmax'] if freq is None else freq
     # LOAD THE DATA AND SCALE
