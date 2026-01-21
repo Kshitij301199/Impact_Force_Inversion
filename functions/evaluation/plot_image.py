@@ -34,6 +34,21 @@ from functions.data_processing.read_data import load_label
 
 def plot_image(st, predicted_output, target_output, timestamps,
                 image_dir:str, test_id, val_id, interval, trim=True, smoothing=30):    
+    """Plot the seismogram along with target and predicted impact forces.
+     Args:
+        st (obspy.Stream): Seismogram data.
+        predicted_output (list): List of predicted impact forces.
+        target_output (list): List of target impact forces.
+        timestamps (list): List of timestamps corresponding to the data points.
+        image_dir (str): Directory to save the plot.
+        test_id (int): Test event ID.
+        val_id (int): Validation event ID.
+        interval (str): Time interval for the data.
+        trim (bool): Whether to trim the data to the event duration.
+        smoothing (int): Smoothing window size for the target output.
+    Returns:
+        None
+    """
     print(f"{'Plotting Image':-^30}")
     times = [UTCDateTime(t).matplotlib_date for t in np.concatenate(timestamps)]
     target_output = np.concatenate(target_output)
@@ -76,7 +91,17 @@ def plot_image(st, predicted_output, target_output, timestamps,
     return None
 
 def plot_image_test(st, predicted_output, timestamps,
-                        image_dir:str, julday, interval):    
+                        image_dir:str, julday:str):
+    """Plot the seismogram along with predicted impact forces for test data.
+     Args:
+        st (obspy.Stream): Seismogram data.
+        predicted_output (list): List of predicted impact forces.
+        timestamps (list): List of timestamps corresponding to the data points.
+        image_dir (str): Directory to save the plot.
+        julday (str): Julian day identifier for the event.
+    Returns:
+        None
+    """
     print(f"{'Plotting Image':-^30}")
     times = [UTCDateTime(t).matplotlib_date for t in np.concatenate(timestamps)]
     fig, ax1 = plt.subplots(1,1)

@@ -13,6 +13,15 @@ plt.rcParams.update({
 })
 
 def main(model_type, interval, task, config):
+    """Plot distribution of true vs predicted impact forces for best model combinations.
+    Args:
+        model_type (str): Type of the model (e.g., 'LSTM', 'xLSTM').
+        interval (int): Time interval in seconds.
+        task (str): Name of the task.
+        config (str): Configuration name.
+    Returns:
+        None
+    """
     output_dir = f"../{task}/dist_plots/{config}/{model_type}/{interval}/" 
     os.makedirs(output_dir, exist_ok= True)
     data = pd.read_csv(f"../{task}/model_evaluation/best_combinations.csv", index_col=False)
@@ -31,7 +40,6 @@ def main(model_type, interval, task, config):
         
         # bins = np.logspace(np.log10(20), np.log10(350), num=20)
         bins = np.arange(1, 51, 5)
-
         fig, ax = plt.subplots()
         sns.histplot(x=trues, bins= bins, ax=ax, color= "blue", alpha= 0.8, label='True', kde=False)#, stat='density');
         sns.histplot(x=preds, bins= bins, ax=ax, color= "red", alpha= 0.6, label='Predicted', kde=False)#, stat='density');

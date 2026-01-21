@@ -32,6 +32,20 @@ from functions.data_processing.read_data import load_label
 #     return wmse
 
 def evaluate_model(model_type:str, test_id:str, val_id:str, interval_seconds:int, y_true, y_pred, smoothing:int, out_dir:str, time_to_train:str):
+    """Evaluate the model performance and save the results.
+    Args:
+        model_type (str): Type of the model (e.g., 'LSTM', 'xLSTM').
+        test_id (str): Test event ID.
+        val_id (str): Validation event ID.
+        interval_seconds (int): Time interval in seconds.
+        y_true (list): List of true impact forces.
+        y_pred (list): List of predicted impact forces.
+        smoothing (int): Smoothing window size for the target output.
+        out_dir (str): Output directory to save the evaluation results.
+        time_to_train (str): Time taken to train the model.
+    Returns:
+        None
+    """
     print(f"{'Evaluating Model':-^50}")
     test_info = time_config[test_id]
     val_info = time_config[val_id]

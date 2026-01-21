@@ -106,6 +106,19 @@ def load_seismic_data_test(julday:int|str|list, station:str,
     return st
 
 def load_data(event_id_list:list, station:str, year:int=2019, trim:bool=True, abs:bool=True, env:bool=True) -> np.array:
+    """
+    This function loads and concatenates seismic data for multiple events.
+    Input -
+        event_id_list - list of event IDs to load data for
+        station - seismic station
+        year - year of the events
+        trim - whether to trim the data to event duration
+        abs - whether to take absolute value of the data
+        env - whether to compute the envelope of the seismic signal
+    Output -
+        total_data - concatenated seismic data from all events
+        total_times - corresponding timestamps for the data points
+    """
     total_data = None
     total_times = None
     for event_id in event_id_list:
@@ -128,6 +141,18 @@ def load_data(event_id_list:list, station:str, year:int=2019, trim:bool=True, ab
     return total_data, total_times
 
 def load_data_test(julday_list:list, station:str, year:int=2019, abs:bool=True, env:bool=True) -> np.array:
+    """
+    This function loads and concatenates seismic data for multiple julian days for application.
+    Input -
+        julday_list - list of julian days to load data for
+        station - seismic station
+        year - year of the events
+        abs - whether to take absolute value of the data
+        env - whether to compute the envelope of the seismic signal
+    Output -
+        total_data - concatenated seismic data from all julian days
+        total_times - corresponding timestamps for the data points
+    """
     total_data = None
     total_times = None
     for julday in julday_list:
@@ -150,6 +175,19 @@ def load_data_test(julday_list:list, station:str, year:int=2019, abs:bool=True, 
     return total_data, total_times
 
 def load_label(event_id_list: list, station: str, interval_seconds: int, time_shift_minutes, trim:bool = True, smoothing: int | None = 30, divide_by: int | None = 45) -> pd.DataFrame:
+    """
+    This function loads and concatenates label data for multiple events.
+    Input -
+        event_id_list - list of event IDs to load labels for
+        station - seismic station
+        interval_seconds - time interval in seconds for downsampling
+        time_shift_minutes - time shift applied to the labels in minutes
+        trim - whether to trim the data to event duration
+        smoothing - smoothing window size for the target output
+        divide_by - value to divide the final labels by for normalization
+    Output -
+        total_target - concatenated label data from all events as a DataFrame
+    """
     time_window = data_params['time_window']
     # SELECT COLUMN FOR WHICH THE DATA IS REQUESTED
     if smoothing == 0 or smoothing is None:
@@ -236,11 +274,23 @@ def load_label(event_id_list: list, station: str, interval_seconds: int, time_sh
 
     total_target.reset_index(drop=True, inplace=True)
     if divide_by is not None:
-        total_target['Fv [kN]'] = total_target['Fv [kN]'] / divide_by  # Divide by 350
+        total_target['Fv [kN]'] = total_target['Fv [kN]'] / divide_by  # Divide by 45
     
     return total_target
 
 def load_label2(date_list: list, station: str, interval_seconds: int, time_shift_minutes, smoothing: int | None = 30, divide_by: int | None = 350) -> pd.DataFrame:
+    """
+    This function loads and concatenates label data for multiple dates for application based on date.
+    Input -
+        date_list - list of dates to load labels for
+        station - seismic station
+        interval_seconds - time interval in seconds for downsampling
+        time_shift_minutes - time shift applied to the labels in minutes
+        smoothing - smoothing window size for the target output
+        divide_by - value to divide the final labels by for normalization
+    Output -
+        total_target - concatenated label data from all dates as a DataFrame
+    """
     time_window = data_params['time_window']
     # SELECT COLUMN FOR WHICH THE DATA IS REQUESTED
     if smoothing == 0 or smoothing is None:

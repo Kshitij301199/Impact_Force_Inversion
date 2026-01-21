@@ -28,6 +28,14 @@ from models.LSTM_model import LSTMRegressor
 from models.xLSTM_model import xLSTMRegressor_v2
 
 def load_model(model_julday:int, model_type:str, interval:int):
+    """Load the pre-trained model based on julday, model type, and interval.
+    Args:
+        model_julday (int): Julian day of the model.
+        model_type (str): Type of the model (e.g., 'LSTM', 'xLSTM').
+        interval (int): Time interval in seconds.
+    Returns:
+        model (torch.nn.Module): Loaded model.
+    """
     mapping = {161 : 1, 172 : 2, 182 : 3, 183 : 4, 196 : 5, 207 : 6, 223 : 7, 232 : 8}
     if model_type == 'LSTM':
         with open(f"./config/comparison_baseline_cv/lstm_v_larger_{interval}sec_config.json", "r") as f:
@@ -44,6 +52,18 @@ def load_model(model_julday:int, model_type:str, interval:int):
     return model
 
 def main(network:str, station:str, component:str, year:int, julday:int, model_type:str, interval_seconds:int):
+    """Main function to test the model on seismic data.
+    Args:
+        network (str): Seismic network.
+        station (str): Seismic station.
+        component (str): Seismic signal component.
+        year (int): Year of the seismic data.
+        julday (int): Julian day of the seismic data.
+        model_type (str): Type of the model (e.g., 'LSTM', 'xLSTM').
+        interval_seconds (int): Time interval in seconds.
+    Returns:
+        None
+    """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device : {device}")
     julday = str(julday).zfill(3)

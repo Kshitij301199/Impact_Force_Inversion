@@ -96,6 +96,22 @@ def make_dirs(task:str, time_shift_minutes, smoothing, divide_by, interval_secon
     return output_dir, model_dir, image_dir, save_dir, curve_dir
 
 def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, divide_by:int, station:str, interval_seconds:int, config_option:str, task:str, num_days=None, repeat=1):
+    """Main function to train and evaluate LSTM model for impact force inversion.
+    Args:
+        test_id (int): Test event ID (julday).
+        val_id (int): Validation event ID (julday).
+        time_shift_minutes (int|str): Time shift in minutes for labels or 'average'/'dynamic'.
+        smoothing (int): Smoothing window size.
+        divide_by (int): Value to divide impact force values.
+        station (str): Seismic station identifier.
+        interval_seconds (int): Interval in seconds for data segmentation.
+        config_option (str): Configuration option for model parameters.
+        task (str): Task name for directory structure.
+        num_days (int, optional): Number of days to use for training (for ablation study).
+        repeat (int, optional): Repeat number for multiple runs.
+    Returns:
+        None
+    """
     test_id, val_id = str(test_id), str(val_id)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device : {device}")

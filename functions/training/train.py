@@ -28,6 +28,33 @@ def grad_stats(model):
     return np.mean(norms).item(), np.max(norms).item()
 
 class ModelTrainer:
+    """
+    A class to handle the training, validation, and testing of a PyTorch model.
+    Attributes:
+        model (torch.nn.Module): The PyTorch model to be trained.
+        criterion (torch.nn.Module): The loss function.
+        optimizer (torch.optim.Optimizer): The optimizer for training.
+        warmup_scheduler (torch.optim.lr_scheduler._LRScheduler): Learning rate scheduler for warm-up phase.
+        main_scheduler (torch.optim.lr_scheduler._LRScheduler): Main learning rate scheduler.
+        train_loader (torch.utils.data.DataLoader): DataLoader for training data.
+        val_loader (torch.utils.data.DataLoader): DataLoader for validation data.
+        test_loader (torch.utils.data.DataLoader): DataLoader for test data.
+        model_dir (str): Directory to save the model.
+        curve_file (str): File to log training curves.
+        interval (str, optional): Interval identifier for the model. Defaults to None.
+        test_julday (str, optional): Test julian day identifier. Defaults to None.
+        val_julday (str, optional): Validation julian day identifier. Defaults to None.
+        model_type (str, optional): Type of the model. Defaults to "Model".
+        device (torch.device, optional): Device to run the model on. Defaults to CUDA if available.
+        monitor1 (torch.nn.Module, optional): First monitoring metric. Defaults to None.
+        monitor2 (torch.nn.Module, optional): Second monitoring metric. Defaults to None.
+    Methods:
+        train(num_epochs, patience): Trains the model for a specified number of epochs with early stopping.
+        check_train(mult_by=50): Evaluates the model on the training set.
+        test(mult_by=50): Evaluates the model on the test set.
+        _evaluate(mult_by, dataloader, save_path): Helper method to evaluate the model on a given DataLoader.
+        _run_epoch(dataloader, training=False): Helper method to run a single epoch of training or validation.
+    """
     def __init__(self, model, criterion, optimizer, warmup_scheduler, main_scheduler,
                  train_loader, val_loader, test_loader, model_dir, curve_file, 
                  interval=None, test_julday=None, val_julday=None, model_type="Model", device=None,
