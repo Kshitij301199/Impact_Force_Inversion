@@ -31,6 +31,12 @@ from tqdm import tqdm
 from utils import fill_missing_from_Gaussian, get_mean_and_std
 
 def do_smoothing(input_dir):
+    """ Smooth the data using moving average and fill missing values. 
+    Args:
+        input_dir (str): Directory containing the input CSV files.
+    Returns:
+        None
+    """
     min_Fv, min_Fv_std = get_mean_and_std()
     sigma = 1
     for date in tqdm(["2019-06-10", "2019-06-11", "2019-06-21", "2019-07-01", "2019-07-02", "2019-07-03", "2019-07-15", "2019-07-26", "2019-08-11", "2019-08-20"], desc="Smoothing data"):
@@ -44,6 +50,12 @@ def do_smoothing(input_dir):
     return None
 
 def make_plot(date):
+    """ Make plots for the given date showing raw and smoothed data.
+    Args:
+        date (str): Date string in the format 'YYYY-MM-DD'.
+    Returns:
+        None
+    """
     df = pd.read_csv(f"../label/data_processed_average/ILL11/{date}.csv")
     df['Time'] = df['Time'].apply(UTCDateTime)
 

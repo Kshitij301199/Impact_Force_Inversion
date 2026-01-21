@@ -19,6 +19,14 @@ from functions.data_processing.read_data import load_seismic_data
 
 
 def main(time_shift_minutes, from_velocity:bool=False, avg_peak_shift:bool=False):
+    """ Main function to process and shift peak times in force data.
+    Args:
+        time_shift_minutes (int): Time shift in minutes to apply to the data.
+        from_velocity (bool): Whether to use velocity data for time shift calculation.
+        avg_peak_shift (bool): Whether to use average peak shift for time adjustment.
+    Returns:
+        None
+    """
     station = "ILL11"
     input_dir = f"{paths['LOCAL_BASE_DIR']}/{paths['UTC0_LABEL_DIR']}"
     velocity_dir = f"{paths['LOCAL_BASE_DIR']}/label"

@@ -12,6 +12,9 @@ import numpy as np
 from obspy.core import UTCDateTime # default is UTC+0 time zone
 
 def shift_utc():
+    """ Shift the time in CSV files from UTC+1 to UTC+0 by subtracting one hour.
+    Reads files from RAW_LABEL_DIR and saves the modified files to UTC0_LABEL_DIR.
+    """
     output_dir = f"{paths["LOCAL_BASE_DIR"]}/{paths['UTC0_LABEL_DIR']}"
     input_dir = f"{paths["LOCAL_BASE_DIR"]}/{paths['RAW_LABEL_DIR']}/"
     os.makedirs(output_dir, exist_ok=True)
