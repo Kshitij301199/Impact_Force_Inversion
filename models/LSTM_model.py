@@ -2,25 +2,16 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class LinearRegressor(nn.Module):
-    def __init__(self, input_size):
-        super(LinearRegressor, self).__init__()
-        self.linear = nn.Linear(input_size, 1)
-
-    def forward(self, x):
-        """
-        Args:
-            x (torch.Tensor): Input tensor of shape (batch_size, seq_len, input_size)
-        Returns:
-            torch.Tensor: Output tensor of shape (batch_size, 1)
-        """
-        # Concatenate along dimension 1 (flatten seq_len and input_size)
-        x = x.reshape(x.size(0), -1)  # (batch_size, seq_len * input_size)
-        output = self.linear(x)
-        return F.softplus(output)
-
 class LSTMRegressor(nn.Module):
+    """LSTM-based regression model for time series prediction."""
     def __init__(self, input_size=3000, embedding_size=1024, hidden_size=128, num_layers=2):
+        """Initialize the LSTMRegressor model.
+        Args:
+            input_size (int): Size of the input features (default: 3000).
+            embedding_size (int): Size of the embedding layer (default: 1024).
+            hidden_size (int): Number of features in the hidden state of LSTM (default: 128).
+            num_layers (int): Number of recurrent layers in LSTM (default: 2).
+        """
         super(LSTMRegressor, self).__init__()
         
         self.embedding = nn.Linear(input_size, embedding_size)

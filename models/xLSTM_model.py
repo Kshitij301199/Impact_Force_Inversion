@@ -13,6 +13,7 @@ from xlstm import (
 )
 
 class xLSTMRegressor(nn.Module):
+    """ xLSTM-based regression model for time series prediction. """
     def __init__(self,
                  input_size,
                  conv1d_kernel_size=4, 
@@ -24,6 +25,18 @@ class xLSTMRegressor(nn.Module):
                  slstm_at=[1],
                  num_reps: int = 1):
         super(xLSTMRegressor, self).__init__()
+        """Initialize the xLSTMRegressor model.
+        Args:
+            input_size (int): Size of the input features.
+            conv1d_kernel_size (int): Kernel size for Conv1D in mLSTM layers.
+            qkv_proj_blocksize (int): Block size for QKV projection in mLSTM layers.
+            num_heads (int): Number of attention heads.
+            context_length (int): Length of the input sequences.
+            num_blocks (int): Number of xLSTM blocks.
+            embedding_dim (int): Dimension of the embedding layer.
+            slstm_at (list): List of block indices where sLSTM layers are applied.
+            num_reps (int): Number of times to repeat the xLSTM block stack.
+        """
         
         self.embedding = nn.Linear(input_size, embedding_dim)
         backend = "vanilla"
@@ -74,7 +87,8 @@ class xLSTMRegressor(nn.Module):
         return F.softplus(output)
     
 class xLSTMRegressor_v2(nn.Module):
-    """ Added positional encoding and more MLP layers and max pooling """
+    """ xLSTM-based regression model for time series prediction. 
+    Added positional encoding and more MLP layers and max pooling. """
     def __init__(self,
                  input_size,
                  conv1d_kernel_size=4, 
@@ -86,6 +100,18 @@ class xLSTMRegressor_v2(nn.Module):
                  slstm_at=[1],
                  num_reps: int = 1):
         super(xLSTMRegressor_v2, self).__init__()
+        """Initialize the xLSTMRegressor_v2 model.
+        Args:
+            input_size (int): Size of the input features.
+            conv1d_kernel_size (int): Kernel size for Conv1D in mLSTM layers.
+            qkv_proj_blocksize (int): Block size for QKV projection in mLSTM layers.
+            num_heads (int): Number of attention heads.
+            context_length (int): Length of the input sequences.
+            num_blocks (int): Number of xLSTM blocks.
+            embedding_dim (int): Dimension of the embedding layer.
+            slstm_at (list): List of block indices where sLSTM layers are applied.
+            num_reps (int): Number of times to repeat the xLSTM block stack.
+        """
 
         self.embedding = nn.Linear(input_size, embedding_dim)
 
