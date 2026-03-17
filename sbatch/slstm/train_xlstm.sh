@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH -t 120:00:00               # time limit: (HH:MM:SS)
-#SBATCH --job-name=base_xlstm           # job name
+#SBATCH --job-name=base_slstm           # job name
 #SBATCH --ntasks=1                # each task in the job array will have a single task associated with it
 #SBATCH --array=1-112%4            # job array id, adjusted for the total number of commands (8 test days * 7 validation days * 4 intervals)
 #SBATCH --mem-per-cpu=16G         # Memory Request (per CPU; can use on GLIC)
-#SBATCH --gres=gpu:A40:1             # load GPU A100 could be replace by A40/A40, 509-510 nodes has 4_A100_80G
+#SBATCH --gres=gpu:A40:1             # load GPU A100 could be replace by _A40/_A40, 509-510 nodes has 4_A100_80G
 #SBATCH --reservation=GPU            # reserve the GPU
 #SBATCH --mail-type=all
 #SBATCH --mail-user=kshitkar@gfz-potsdam.de
@@ -18,12 +18,12 @@ source /home/kshitkar/miniforge3/bin/activate
 conda activate xlstm_env
 
 # Define the arrays
-intervals=(5)
+intervals=(15 30)
 event_ids=(1 3 4 5 6 7 8 9)
-hyp_options=('v1' 'v4')
+hyp_options=('v_larger')
 # hyp_options=('mlstm' 'slstm')
 # smoothings=(0 30 60)
-smoothings=(30)
+smoothings=(60)
 
 # Calculate the total number of combinations per test day
 num_event_ids=${#event_ids[@]}
@@ -67,14 +67,14 @@ echo "Smoothing: $smoothing"
 echo "Hyp Option: $hyp_option"
 
 # Run the Python script with the selected parameters
-srun --gres=gpu:A40:1 --unbuffered python /storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/functions/training/train_xlstm.py \
+srun --gres=gpu:A40:1 --unbuffered python /storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/functions/training/train_slstm.py \
     --test_event_id "$test_event_id" \
     --val_event_id "$val_event_id" \
     --time_shift_mins 'average' \
     --interval "$interval" \
     --station "ILL11" \
-    --task "comparison_baseline_cv" \
+    --task "slstm" \
     --smoothing "$smoothing" \
     --config_op "$hyp_option" \
     --divide_by 45 \
-    --repeat 1
+    --repeat 3
