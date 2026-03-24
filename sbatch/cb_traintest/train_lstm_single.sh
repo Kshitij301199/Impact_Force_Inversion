@@ -2,7 +2,7 @@
 #SBATCH -t 96:00:00
 #SBATCH --job-name=base_lstm
 #SBATCH --ntasks=1
-#SBATCH --array=1-96%4
+#SBATCH --array=1-32%4
 #SBATCH --mem-per-cpu=24G
 #SBATCH --gres=gpu:A40:1
 #SBATCH --reservation=GPU
@@ -20,7 +20,7 @@ intervals=(5)
 event_ids=(1 3 4 5 6 7 8 9)
 divide_bys=(45)
 hyp_options=("v1" "v2" "v3" "v4")
-smoothings=(0 30 60)
+smoothings=(60)
 
 num_intervals=${#intervals[@]}
 num_hyp_options=${#hyp_options[@]}
