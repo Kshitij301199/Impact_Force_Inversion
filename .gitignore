@@ -14,7 +14,7 @@ slstm_v_mlstm/*
 USGS_data/*
 old_*
 tuning/*_*/
-models/saved_models
+models/saved_models*
 analysis/
 *comparison_baseline*
 *.DS_Store*
