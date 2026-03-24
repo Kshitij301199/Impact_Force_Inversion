@@ -3,14 +3,14 @@ import sys
 import json
 import argparse
 
-with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/paths.json", "r") as file:
+with open("../../config/paths.json", "r") as file:
     paths = json.load(file)
-with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/data_parameters.json", "r") as file:
+with open("../../config/data_parameters.json", "r") as file:
     data_params = json.load(file)
-with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/event_id_map.json", "r") as file:
+with open("../../config/event_id_map.json", "r") as file:
     time_config = json.load(file)
 
-sys.path.append(paths['BASE_DIR'])
+sys.path.append(paths['LOCAL_BASE_DIR'])
 
 import numpy as np
 import pandas as pd
@@ -37,9 +37,11 @@ mpl.rcParams['path.simplify_threshold'] = 0.5  # Adjust this value if needed
 
 from functions.data_processing.read_data import load_seismic_data_test
 
-def main(julday:int, year:int, station:str, interval_seconds:int, output_dir:str, test_dir:str):
+from tqdm import tqdm
+
+def main(julday:int, year:int, station:str, interval_seconds:int, model:str, test_dir:str):
     mapping = {161 : 1, 172 : 2, 182 : 3, 183 : 4, 196 : 5, 207 : 6, 223 : 7, 232 : 8}
-    model = 'xLSTM'
+    # model = 'xLSTM'
     test_dir = f"{test_dir}/{station}"
     # for year in [2021, 2023]:
         # if year == 2019:
@@ -118,10 +120,10 @@ def main(julday:int, year:int, station:str, interval_seconds:int, output_dir:str
     ax_twin.set_ylabel('Predicted Impact Force (kN)')
     ax_twin.set_xlabel('Time')
 
-    for axis in ax:
-        axis.xaxis_date()
-        axis.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d\n%H:%M:%S'))
-        axis.grid(True, linestyle='--', alpha=0.7)
+    # for axis in ax:
+    ax.xaxis_date()
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d\n%H:%M:%S'))
+    ax.grid(True, linestyle='--', alpha=0.7)
 
     fig.tight_layout()
     fig.savefig(f"{img_dir}/{julday}.png", dpi=300, bbox_inches='tight')
@@ -130,3 +132,22 @@ def main(julday:int, year:int, station:str, interval_seconds:int, output_dir:str
     plt.close('all')
     
     return None
+
+if __name__ == "__main__":
+    models = ['LSTM', 'xLSTM']
+    # for year in tqdm([2019, 2020, 2021, 2022, 2023]):
+    for year in tqdm([2022, 2023], desc="Year"):
+    # for year in tqdm([2019, 2020, 2021], desc="Year"):
+        if year == 2019:
+            juldays = [161, 171, 172, 182, 183, 184, 196, 207, 223, 232]
+        elif year == 2020:
+            juldays = [156, 159, 160, 162, 168, 169, 181, 210, 229, 243]
+        elif year == 2022:
+            juldays = [156, 185]
+        elif year == 2021:
+            juldays = [131, 136, 141, 142, 156, 173, 175, 187, 194, 197, 219, 262]
+        elif year == 2023:
+            juldays = [153, 161, 193]
+        for julday in tqdm(juldays, desc="Julday"):
+            for model in tqdm(models, desc="Model"):
+                main(julday, year, "ILL11", 15, model, test_dir = f"{paths['LOCAL_BASE_DIR']}/model_test")

@@ -122,9 +122,9 @@ def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, div
 
 
     if time_shift_minutes == "average":
-        event_id_list = ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
+        event_id_list = ["1", "3", "4", "5", "6", "7", "8", "9"]
     elif time_shift_minutes == "dynamic":
-        event_id_list = ["2", "3", "4", "6", "7", "8"]
+        event_id_list = ["1", "3", "4", "5", "6", "7", "8", "9"]
     
     test_info = time_config[str(test_id)]
     val_info = time_config[str(val_id)]

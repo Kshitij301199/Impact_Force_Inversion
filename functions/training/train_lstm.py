@@ -115,17 +115,12 @@ def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, div
     test_id, val_id = str(test_id), str(val_id)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device : {device}")
-    # set_seed()
     num_intervals = int((data_params['time_window'] * 60) // interval_seconds)
     output_dir, model_dir, image_dir, save_dir, curve_dir = make_dirs(task, time_shift_minutes, smoothing, divide_by, interval_seconds, config_option, num_days, repeat)
     if time_shift_minutes == "average":
-        event_id_list = ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
-        # julday_list = [161, 172, 182, 183, 196, 207, 223, 232]
-        # date_list = ["2019-06-10", "2019-06-21", "2019-07-01", "2019-07-02", "2019-07-15", "2019-07-26", "2019-08-11", "2019-08-20"]
+        event_id_list = ["1", "3", "4", "5", "6", "7", "8", "9"]
     elif time_shift_minutes == "dynamic":
-        event_id_list = ["2", "3", "4", "6", "7", "8"]
-        # julday_list = [172, 182, 196, 207, 223]
-        # date_list = ["2019-06-21", "2019-07-01", "2019-07-15", "2019-07-26", "2019-08-11"]
+        event_id_list = ["1", "3", "4", "5", "6", "7", "8", "9"]
     
     test_info = time_config[str(test_id)]
     val_info = time_config[str(val_id)]

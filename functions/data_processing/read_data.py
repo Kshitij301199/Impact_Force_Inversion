@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 import json
 try:
     with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/paths.json", "r") as file:
@@ -7,11 +9,13 @@ try:
     with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/event_id_map.json", "r") as file:
         time_config = json.load(file)
 except FileNotFoundError:
-    with open("../config/paths.json", "r") as file:
+    current_dir = Path(__file__).resolve().parent
+    project_dir = current_dir.parent.parent
+    with open(f"{project_dir}/config/paths.json", "r") as file:
         paths = json.load(file)
-    with open("../config/data_parameters.json", "r") as file:
+    with open(f"{project_dir}/config/data_parameters.json", "r") as file:
         data_params = json.load(file)
-    with open("../config/event_id_map.json", "r") as file:
+    with open(f"{project_dir}/config/event_id_map.json", "r") as file:
         time_config = json.load(file)
 
 import numpy as np
