@@ -36,5 +36,5 @@ class LSTMRegressor(nn.Module):
         
         final_hidden_state = hn[-1]  # (batch_size, hidden_size)
         output = self.fc(final_hidden_state)  # (batch_size, 1)
-        
-        return F.softplus(output)
+        output = F.softplus(output)
+        return output
