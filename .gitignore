@@ -17,4 +17,5 @@ tuning/*_*/
 models/saved_models*
 analysis/
 *comparison_baseline*
+data_preprocessing/smoothing*
 *.DS_Store*
