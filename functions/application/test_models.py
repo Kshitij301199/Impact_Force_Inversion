@@ -37,19 +37,19 @@ def load_model(model_julday:int, model_type:str, interval:int):
         model (torch.nn.Module): Loaded model.
     """
     mapping = {161 : 1, 172 : 2, 182 : 3, 183 : 4, 196 : 5, 207 : 6, 223 : 7, 232 : 8}
-    config = "v4"
+    config = "v5"
     if model_type == 'LSTM':
-        with open(f"./config/comparison_baseline_cv/lstm_{config}_{interval}sec_config.json", "r") as f:
-            config = json.load(f)
-        model = LSTMRegressor(**config)
+        with open(f"/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/comparison_baseline_cv/lstm_{config}_{interval}sec_config.json", "r") as f:
+            model_config = json.load(f)
+        model = LSTMRegressor(**model_config)
     elif model_type == 'xLSTM':
-        with open(f"./config/comparison_baseline_cv/xlstm_{config}_{interval}sec_config.json", "r") as f:
-            config = json.load(f)
-        model = xLSTMRegressor_v2(**config)
+        with open(f"/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion//config/comparison_baseline_cv/xlstm_{config}_{interval}sec_config.json", "r") as f:
+            model_config = json.load(f)
+        model = xLSTMRegressor_v2(**model_config)
     else:
         print(f"Wrong model type entered : {model_type}!")
         exit()
-    model.load_state_dict(torch.load(f=f"{paths['SAVED_MODEL_DIR']}/{mapping[model_julday]}/{interval}_{model_type}.pt", weights_only=True))
+    model.load_state_dict(torch.load(f=f"{paths['SAVED_MODEL_DIR']}/{config}/{mapping[model_julday]}/{interval}_{model_type}.pt", weights_only=True))
     return model
 
 def main(network:str, station:str, component:str, year:int, julday:int, model_type:str, interval_seconds:int):
@@ -86,7 +86,7 @@ def main(network:str, station:str, component:str, year:int, julday:int, model_ty
                                 interval_count= num_intervals, sequence_length= interval_seconds * 100)
     dataloader = DataLoader(dataset= dataset, batch_size= 256, shuffle=False)
 
-    for model_julday in [161, 172, 182, 183, 196, 207, 223, 232]:
+    for model_julday in [161, 172, 182, 196, 207, 223, 232]:
         output_dir = f"./model_test/{station}/{model_type}_{interval_seconds}/{year}/{mapping[model_julday]}/"
         output_file_dir = f"{output_dir}/df"
         output_img_dir = f"{output_dir}/img"

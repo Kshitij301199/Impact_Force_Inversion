@@ -40,7 +40,7 @@ from functions.data_processing.read_data import load_seismic_data_test
 from tqdm import tqdm
 
 def main(julday:int, year:int, station:str, interval_seconds:int, model:str, test_dir:str):
-    mapping = {161 : 1, 172 : 2, 182 : 3, 183 : 4, 196 : 5, 207 : 6, 223 : 7, 232 : 8}
+    mapping = {161 : 1, 172 : 2, 182 : 3, 196 : 5, 207 : 6, 223 : 7, 232 : 8}
     # model = 'xLSTM'
     test_dir = f"{test_dir}/{station}"
     # for year in [2021, 2023]:
@@ -63,7 +63,7 @@ def main(julday:int, year:int, station:str, interval_seconds:int, model:str, tes
     os.makedirs(df_dir, exist_ok=True)
 
     df = None
-    for model_julday in [161, 172, 182, 183, 196, 207, 223, 232]:
+    for model_julday in [161, 172, 182, 196, 207, 223, 232]:
         if df is None:
             df = pd.read_csv(f"{test_dir}/{model}_{interval_seconds}/{year}/{mapping[model_julday]}/df/{julday}.csv")
             df['Predicted_Output'] = df['Predicted_Output']
@@ -134,10 +134,10 @@ def main(julday:int, year:int, station:str, interval_seconds:int, model:str, tes
     return None
 
 if __name__ == "__main__":
-    models = ['LSTM', 'xLSTM']
-    # for year in tqdm([2019, 2020, 2021, 2022, 2023]):
-    for year in tqdm([2022, 2023], desc="Year"):
-    # for year in tqdm([2019, 2020, 2021], desc="Year"):
+    models = ['xLSTM']
+    for year in tqdm([2019, 2020, 2021, 2022, 2023]):
+    # for year in tqdm([2022, 2023], desc="Year"):
+    # for year in tqdm([2021, 2022, 2023], desc="Year"):
         if year == 2019:
             juldays = [161, 171, 172, 182, 183, 184, 196, 207, 223, 232]
         elif year == 2020:
@@ -146,8 +146,10 @@ if __name__ == "__main__":
             juldays = [156, 185]
         elif year == 2021:
             juldays = [131, 136, 141, 142, 156, 173, 175, 187, 194, 197, 219, 262]
+            # juldays = [173, 175, 187, 194, 197, 262]
         elif year == 2023:
             juldays = [153, 161, 193]
+            # juldays = [153, 161]
         for julday in tqdm(juldays, desc="Julday"):
             for model in tqdm(models, desc="Model"):
                 main(julday, year, "ILL11", 15, model, test_dir = f"{paths['LOCAL_BASE_DIR']}/model_test")
