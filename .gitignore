@@ -17,5 +17,7 @@ tuning/*_*/
 models/saved_models*
 analysis/
 *comparison_baseline*
-data_preprocessing/smoothing*
+*data_preprocessing/smoothing*
+*train_slstm*
+*.gif
 *.DS_Store*
