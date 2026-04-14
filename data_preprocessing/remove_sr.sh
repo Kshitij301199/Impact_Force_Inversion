@@ -15,7 +15,7 @@ conda activate xlstm_env
 
 commands=()
 
-stations=("ILL11")
+stations=("ILL12")
 # year=2019
 juldays=(161 162 171 172 182 183 184 196 207 223 232) # 11
 for station in "${stations[@]}"; do

@@ -27,15 +27,15 @@ def load_write_data(year:str, julday:str, station:str) -> None:
     st = Stream()
     print("\tLoading data for : ", year, julday, station)
     try:
-        st += read(f"{paths['SEISMIC_DATA_DIR']}/{year}/{station}/EHZ/9S.{station}.EHZ.{year}.{str(prev_julday).zfill(3)}.mseed")
+        st += read(f"{paths['SEISMIC_DATA_DIR']}/{year}/{station}/EHZ/9S.{station}.EHZ.{year}.{str(prev_julday).zfill(3)}.mseed").resample(sampling_rate=100.0).merge(method=1, fill_value='latest', interpolation_samples=0)
     except FileNotFoundError:
         print("\t\tPrevious day data not found!")
     try:
-        st += read(f"{paths['SEISMIC_DATA_DIR']}/{year}/{station}/EHZ/9S.{station}.EHZ.{year}.{str(julday).zfill(3)}.mseed")
+        st += read(f"{paths['SEISMIC_DATA_DIR']}/{year}/{station}/EHZ/9S.{station}.EHZ.{year}.{str(julday).zfill(3)}.mseed").resample(sampling_rate=100.0).merge(method=1, fill_value='latest', interpolation_samples=0)
     except FileNotFoundError:
         print("\t\tCurrent day data not found!")
     try:    
-        st += read(f"{paths['SEISMIC_DATA_DIR']}/{year}/{station}/EHZ/9S.{station}.EHZ.{year}.{str(next_julday)}.mseed") 
+        st += read(f"{paths['SEISMIC_DATA_DIR']}/{year}/{station}/EHZ/9S.{station}.EHZ.{year}.{str(next_julday)}.mseed").resample(sampling_rate=100.0).merge(method=1, fill_value='latest', interpolation_samples=0)
     except FileNotFoundError:
         print("\t\tNext day data not found!")
     st.merge(method=1, fill_value='latest', interpolation_samples=0)
@@ -50,10 +50,10 @@ def load_write_data(year:str, julday:str, station:str) -> None:
         st.trim(starttime=UTCDateTime(year=int(year), julday=int(julday))-3600, endtime=UTCDateTime(year=int(year), julday=int(next_julday))+3600)
         st.remove_response(inventory=inv)
     # st.filter("bandpass", freqmin=data_params['fmin'], freqmax=data_params['fmax'])
-    st.filter("bandpass", freqmin=1, freqmax=45)
+    st.filter("bandpass", freqmin=1, freqmax=15)
     st.trim(starttime=UTCDateTime(year=int(year), julday=int(julday)), endtime=UTCDateTime(year=int(year), julday=int(next_julday)))
     # output_dir = f"./data_srr_{data_params['fmax']}/Illgraben/{year}/{station}/EHZ"
-    output_dir = f"./data_srr_45/Illgraben/{year}/{station}/EHZ"
+    output_dir = f"./data_srr_15/Illgraben/{year}/{station}/EHZ"
     os.makedirs(output_dir, exist_ok=True)
     try:
         st.write(f'{output_dir}/9S.{station}.EHZ.{year}.{julday}.mseed', format="MSEED")
