@@ -1,3 +1,11 @@
+#!/usr/bin/python
+# -*- coding: UTF-8 -*-
+
+#__modification time__ = 2026-02-01
+#__author__ = Kshitij Kar, GFZ Helmholtz Centre for Geosciences
+#__find me__ = kshitij.kar@gfz.de, kshitij787.ak@gmail.com, https://github.com/Kshitij301199
+# Please do not distribute this code without the author's permission
+
 import os
 from pathlib import Path
 import json
@@ -198,6 +206,11 @@ def load_label(event_id_list: list, station: str, interval_seconds: int, time_sh
         data_col = "Fv [kN]"
     else:
         data_col = f"moving_avg_{smoothing}"
+
+    if time_shift_minutes == "raw":
+        time_col = "Time UTC+0"
+    else:
+        time_col = "Time"
     # LOAD DATA
     total_target = None
     for i, event_id in enumerate(event_id_list):
@@ -207,10 +220,16 @@ def load_label(event_id_list: list, station: str, interval_seconds: int, time_sh
         start_time, end_time = UTCDateTime(time_config[event_id]['start_time']), UTCDateTime(time_config[event_id]['end_time'])
 
         if type(date) is str:
-            try:
-                target = pd.read_csv(f"{paths['BASE_DIR']}/{paths['LABEL_DIR']}_{time_shift_minutes}/{station}/{date}.csv")
-            except FileNotFoundError:
-                target = pd.read_csv(f"{paths['LOCAL_BASE_DIR']}/{paths['LABEL_DIR']}_{time_shift_minutes}/{station}/{date}.csv")
+            if time_shift_minutes == "raw":
+                try:
+                    target = pd.read_csv(f"{paths['BASE_DIR']}/{paths['UTC0_LABEL_DIR']}/{date}.csv")
+                except FileNotFoundError:
+                    target = pd.read_csv(f"{paths['LOCAL_BASE_DIR']}/{paths['UTC0_LABEL_DIR']}/{date}.csv")  
+            else:  
+                try:
+                    target = pd.read_csv(f"{paths['BASE_DIR']}/{paths['LABEL_DIR']}_{time_shift_minutes}/{station}/{date}.csv")
+                except FileNotFoundError:
+                    target = pd.read_csv(f"{paths['LOCAL_BASE_DIR']}/{paths['LABEL_DIR']}_{time_shift_minutes}/{station}/{date}.csv")
         elif type(date) is list:
             target = None
             for d in date:
@@ -231,20 +250,20 @@ def load_label(event_id_list: list, station: str, interval_seconds: int, time_sh
         # Filter data to start after the target start time
         if trim:
             if i == 0:
-                target = target[target['Time'].between(start_time - (time_window * 60 * 1) , end_time + (time_window * 60 * 2))]
+                target = target[target[time_col].between(start_time - (time_window * 60 * 1) , end_time + (time_window * 60 * 2))]
             else:
-                target = target[target['Time'].between(start_time - (time_window * 60 * 2) , end_time + (time_window * 60 * 2))]
+                target = target[target[time_col].between(start_time - (time_window * 60 * 2) , end_time + (time_window * 60 * 2))]
         else:
             if i == 0:
                 if type(date) is list:
-                    target = target[target['Time'] >= UTCDateTime(f"{date[0]}") + (time_window * 60)]
+                    target = target[target[time_col] >= UTCDateTime(f"{date[0]}") + (time_window * 60)]
                 else:
-                    target = target[target['Time'] >= UTCDateTime(f"{date}") + (time_window * 60)]
+                    target = target[target[time_col] >= UTCDateTime(f"{date}") + (time_window * 60)]
             else:
                 pass
 
         # Convert Time to Timestamp
-        target['Timestamp'] = target['Time'].apply(UTCDateTime).apply(UTCDateTime._get_timestamp)
+        target['Timestamp'] = target[time_col].apply(UTCDateTime).apply(UTCDateTime._get_timestamp)
         # Force <-> Pressure Conversion with plate area 8m*m
         target[data_col] = target[data_col] / 8
 

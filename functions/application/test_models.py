@@ -1,3 +1,11 @@
+#!/usr/bin/python
+# -*- coding: UTF-8 -*-
+
+#__modification time__ = 2026-02-01
+#__author__ = Kshitij Kar, GFZ Helmholtz Centre for Geosciences
+#__find me__ = kshitij.kar@gfz.de, kshitij787.ak@gmail.com, https://github.com/Kshitij301199
+# Please do not distribute this code without the author's permission
+
 import os
 import json
 

@@ -1,3 +1,11 @@
+#!/usr/bin/python
+# -*- coding: UTF-8 -*-
+
+#__modification time__ = 2026-02-01
+#__author__ = Kshitij Kar, GFZ Helmholtz Centre for Geosciences
+#__find me__ = kshitij.kar@gfz.de, kshitij787.ak@gmail.com, https://github.com/Kshitij301199
+# Please do not distribute this code without the author's permission
+
 import os
 import json
 from typing import List
@@ -31,10 +39,10 @@ def load_models(sub_interval) -> List:
     model_filename = f"{sub_interval}_xLSTM.pt"
     model_list = []
     for i in range(1,9):
-        with open(f"./config/comparison_baseline_cv/xlstm_v_larger_{sub_interval}sec_config.json", "r") as f:
+        with open(f"./config/comparison_baseline_cv/xlstm_v5_{sub_interval}sec_config.json", "r") as f:
             config = json.load(f)
         model = xLSTMRegressor_v2(**config)
-        model.load_state_dict(torch.load(f=f"{paths['SAVED_MODEL_DIR']}/v_larger/{i}/{model_filename}", weights_only=True))
+        model.load_state_dict(torch.load(f=f"{paths['SAVED_MODEL_DIR']}/v5/{i}/{model_filename}", weights_only=True))
         model_list.append(model)
     return model_list
 
@@ -56,5 +64,11 @@ def apply_model(input_sequences, timestamps, model_list):
             maxs.append(np.max(outputs_i))
             stds.append(np.std(outputs_i))
             x_vals.append(timestamps[i].item())
+
+    x_vals = np.array(x_vals)
+    means = np.array(means)
+    mins = np.array(mins)
+    maxs = np.array(maxs)
+    stds = np.array(stds)
     return x_vals, means, mins, maxs, stds
 
