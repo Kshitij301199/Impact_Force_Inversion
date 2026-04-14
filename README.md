@@ -9,8 +9,12 @@ As a baseline, the LSTM model is used. The model class can be found in `./models
 ### xLSTM - Extended LSTM
 For the state of the art model, the xLSTM model is chosen. The model classes can be found in `./model/xLSTM_model.py`. 
 
+![Model Architecture](./figures_rm/model_architecture.png)
+
 ## Data Preprocessing
 To remove the sensor response, refer to `./data_preprocessing/remove_sr.py`. 
+
+![Seismic Preprocessing](./figures_rm/seismic_preprocessing.png)
 
 The original impact force data was in UTC+1 time, to shift it back to UTC+0, `./data_preprocessing/shift_utc.py`. 
 
@@ -23,6 +27,8 @@ To perform moving average smoothing of the data in 10, 30 and 60 second windows,
 ```bash
 python smooth_data.py --time_shift "average" --smooth --plot
 ```
+
+![Impact Force Preprocessing](./figures_rm/if_processing.png)
 
 ## Model Training
 The model training is carried out using files located in `./functions/training/`.
@@ -43,6 +49,8 @@ python train_xlstm.py \
 ```
 - `train_lstm.py` contains the training process for the LSTM model. It initializes the dataloaders, model and runs the evaluation. Its usage is similar to the one shown above.
 
+![Test Output](./figures_rm/2019-172.png)
+
 ## Model Application
 The trained models can be used using the files in `./functions/application`
 - `test_models.py` lets the user apply saved models to unseen seismic data in an ensemble approach. It assumes the data is stored in the directory location set in `./config/paths.json` Its usage is as follows :
@@ -58,6 +66,9 @@ python test_models.py \
 ```
 - `compile_results.py` can be run after testing the model to compile the ensemble output into a mean and standard deviation.
 
+![Test Output](./figures_rm/2020_156.png)
+
 ## Contributors
-**[Kshitij Kar](https://github.com/Kshitij301199)** <br>
-kshitij.kar@gfz-potsdam.de <br>
+**[Kshitij Kar](https://github.com/Kshitij301199)** 
+<br>kshitij.kar@gfz.de<br> or 
+<br>kshitij787.ak@gmail.de<br>
