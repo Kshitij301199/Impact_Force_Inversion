@@ -9,393 +9,292 @@
 import os
 from pathlib import Path
 import json
-try:
-    with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/paths.json", "r") as file:
-        paths = json.load(file)
-    with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/data_parameters.json", "r") as file:
-        data_params = json.load(file)
-    with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/event_id_map.json", "r") as file:
-        time_config = json.load(file)
-except FileNotFoundError:
-    current_dir = Path(__file__).resolve().parent
-    project_dir = current_dir.parent.parent
-    with open(f"{project_dir}/config/paths.json", "r") as file:
-        paths = json.load(file)
-    with open(f"{project_dir}/config/data_parameters.json", "r") as file:
-        data_params = json.load(file)
-    with open(f"{project_dir}/config/event_id_map.json", "r") as file:
-        time_config = json.load(file)
-
 import numpy as np
 import pandas as pd
 import obspy
-import obspy.signal
 import obspy.signal.filter
-from obspy import read, Stream, read_inventory
-from obspy.core import UTCDateTime # default is UTC+0 time zone
+from obspy import read, Stream
+from obspy.core import UTCDateTime
+
+# Path and Config Handling
+script_dir = Path(__file__).resolve().parent
+project_root = script_dir.parent.parent
+
+def load_json_config(name):
+    try:
+        path = project_root / "config" / name
+        with open(path, "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        # HPC Fallback
+        hpc_path = Path("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config") / name
+        with open(hpc_path, "r") as f:
+            return json.load(f)
+
+paths = load_json_config("paths.json")
+data_params = load_json_config("data_parameters.json")
+time_config = load_json_config("event_id_map.json")
+
+def _resolve_path(sub_path):
+    """Helper to check both HPC and Local base directories."""
+    for base in [paths.get('BASE_DIR'), paths.get('LOCAL_BASE_DIR')]:
+        if base:
+            full_path = os.path.join(base, sub_path)
+            if os.path.exists(full_path):
+                return full_path
+    return None
+
 
 def load_seismic_data(event_id:str|int, station:str, 
-                      year:int=None, component:str='EHZ', network:str="9S", 
+                      year:int=2019, component:str='EHZ', network:str="9S", 
                       trim:bool = True) -> Stream:
-    """
-    This function loads the seismic data for model training
-    Input -
-        event_id - refer to config/event_id_map for more info
-        station - seismic station
-        year - year of the event event
-        component - component of seismic signal, default EHZ
-        network - associated the seismic network, default 9S
-        trim - cut the data for the debris flow period, default True
-    Output -
-        Stream() object containing the seismic data without sensor response
-    """
-    scaling = 1e3
-    time_window = data_params['time_window']
-    event_id = str(event_id)
-    event_info = time_config[event_id]
-    julday = event_info['julday']
-    # LOAD THE DATA AND SCALE
-    if type(julday) is int:
-        try:
-            st = read(f"{paths['BASE_DIR']}/{paths['DATA_DIR']}_{data_params['fmax']}/Illgraben/{year}/{station}/{component}/9S.{station}.{component}.{year}.{str(julday).zfill(3)}.mseed")
-        except FileNotFoundError:
-            st = read(f"{paths['LOCAL_BASE_DIR']}/{paths['DATA_DIR']}_{data_params['fmax']}/Illgraben/{year}/{station}/{component}/9S.{station}.{component}.{year}.{str(julday).zfill(3)}.mseed")
-        st[0].data = st[0].data * scaling
-    elif type(julday) is list:
-        st = Stream()
-        for j in julday:
-            try:
-                st += read(f"{paths['BASE_DIR']}/{paths['DATA_DIR']}_{data_params['fmax']}/Illgraben/{year}/{station}/{component}/9S.{station}.{component}.{year}.{str(j).zfill(3)}.mseed")
-            except:
-                st += read(f"{paths['LOCAL_BASE_DIR']}/{paths['DATA_DIR']}_{data_params['fmax']}/Illgraben/{year}/{station}/{component}/9S.{station}.{component}.{year}.{str(j).zfill(3)}.mseed")
-        st.merge(method=1, fill_value='latest', interpolation_samples=0)
-        st[0].data = st[0].data * scaling
-    else:
-        print(f"Wrong julday type : {type(julday)}")
-        raise TypeError
-    # TRIM THE DATA
+    event_info = time_config[str(event_id)]
+    
+    # Delegate loading to the standardized test loader
+    st = load_seismic_data_test(
+        julday=event_info['julday'], 
+        station=station, 
+        year=year, 
+        component=component, 
+        network=network,
+        freq=data_params['fmax']
+    )
+
     if trim:
+        time_window = data_params['time_window']
         st.trim(starttime=UTCDateTime(event_info['start_time']) - (time_window * 60 * 2), 
                 endtime=UTCDateTime(event_info['end_time']) + (time_window * 60 * 2))
     return st
 
 def load_seismic_data_test(julday:int|str|list, station:str, 
-                      year:int=None, component:str='EHZ', network:str="9S", freq = None,
+                      year:int=2019, component:str='EHZ', network:str="9S", freq = None,
                       ) -> Stream:
-    """
-    This function loads the seismic data for model training
-    Input -
-        julday - julian day of the debris flow event
-        station - seismic station
-        year - year of the event event
-        component - component of seismic signal, default EHZ
-        network - associated the seismic network, default 9S
-        freq - upper bound for the frequency, either 15 or 45
-    Output -
-        Stream() object containing the seismic data without sensor response
-    """
-    scaling = 1e3
+    st = Stream()
+    juldays = [julday] if isinstance(julday, (int, str)) else julday
     data_freq = data_params['fmax'] if freq is None else freq
-    # LOAD THE DATA AND SCALE
-    if type(julday) is int or type(julday) is str:
-        try:
-            st = read(f"{paths['BASE_DIR']}/{paths['DATA_DIR']}_{data_freq}/Illgraben/{year}/{station}/{component}/{network}.{station}.{component}.{year}.{str(julday).zfill(3)}.mseed")
-        except FileNotFoundError:
-            st = read(f"{paths['LOCAL_BASE_DIR']}/{paths['DATA_DIR']}_{data_freq}/Illgraben/{year}/{station}/{component}/{network}.{station}.{component}.{year}.{str(julday).zfill(3)}.mseed")
-        st[0].data = st[0].data * scaling
-    elif type(julday) is list:
-        st = Stream()
-        for j in julday:
-            try:
-                st += read(f"{paths['BASE_DIR']}/{paths['DATA_DIR']}_{data_freq}/Illgraben/{year}/{station}/{component}/{network}.{station}.{component}.{year}.{str(j).zfill(3)}.mseed")
-            except:
-                st += read(f"{paths['LOCAL_BASE_DIR']}/{paths['DATA_DIR']}_{data_freq}/Illgraben/{year}/{station}/{component}/{network}.{station}.{component}.{year}.{str(j).zfill(3)}.mseed")
-        st.merge(method=1, fill_value='latest', interpolation_samples=0)
-        st[0].data = st[0].data * scaling
-    else:
-        print(f"Wrong julday type : {type(julday)}")
-        raise TypeError
+    
+    for j in juldays:
+        filename = f"{network}.{station}.{component}.{year}.{str(j).zfill(3)}.mseed"
+        sub_path = os.path.join(f"{paths['DATA_DIR']}_{data_freq}", "Illgraben", str(year), station, component, filename)
+        full_path = _resolve_path(sub_path)
+        
+        if full_path:
+            st += read(full_path)
+        else:
+            raise FileNotFoundError(f"Seismic data file not found: {sub_path}")
+
+    st.merge(method=1, fill_value='latest', interpolation_samples=0)
+    
+    # Apply scaling to all traces in the stream
+    for tr in st:
+        tr.data = tr.data * 1e3
+        
     return st
 
-def load_data(event_id_list:list, station:str, year:int=2019, trim:bool=True, abs:bool=True, env:bool=True) -> np.array:
+def load_data(event_id_list:list, station:str, year:int=2019, trim:bool=True, abs:bool=True, env:bool=True) -> tuple[np.ndarray, np.ndarray]:
     """
     This function loads and concatenates seismic data for multiple events.
-    Input -
-        event_id_list - list of event IDs to load data for
-        station - seismic station
-        year - year of the events
-        trim - whether to trim the data to event duration
-        abs - whether to take absolute value of the data
-        env - whether to compute the envelope of the seismic signal
-    Output -
-        total_data - concatenated seismic data from all events
-        total_times - corresponding timestamps for the data points
     """
-    total_data = None
-    total_times = None
+    data_list = []
+    time_list = []
+    
     for event_id in event_id_list:
         st = load_seismic_data(event_id = str(event_id), station= station, year=year, trim= trim)
-        if env:
-            data_envelope = obspy.signal.filter.envelope(st[0].data)
-            data = data_envelope
-            data = data[1:]
-        else:
-            data = st[0].data[1:]
+        
+        # Extract data (envelope or raw) and times, skipping first sample to ensure alignment
+        data = obspy.signal.filter.envelope(st[0].data)[1:] if env else st[0].data[1:]
         times = st[0].times("matplotlib")[1:]
-        if total_data is None:
-            total_data = data
-            total_times = times
-        else:
-            total_data = np.concatenate([total_data, data])
-            total_times = np.concatenate([total_times, times])
+        
+        data_list.append(data)
+        time_list.append(times)
+
+    total_data = np.concatenate(data_list)
+    total_times = np.concatenate(time_list)
+    
     if abs:
         total_data = np.abs(total_data)
     return total_data, total_times
 
-def load_data_test(julday_list:list, station:str, year:int=2019, abs:bool=True, env:bool=True) -> np.array:
+def load_data_test(julday_list:list, station:str, year:int=2019, abs:bool=True, env:bool=True) -> tuple[np.ndarray, np.ndarray]:
     """
     This function loads and concatenates seismic data for multiple julian days for application.
-    Input -
-        julday_list - list of julian days to load data for
-        station - seismic station
-        year - year of the events
-        abs - whether to take absolute value of the data
-        env - whether to compute the envelope of the seismic signal
-    Output -
-        total_data - concatenated seismic data from all julian days
-        total_times - corresponding timestamps for the data points
     """
-    total_data = None
-    total_times = None
+    data_list = []
+    time_list = []
+    
     for julday in julday_list:
         st = load_seismic_data_test(julday = julday, station= station, year=year)
-        if env:
-            data_envelope = obspy.signal.filter.envelope(st[0].data)
-            data = data_envelope
-            data = data[1:]
-        else:
-            data = st[0].data[1:]
+        
+        data = obspy.signal.filter.envelope(st[0].data)[1:] if env else st[0].data[1:]
         times = st[0].times("matplotlib")[1:]
-        if total_data is None:
-            total_data = data
-            total_times = times
-        else:
-            total_data = np.concatenate([total_data, data])
-            total_times = np.concatenate([total_times, times])
+        
+        data_list.append(data)
+        time_list.append(times)
+
+    total_data = np.concatenate(data_list)
+    total_times = np.concatenate(time_list)
+    
     if abs:
         total_data = np.abs(total_data)
     return total_data, total_times
 
-def load_label(event_id_list: list, station: str, interval_seconds: int, time_shift_minutes, trim:bool = True, smoothing: int | None = 30, divide_by: int | None = 45) -> pd.DataFrame:
+def load_label(event_id_list: list, station: str, interval_seconds: int, time_shift_minutes, 
+               trim: bool = True, smoothing: int | None = 30, divide_by: int | None = 45) -> pd.DataFrame:
     """
-    This function loads and concatenates label data for multiple events.
-    Input -
-        event_id_list - list of event IDs to load labels for
-        station - seismic station
-        interval_seconds - time interval in seconds for downsampling
-        time_shift_minutes - time shift applied to the labels in minutes
-        trim - whether to trim the data to event duration
-        smoothing - smoothing window size for the target output
-        divide_by - value to divide the final labels by for normalization
-    Output -
-        total_target - concatenated label data from all events as a DataFrame
+    Loads and processes label data for a list of events or dates.
+    
+    This function can accept a list containing:
+    - Event IDs (strings/integers that are keys in `time_config`), for which it will
+      look up associated dates and time boundaries.
+    - Raw date strings (e.g., "YYYY-MM-DD"), for which it will treat each string
+      as a single date without `time_config` lookup.
+
+    Args:
+        event_id_list (list): A list of event IDs (from time_config) or date strings.
+        station (str): Seismic station identifier.
+        interval_seconds (int): Time interval in seconds for downsampling.
+        time_shift_minutes (Union[int, str]): Time shift applied to the labels in minutes,
+                                              or "raw" for UTC+0, or "average"/"dynamic".
+        trim (bool): Whether to trim the data to event duration.
+        smoothing (int | None): Smoothing window size for the target output. If 0 or None,
+                                uses raw "Fv [kN]".
+        divide_by (int | None): Value to divide the final labels by for normalization.
+
+    Returns:
+        pd.DataFrame: Concatenated and processed label data from all events/dates.
+                      Contains 'Timestamp', 'Fv [kN]', and 'Fv std' columns.
     """
     time_window = data_params['time_window']
-    # SELECT COLUMN FOR WHICH THE DATA IS REQUESTED
-    if smoothing == 0 or smoothing is None:
-        data_col = "Fv [kN]"
-    else:
-        data_col = f"moving_avg_{smoothing}"
+    data_col = "Fv [kN]" if (not smoothing) else f"moving_avg_{smoothing}"
+    time_col = "Time UTC+0" if time_shift_minutes == "raw" else "Time"
+    
+    label_dfs = []
+    for i, item in enumerate(event_id_list):
+        item_str = str(item)
+        
+        # Resolve dates and time boundaries from event metadata or raw string
+        if item_str in time_config:
+            info = time_config[item_str]
+            dates = [info['date']] if isinstance(info['date'], str) else info['date']
+            start_time = UTCDateTime(info['start_time'])
+            end_time = UTCDateTime(info['end_time'])
+            is_event = True
+        else:
+            dates = [item_str]
+            start_time = UTCDateTime(item_str) + (time_window * 60)
+            end_time = None
+            is_event = False
 
-    if time_shift_minutes == "raw":
-        time_col = "Time UTC+0"
-    else:
-        time_col = "Time"
-    # LOAD DATA
-    total_target = None
-    for i, event_id in enumerate(event_id_list):
-        event_id = str(event_id)
-        julday = time_config[event_id]['julday'] if type(time_config[event_id]['julday']) is int else time_config[event_id]['julday'][0]
-        date = time_config[event_id]['date']
-        start_time, end_time = UTCDateTime(time_config[event_id]['start_time']), UTCDateTime(time_config[event_id]['end_time'])
+        # Load available files for the given dates
+        item_dfs = []
+        for d in dates:
+            sub_p = os.path.join(paths['UTC0_LABEL_DIR'] if time_shift_minutes == "raw" else f"{paths['LABEL_DIR']}_{time_shift_minutes}", 
+                                 station if time_shift_minutes != "raw" else "", f"{d}.csv")
+            fpath = _resolve_path(sub_p)
+            if fpath: item_dfs.append(pd.read_csv(fpath))
 
-        if type(date) is str:
-            if time_shift_minutes == "raw":
-                try:
-                    target = pd.read_csv(f"{paths['BASE_DIR']}/{paths['UTC0_LABEL_DIR']}/{date}.csv")
-                except FileNotFoundError:
-                    target = pd.read_csv(f"{paths['LOCAL_BASE_DIR']}/{paths['UTC0_LABEL_DIR']}/{date}.csv")  
-            else:  
-                try:
-                    target = pd.read_csv(f"{paths['BASE_DIR']}/{paths['LABEL_DIR']}_{time_shift_minutes}/{station}/{date}.csv")
-                except FileNotFoundError:
-                    target = pd.read_csv(f"{paths['LOCAL_BASE_DIR']}/{paths['LABEL_DIR']}_{time_shift_minutes}/{station}/{date}.csv")
-        elif type(date) is list:
-            target = None
-            for d in date:
-                if target is None:
-                    try:
-                        target = pd.read_csv(f"{paths['BASE_DIR']}/{paths['LABEL_DIR']}_{time_shift_minutes}/{station}/{d}.csv")
-                    except FileNotFoundError:
-                        target = pd.read_csv(f"{paths['LOCAL_BASE_DIR']}/{paths['LABEL_DIR']}_{time_shift_minutes}/{station}/{d}.csv")
-                else:
-                    try:
-                        temp = pd.read_csv(f"{paths['BASE_DIR']}/{paths['LABEL_DIR']}_{time_shift_minutes}/{station}/{d}.csv")
-                    except FileNotFoundError:
-                        temp = pd.read_csv(f"{paths['LOCAL_BASE_DIR']}/{paths['LABEL_DIR']}_{time_shift_minutes}/{station}/{d}.csv")
-                    target = pd.concat([target, temp.iloc[1:]])
-                    target.reset_index(inplace=True, drop=True)
-                    del temp
+        if not item_dfs: continue
+        target = pd.concat(item_dfs).reset_index(drop=True)
 
-        # Filter data to start after the target start time
+        # Temporal trimming
         if trim:
-            if i == 0:
-                target = target[target[time_col].between(start_time - (time_window * 60 * 1) , end_time + (time_window * 60 * 2))]
-            else:
-                target = target[target[time_col].between(start_time - (time_window * 60 * 2) , end_time + (time_window * 60 * 2))]
-        else:
-            if i == 0:
-                if type(date) is list:
-                    target = target[target[time_col] >= UTCDateTime(f"{date[0]}") + (time_window * 60)]
-                else:
-                    target = target[target[time_col] >= UTCDateTime(f"{date}") + (time_window * 60)]
-            else:
-                pass
+            if is_event:
+                st_limit = start_time - (time_window * 60 * (1 if i == 0 else 2))
+                target = target[target[time_col].apply(UTCDateTime).between(st_limit, end_time + (time_window * 60 * 2))]
+            elif i == 0:
+                target = target[target[time_col].apply(UTCDateTime) >= start_time]
 
-        # Convert Time to Timestamp
+        # Feature engineering and scaling
         target['Timestamp'] = target[time_col].apply(UTCDateTime).apply(UTCDateTime._get_timestamp)
-        # Force <-> Pressure Conversion with plate area 8m*m
-        target[data_col] = target[data_col] / 8
+        target[data_col] /= 8 # Area conversion from Pressure to Force
+        
+        if not smoothing:
+            for col in ["Fv min", "Fv max"]:
+                if col in target.columns: target[col] /= 8
+            if "Fv max" in target.columns:
+                mask = (target["Fv max"] - target[data_col]) / target[data_col] > 1
+                target.loc[mask, "Fv max"] = target.loc[mask, data_col] * 2
 
+        # Window-based downsampling
         if interval_seconds != 1:
-            # Apply sliding window mean using NumPy
-            num_windows = len(target) // interval_seconds  # Number of full windows
-            target = target.iloc[:num_windows * interval_seconds]  # Trim excess data
-
-            # Reshape data for window-based averaging
-            reshaped_values = target[data_col].values.reshape(num_windows, interval_seconds)
-            averaged_values = np.mean(reshaped_values, axis=1)
-            std_values = np.std(reshaped_values, axis=1)
-
-            # Create new DataFrame
-            target = pd.DataFrame({
-                'Timestamp': target['Timestamp'].values[::interval_seconds],  # Take every stride-th timestamp
-                'Fv [kN]': averaged_values,  # Store the computed mean
-                'Fv std': std_values
-            })
+            num_w = len(target) // interval_seconds
+            target = target.iloc[:num_w * interval_seconds]
+            agg_data = {
+                'Timestamp': target['Timestamp'].values[::interval_seconds],
+                'Fv [kN]': np.mean(target[data_col].values.reshape(num_w, interval_seconds), axis=1),
+                'Fv std': np.std(target[data_col].values.reshape(num_w, interval_seconds), axis=1)
+            }
+            if not smoothing:
+                for col in ["Fv min", "Fv max"]:
+                    if col in target.columns:
+                        agg_data[col] = np.mean(target[col].values.reshape(num_w, interval_seconds), axis=1)
+            target = pd.DataFrame(agg_data)
         else:
             target = pd.DataFrame({
-                'Timestamp' : target['Timestamp'].values,
-                'Fv [kN]' : target[data_col].values,
-                'Fv std' : target['Fv std'].values
+                'Timestamp': target['Timestamp'].values,
+                'Fv [kN]': target[data_col].values,
+                'Fv std': target.get('Fv std', 0)
             })
-        # Concatenate results
-        if total_target is None:
-            total_target = target
-        else:
-            total_target = pd.concat([total_target, target])
+        label_dfs.append(target)
 
-    total_target.reset_index(drop=True, inplace=True)
-    if divide_by is not None:
-        total_target['Fv [kN]'] = total_target['Fv [kN]'] / divide_by  # Divide by 45
-    
+    if not label_dfs: return pd.DataFrame()
+    total_target = pd.concat(label_dfs).reset_index(drop=True)
+    if divide_by: total_target['Fv [kN]'] /= divide_by
     return total_target
 
-def load_label2(date_list: list, station: str, interval_seconds: int, time_shift_minutes, smoothing: int | None = 30, divide_by: int | None = 350) -> pd.DataFrame:
+def load_label2(date_list: list, station: str, interval_seconds: int, time_shift_minutes, 
+                smoothing: int | None = 30, divide_by: int | None = 350) -> pd.DataFrame:
     """
-    This function loads and concatenates label data for multiple dates for application based on date.
-    Input -
-        date_list - list of dates to load labels for
-        station - seismic station
-        interval_seconds - time interval in seconds for downsampling
-        time_shift_minutes - time shift applied to the labels in minutes
-        smoothing - smoothing window size for the target output
-        divide_by - value to divide the final labels by for normalization
-    Output -
-        total_target - concatenated label data from all dates as a DataFrame
+    Independent implementation of load_label2 optimized for processing date lists.
     """
     time_window = data_params['time_window']
-    # SELECT COLUMN FOR WHICH THE DATA IS REQUESTED
-    if smoothing == 0 or smoothing is None:
-        data_col = "Fv [kN]"
-    else:
-        data_col = f"moving_avg_{smoothing}"
-    # LOAD DATA
-    total_target = None
-    for i, date in enumerate(date_list):
-        # event_id = str(event_id)
-        # julday = time_config[event_id]['julday'] if type(time_config[event_id]['julday']) is int else time_config[event_id]['julday'][0]
-        # date = time_config[event_id]['date']
-        # start_time, end_time = UTCDateTime(time_config[event_id]['start_time']), UTCDateTime(time_config[event_id]['end_time'])
-
-        if type(date) is str:
-            try:
-                target = pd.read_csv(f"{paths['BASE_DIR']}/{paths['LABEL_DIR']}_{time_shift_minutes}/{station}/{date}.csv")
-            except FileNotFoundError:
-                target = pd.read_csv(f"{paths['LOCAL_BASE_DIR']}/{paths['LABEL_DIR']}_{time_shift_minutes}/{station}/{date}.csv")
-        elif type(date) is list:
-            target = None
-            for d in date:
-                if target is None:
-                    try:
-                        target = pd.read_csv(f"{paths['BASE_DIR']}/{paths['LABEL_DIR']}_{time_shift_minutes}/{station}/{d}.csv")
-                    except FileNotFoundError:
-                        target = pd.read_csv(f"{paths['LOCAL_BASE_DIR']}/{paths['LABEL_DIR']}_{time_shift_minutes}/{station}/{d}.csv")
-                else:
-                    try:
-                        temp = pd.read_csv(f"{paths['BASE_DIR']}/{paths['LABEL_DIR']}_{time_shift_minutes}/{station}/{d}.csv")
-                    except FileNotFoundError:
-                        temp = pd.read_csv(f"{paths['LOCAL_BASE_DIR']}/{paths['LABEL_DIR']}_{time_shift_minutes}/{station}/{d}.csv")
-                    target = pd.concat([target, temp.iloc[1:]])
-                    target.reset_index(inplace=True, drop=True)
-                    del temp
-
-        # Filter data to start after the target start time
-        if i == 0:
-            if type(date) is list:
-                target = target[target['Time'] >= UTCDateTime(f"{date[0]}") + (time_window * 60)]
-            else:
-                target = target[target['Time'] >= UTCDateTime(f"{date}") + (time_window * 60)]
-        else:
-            pass
-
-        # Convert Time to Timestamp
-        target['Timestamp'] = target['Time'].apply(UTCDateTime).apply(UTCDateTime._get_timestamp)
-        # Force <-> Pressure Conversion with plate area 8m*m
-        target[data_col] = target[data_col] / 8
-
-        if interval_seconds != 1:
-            # Apply sliding window mean using NumPy
-            num_windows = len(target) // interval_seconds  # Number of full windows
-            target = target.iloc[:num_windows * interval_seconds]  # Trim excess data
-
-            # Reshape data for window-based averaging
-            reshaped_values = target[data_col].values.reshape(num_windows, interval_seconds)
-            averaged_values = np.mean(reshaped_values, axis=1)
-            std_values = np.std(reshaped_values, axis=1)
-
-            # Create new DataFrame
-            target = pd.DataFrame({
-                'Timestamp': target['Timestamp'].values[::interval_seconds],  # Take every stride-th timestamp
-                'Fv [kN]': averaged_values,  # Store the computed mean
-                'Fv std': std_values
-            })
-        else:
-            target = pd.DataFrame({
-                'Timestamp' : target['Timestamp'].values,
-                'Fv [kN]' : target[data_col].values,
-                'Fv std' : target['Fv std'].values
-            })
-        # Concatenate results
-        if total_target is None:
-            total_target = target
-        else:
-            total_target = pd.concat([total_target, target])
-
-    total_target.reset_index(drop=True, inplace=True)
-    if divide_by is not None:
-        total_target['Fv [kN]'] = total_target['Fv [kN]'] / divide_by  # Divide by 350
+    data_col = "Fv [kN]" if (not smoothing) else f"moving_avg_{smoothing}"
+    time_col = "Time UTC+0" if time_shift_minutes == "raw" else "Time"
     
+    label_dfs = []
+    for i, date in enumerate(date_list):
+        dates = [date] if isinstance(date, str) else date
+        
+        day_dfs = []
+        for d in dates:
+            sub_p = os.path.join(
+                paths['UTC0_LABEL_DIR'] if time_shift_minutes == "raw" else f"{paths['LABEL_DIR']}_{time_shift_minutes}",
+                station if time_shift_minutes != "raw" else "", 
+                f"{d}.csv"
+            )
+            fpath = _resolve_path(sub_p)
+            if fpath: day_dfs.append(pd.read_csv(fpath))
+        
+        if not day_dfs: continue
+        target = pd.concat(day_dfs).reset_index(drop=True)
+
+        # Original logic: Trim the start of the first date provided in the list
+        if i == 0:
+            start_ref = dates[0]
+            target = target[target[time_col].apply(UTCDateTime) >= UTCDateTime(start_ref) + (time_window * 60)]
+
+        # Vectorized feature engineering and scaling
+        target['Timestamp'] = target[time_col].apply(UTCDateTime).apply(lambda x: x.timestamp)
+        target[data_col] /= 8 # Area conversion
+        
+        # Optimized window-based downsampling
+        if interval_seconds != 1:
+            num_w = len(target) // interval_seconds
+            vals = target[data_col].values[:num_w * interval_seconds].reshape(num_w, interval_seconds)
+            target = pd.DataFrame({
+                'Timestamp': target['Timestamp'].values[::interval_seconds][:num_w],
+                'Fv [kN]': np.mean(vals, axis=1),
+                'Fv std': np.std(vals, axis=1)
+            })
+        else:
+            target = pd.DataFrame({
+                'Timestamp': target['Timestamp'].values,
+                'Fv [kN]': target[data_col].values,
+                'Fv std': target['Fv std'].values if 'Fv std' in target.columns else np.zeros(len(target))
+            })
+        label_dfs.append(target)
+
+    if not label_dfs: return pd.DataFrame()
+    total_target = pd.concat(label_dfs).reset_index(drop=True)
+    if divide_by: total_target['Fv [kN]'] /= divide_by
     return total_target
-
-

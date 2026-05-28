@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
 
-#__modification time__ = 2026-02-01
+#__modification time__ = 2026-05-30
 #__author__ = Kshitij Kar, GFZ Helmholtz Centre for Geosciences
 #__find me__ = kshitij.kar@gfz.de, kshitij787.ak@gmail.com, https://github.com/Kshitij301199
 # Please do not distribute this code without the author's permission
@@ -10,21 +10,34 @@ import os
 import sys
 import json
 import argparse
+from pathlib import Path
 
-with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/paths.json", "r") as file:
+# Dynamic path resolution
+script_dir = Path(__file__).resolve().parent
+project_root = script_dir.parent.parent
+
+def load_config(filename):
+    path = project_root / "config" / filename
+    with open(path, "r") as file:
+        return json.load(file)
+
+try:
+    paths = load_config("paths.json")
+    data_params = load_config("data_parameters.json")
+    time_config = load_config("event_id_map.json")
+except FileNotFoundError:
+    # Fallback for different environments if necessary
     paths = json.load(file)
-with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/data_parameters.json", "r") as file:
-    data_params = json.load(file)
-with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/event_id_map.json", "r") as file:
-    time_config = json.load(file)
 
 # Set CUDA environment variables
-os.environ["CUDA_HOME"] = paths['CUDA_HOME']
-os.environ["PATH"] = os.path.join(os.environ["CUDA_HOME"], "bin") + ":" + os.environ.get("PATH", "")
-os.environ["LD_LIBRARY_PATH"] = os.path.join(os.environ["CUDA_HOME"], "lib64") + ":" + os.environ.get("LD_LIBRARY_PATH", "")
+if 'CUDA_HOME' in paths:
+    os.environ["CUDA_HOME"] = paths['CUDA_HOME']
+    os.environ["PATH"] = os.path.join(os.environ["CUDA_HOME"], "bin") + ":" + os.environ.get("PATH", "")
+    os.environ["LD_LIBRARY_PATH"] = os.path.join(os.environ["CUDA_HOME"], "lib64") + ":" + os.environ.get("LD_LIBRARY_PATH", "")
 
 sys.path.append(paths['BASE_DIR'])
 import torch
+
 torch.set_default_dtype(torch.float32)
 import numpy as np
 import pandas as pd
@@ -47,123 +60,64 @@ def warmup_lambda(epoch):
     warmup_epochs = 10
     return min(1.0, (epoch + 1) / warmup_epochs)
 
-# class WeightedMSELoss(nn.Module):
-#     def __init__(self, divide_by):
-#         super().__init__()
-#         self.divide_by = divide_by
-
-#     def forward(self, output: torch.Tensor, target: torch.Tensor):
-#         bins = torch.arange(20, 351, 10, device=target.device, dtype=target.dtype)
-#         centers = (bins[:-1] + bins[1:]) / 2
-#         # max_val = target.max().clamp(min=1e-6)   # prevent div by 0
-#         weights = centers / self.divide_by  # scaled weights
-
-#         # assign bin-based weight per target
-#         bin_indices = torch.bucketize(target, bins) - 1
-#         sample_weights = weights[bin_indices]
-
-#         # weighted squared error
-#         se = (output - target) ** 2
-#         weighted_se = sample_weights * se
-#         return weighted_se.mean()
-
 def set_seed(seed=42):
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True  # ensure deterministic behavior
-    torch.backends.cudnn.benchmark = False     # disable benchmarking for reproducibility
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
-def make_dirs(task:str, time_shift_minutes, smoothing, divide_by, interval_seconds, config_option, num_days, repeat):
-    if task == "abalation_study_1":
-        output_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}" 
-        model_dir = f"{output_dir}/model/{num_days}"
-        image_dir = f"{output_dir}/test_results/xlstm/{num_days}"
-        save_dir = f"{output_dir}/output_df/{num_days}"
-        os.makedirs(model_dir, exist_ok=True)
-        os.makedirs(image_dir, exist_ok=True)
-        os.makedirs(save_dir, exist_ok=True)
-    elif task == "slstm_v_mlstm":
-        output_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}" 
-        model_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}/model/{config_option}"
-        image_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}/test_results/{config_option}"
-        save_dir = f"{paths['BASE_DIR']}/{task}/{time_shift_minutes}_{smoothing}/output_df/{config_option}"
-        os.makedirs(model_dir, exist_ok=True)
-        os.makedirs(image_dir, exist_ok=True)
-        os.makedirs(save_dir, exist_ok=True)
-    else:
-        output_dir = f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params["fmax"]}_{repeat}/{time_shift_minutes}_{smoothing}_{divide_by}"
-        model_dir = f"{output_dir}/model/{config_option}/{interval_seconds}"
-        image_dir = f"{output_dir}/test_results/xlstm/{config_option}/{interval_seconds}"
-        save_dir = f"{output_dir}/output_df/{config_option}/{interval_seconds}"
-        curve_dir = f"{output_dir}/loss_curves/{config_option}/{interval_seconds}"
-        os.makedirs(model_dir, exist_ok=True)
-        os.makedirs(image_dir, exist_ok=True)
-        os.makedirs(save_dir, exist_ok=True)
-        os.makedirs(curve_dir, exist_ok=True)
+def make_dirs(task: str, time_shift_minutes, smoothing, divide_by, interval_seconds, config_option, repeat):
+    """Generic directory creation."""
+    base_output = f"{paths['BASE_DIR']}/{task}_{data_params['time_window']}_{data_params['fmax']}_{repeat}"
+    params_subdir = f"{time_shift_minutes}_{smoothing}_{divide_by}"
+    output_dir = os.path.join(base_output, params_subdir)
+    
+    model_dir = os.path.join(output_dir, "model", config_option, str(interval_seconds))
+    image_dir = os.path.join(output_dir, "test_results", "xlstm", config_option, str(interval_seconds))
+    save_dir = os.path.join(output_dir, "output_df", config_option, str(interval_seconds))
+    curve_dir = os.path.join(output_dir, "loss_curves", config_option, str(interval_seconds))
+    
+    for d in [model_dir, image_dir, save_dir, curve_dir]:
+        os.makedirs(d, exist_ok=True)
+        
     return output_dir, model_dir, image_dir, save_dir, curve_dir
 
-def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, divide_by:int, station:str, interval_seconds:int, config_option:str, task:str, num_days=None, repeat=1):
+def main(test_id: int, val_id: int, time_shift_minutes: int | str, smoothing: int, divide_by: int, station: str, interval_seconds: int, config_option: str, task: str, repeat=1):
     """Main function to train and evaluate the xLSTM model.
-    Args:
-        test_id (int): Test event ID.
-        val_id (int): Validation event ID.
-        time_shift_minutes (int|str): Time shift in minutes for labels.
-        smoothing (int): Smoothing window size.
-        divide_by (int): Value to divide the impact force values.
-        station (str): Station name.
-        interval_seconds (int): Interval in seconds for data segmentation.
-        config_option (str): Configuration option for the model.
-        task (str): Task name for directory structure.
-        num_days (int, optional): Number of days for training (used in ablation study). Defaults to None.
-        repeat (int, optional): Repeat number for directory structure. Defaults to 1.
-    Returns:
-        None
     """
     test_id, val_id = str(test_id), str(val_id)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device : {device}")
-    # set_seed()
-    num_intervals = int((data_params['time_window'] * 60) // interval_seconds)
-    output_dir, model_dir, image_dir, save_dir, curve_dir = make_dirs(task, time_shift_minutes, smoothing, divide_by, interval_seconds, config_option, num_days, repeat)
     
-
-
-    if time_shift_minutes == "average":
-        event_id_list = ["1", "3", "4", "5", "6", "7", "8", "9"]
-    elif time_shift_minutes == "dynamic":
-        event_id_list = ["1", "3", "4", "5", "6", "7", "8", "9"]
+    num_intervals = int((data_params['time_window'] * 60) // interval_seconds)
+    output_dir, model_dir, image_dir, save_dir, curve_dir = make_dirs(task, time_shift_minutes, smoothing, divide_by, interval_seconds, config_option, repeat)
+    
+    # Standardized event list logic
+    event_id_list = ["1", "3", "4", "5", "6", "7", "8", "9"]
+    if time_shift_minutes not in ["average", "dynamic"]:
+        if "5" in event_id_list: event_id_list.remove("5")
     
     test_info = time_config[str(test_id)]
     val_info = time_config[str(val_id)]
-    test_julday = test_info['julday'] if type(test_info['julday']) is int else test_info['julday'][0]
-    val_julday = val_info['julday'] if type(val_info['julday']) is int else val_info['julday'][0]
-    if task == "abalation_study_1":
-        train_id_list = event_id_list
-        train_id_list.remove(test_id)
-        train_id_list.remove(val_id)
-        train_id_list = train_id_list[:num_days]
-    else:
-        if test_id == val_id:
-            train_id_list = event_id_list
-            train_id_list.remove(test_id)
-        else:    
-            train_id_list = event_id_list
-            train_id_list.remove(test_id)
-            train_id_list.remove(val_id)
+    test_julday = test_info['julday'] if isinstance(test_info['julday'], int) else test_info['julday'][0]
+    val_julday = val_info['julday'] if isinstance(val_info['julday'], int) else val_info['julday'][0]
+
+    train_id_list = [eid for eid in event_id_list if eid not in [test_id, val_id]]
+    if test_id == val_id and test_id in event_id_list:
+        train_id_list = [eid for eid in event_id_list if eid != test_id]
 
     curve_file = f"{curve_dir}/xLSTM_t{test_julday}_v{val_julday}.txt"
     with open(curve_file, "w") as file:
         file.write("Epoch;Train_Loss;Val_Loss;LR;mean_g;max_g\n")
 
     # LOAD DATA
-    train_juldays = []
-    [train_juldays.extend([time_config[i]['julday']]) for i in train_id_list];
-    train_juldays = [x for item in train_juldays for x in (item if isinstance(item, list) else [item])]
-    train_juldays
+    train_juldays = [time_config[eid]['julday'] for eid in train_id_list]
+    # Flatten if necessary
+    train_juldays = [j if isinstance(j, int) else item for j in train_juldays for item in (j if isinstance(j, list) else [j])]
 
     print(f"Train Day List : {train_juldays}, Val Day List : {val_julday}, Test Day List : {test_julday}")
-    smoothing = smoothing
+    
     print(f"{'Loading Data':-^50}")
     total_data, _ = load_data(train_id_list, station, trim=True, abs=True)
     val_data, _ = load_data([val_id], station, trim=False, abs=True)
@@ -193,22 +147,19 @@ def main(test_id:int, val_id:int, time_shift_minutes:int|str, smoothing:int, div
 
     # INITIALIZE MODEL
     print("Initialising Model")
-    with open(f"./config/{task}/xlstm_{config_option}_{interval_seconds}sec_config.json", "r") as f:
-        config = json.load(f)
+    config_path = project_root / "config" / task / f"xlstm_{config_option}_{interval_seconds}sec_config.json"
+    with open(config_path, "r") as f:
+        model_params = json.load(f)
+        
     with open(f"{output_dir}/model_config.txt", "a") as f:
-        string = f"xlstm :\n{config}\n"
-        f.write(string)
-    model = xLSTMRegressor_v2(**config)
+        f.write(f"xlstm :\n{model_params}\n")
+        
+    model = xLSTMRegressor_v2(**model_params)
     criterion = nn.MSELoss()
-    # monitor1 = nn.MSELoss()
-    # monitor2 = WeightedMSELoss(divide_by)
 
-    if interval_seconds == 1:
-        lr = 5e-5
-        batch_size = 32
-    else:
-        lr = 5e-5
-        batch_size = 128
+    lr = 5e-5
+    batch_size = 32 if interval_seconds == 1 else 128
+    
     optimizer = optim.AdamW(model.parameters(), lr=lr, betas=(0.9, 0.98))
 
     # Warmup scheduler
@@ -286,8 +237,7 @@ if __name__ == "__main__":
     parser.add_argument("--config_op", type=str,default="default", help= "config option")
     parser.add_argument("--task", type=str, default="comparison_baseline", help= "name of the task corresponding to parameter directory")
     parser.add_argument("--smoothing", type=int, default=30, help="enter a value used for smoothing the raw data")
-    parser.add_argument("--divide_by", type=int, default=350, help="enter a value to divide impact force values")
-    parser.add_argument("--num_days", type=int, default=None, help="number of days used for training")
+    parser.add_argument("--divide_by", type=int, default=350, help="normalization constant")
     parser.add_argument("--repeat", type=int, default=1, help="Number to times to repeat process")
 
     args = parser.parse_args()
@@ -302,5 +252,4 @@ if __name__ == "__main__":
             args.interval, 
             args.config_op, 
             args.task,
-            args.num_days,
             repeat)

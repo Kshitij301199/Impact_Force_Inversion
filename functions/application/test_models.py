@@ -8,19 +8,38 @@
 
 import os
 import json
+from pathlib import Path
+from datetime import timedelta
 
 with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/paths.json", "r") as file:
     paths = json.load(file)
 with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/data_parameters.json", "r") as file:
     data_params = json.load(file)
+# Dynamic path resolution
+script_dir = Path(__file__).resolve().parent
+project_root = script_dir.parent.parent.parent
+
+def load_config(filename):
+    path = project_root / "config" / filename
+    with open(path, "r") as file:
+        return json.load(file)
+
+try:
+    paths = load_config("paths.json")
+    data_params = load_config("data_parameters.json")
+except FileNotFoundError:
+    paths = {"BASE_DIR": str(project_root)}
 
 # Set CUDA environment variables
 os.environ["CUDA_HOME"] = paths['CUDA_HOME']
 os.environ["PATH"] = os.path.join(os.environ["CUDA_HOME"], "bin") + ":" + os.environ.get("PATH", "")
 os.environ["LD_LIBRARY_PATH"] = os.path.join(os.environ["CUDA_HOME"], "lib64") + ":" + os.environ.get("LD_LIBRARY_PATH", "")
+if 'CUDA_HOME' in paths:
+    os.environ["CUDA_HOME"] = paths['CUDA_HOME']
+    os.environ["PATH"] = os.path.join(os.environ["CUDA_HOME"], "bin") + ":" + os.environ.get("PATH", "")
+    os.environ["LD_LIBRARY_PATH"] = os.path.join(os.environ["CUDA_HOME"], "lib64") + ":" + os.environ.get("LD_LIBRARY_PATH", "")
 
-import sys
-sys.path.append(paths['BASE_DIR'])
+import torch
 import torch
 import argparse
 import numpy as np
@@ -45,19 +64,23 @@ def load_model(model_julday:int, model_type:str, interval:int):
         model (torch.nn.Module): Loaded model.
     """
     mapping = {161 : 1, 172 : 2, 182 : 3, 183 : 4, 196 : 5, 207 : 6, 223 : 7, 232 : 8}
-    config = "v5"
+    config = "v4"
+    config_dir = project_root / "config" / "comparison_baseline_cv"
+    
     if model_type == 'LSTM':
-        with open(f"/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/comparison_baseline_cv/lstm_{config}_{interval}sec_config.json", "r") as f:
-            model_config = json.load(f)
-        model = LSTMRegressor(**model_config)
+        model_config_path = config_dir / f"lstm_{config}_{interval}sec_config.json"
     elif model_type == 'xLSTM':
-        with open(f"/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion//config/comparison_baseline_cv/xlstm_{config}_{interval}sec_config.json", "r") as f:
-            model_config = json.load(f)
-        model = xLSTMRegressor_v2(**model_config)
+        model_config_path = config_dir / f"xlstm_{config}_{interval}sec_config.json"
     else:
         print(f"Wrong model type entered : {model_type}!")
         exit()
+
+    with open(model_config_path, "r") as f:
+        model_config = json.load(f)
+    
+    model = LSTMRegressor(**model_config) if model_type == 'LSTM' else xLSTMRegressor_v2(**model_config)
     model.load_state_dict(torch.load(f=f"{paths['SAVED_MODEL_DIR']}/{config}/{mapping[model_julday]}/{interval}_{model_type}.pt", weights_only=True))
+    
     return model
 
 def main(network:str, station:str, component:str, year:int, julday:int, model_type:str, interval_seconds:int):
@@ -86,7 +109,8 @@ def main(network:str, station:str, component:str, year:int, julday:int, model_ty
     st = load_seismic_data_test(julday= int(julday), station= station, year= year, component= component,
                            network= network)
     data, _ = load_data_test(julday_list = [julday], station=station, year=year, abs=True)
-    timestamps = [UTCDateTime(UTCDateTime(year=year, julday=int(julday)) + i).timestamp for i in range(data_params['time_window'] * 60, 60 * 60 * 24, interval_seconds)]
+    start_ts = UTCDateTime(year=year, julday=int(julday)).timestamp
+    timestamps = [start_ts + i for i in range(data_params['time_window'] * 60, 60 * 60 * 24, interval_seconds)]
 
     # PREPARE DATALOADER
     print("\tPreparing Dataloader")
@@ -101,18 +125,16 @@ def main(network:str, station:str, component:str, year:int, julday:int, model_ty
         os.makedirs(output_file_dir, exist_ok=True)
         os.makedirs(output_img_dir, exist_ok=True)
         # LOAD MODEL
-        model = load_model(model_julday, model_type, interval_seconds)
+        model = load_model(model_julday, model_type, interval_seconds).to(device)
+        model.eval()
 
         # APPLY MODEL
         start_time = get_current_time()
         print(f"{'Start Testing':-^50}")
-        model.eval()
         in_sequence, predicted_output, model_timestamps = [], [], []
-        test_epoch_loss = 0.0
+
         with torch.no_grad():
             for input_sequences, test_timestamps in dataloader:
-                model.to(device)
-                # Move data to the appropriate device if using a GPU
                 input_sequences = input_sequences.float().to(device)  # Shape: (batch_size, 20, 3000)
 
                 # Forward pass: Get model predictions

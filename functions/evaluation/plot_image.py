@@ -8,12 +8,8 @@
 
 import os
 import json
-with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/paths.json", "r") as file:
-    paths = json.load(file)
-with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/event_id_map.json", "r") as file:
-    time_config = json.load(file)
 import sys
-sys.path.append(paths['BASE_DIR'])
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -21,14 +17,37 @@ import matplotlib.dates as mdates
 import matplotlib.ticker as ticker
 from obspy import UTCDateTime
 
+# Dynamic path resolution
+script_dir = Path(__file__).resolve().parent
+project_root = script_dir.parent.parent
+
+def _load_config(filename):
+    path = project_root / "config" / filename
+    with open(path, "r") as f:
+        return json.load(f)
+
+try:
+    paths = _load_config("paths.json")
+    time_config = _load_config("event_id_map.json")
+except FileNotFoundError:
+    # Fallback for HPC or different environments
+    paths = {"BASE_DIR": str(project_root)}
+    time_config = {}
+
+sys.path.append(paths.get('BASE_DIR', str(project_root)))
+
 import matplotlib.font_manager as fm
-font_dirs = ['/storage/vast-gfz-hpc-01/home/kshitkar/fonts/arial']  # replace with the path to your font file
-font_files = fm.findSystemFonts(fontpaths=font_dirs)
-for font_file in font_files:
-    fm.fontManager.addfont(font_file)
+font_dirs = [os.path.join(paths.get('BASE_DIR', ''), 'fonts/arial')]
+if os.path.exists(font_dirs[0]):
+    font_files = fm.findSystemFonts(fontpaths=font_dirs)
+    for font_file in font_files:
+        fm.fontManager.addfont(font_file)
+    plt.rcParams['font.family'] = 'Arial'
+else:
+    plt.rcParams['font.family'] = 'sans-serif'
+
 plt.rcParams.update({
     'font.size': 7,             # Set global font size
-    'font.family': 'Arial',      # Set global font family
     'legend.fontsize': 6,        # Set legend font size
     'figure.figsize': (7, 3.5) # Set figure size in inches
 })
@@ -58,22 +77,31 @@ def plot_image(st, predicted_output, target_output, timestamps,
         None
     """
     print(f"{'Plotting Image':-^30}")
-    times = [UTCDateTime(t).matplotlib_date for t in np.concatenate(timestamps)]
+    
+    # Flatten inputs once
+    flat_timestamps = np.concatenate(timestamps)
+    times = np.array([UTCDateTime(t).matplotlib_date for t in flat_timestamps])
     target_output = np.concatenate(target_output)
     predicted_output = np.concatenate(predicted_output)
-    test_info = time_config[str(test_id)]
-    val_info = time_config[str(val_id)]
-    test_julday = test_info['julday'] if type(test_info['julday']) is int else test_info['julday'][0]
-    val_julday = val_info['julday'] if type(val_info['julday']) is int else val_info['julday'][0]
+    
+    test_id_str, val_id_str = str(test_id), str(val_id)
+    test_info = time_config[test_id_str]
+    val_info = time_config[val_id_str]
+    
+    test_julday = test_info['julday'] if isinstance(test_info['julday'], int) else test_info['julday'][0]
+    val_julday = val_info['julday'] if isinstance(val_info['julday'], int) else val_info['julday'][0]
+    
     zero_label = load_label([test_id], "ILL11", interval, "average", trim, smoothing=None, divide_by=None)
+    
     if trim:
         start_time, end_time = UTCDateTime(test_info['start_time']), UTCDateTime(test_info['end_time'])
-        print(start_time, end_time)
-        # st.trim(starttime=start_time, endtime=end_time)
         mat_start_time = start_time.matplotlib_date
         mat_end_time = end_time.matplotlib_date
-        idx_start = np.where(np.equal(times, mat_start_time))[0][0]  # Index of mat_start_time
-        idx_end = np.where(np.equal(times, mat_end_time))[0][0]      # Index of mat_end_time
+        
+        # Using searchsorted for O(log N) search and safety against floating point mismatch
+        idx_start = np.searchsorted(times, mat_start_time)
+        idx_end = np.searchsorted(times, mat_end_time)
+        
         times = times[idx_start: idx_end]
         target_output = target_output[idx_start: idx_end]
         predicted_output = predicted_output[idx_start: idx_end]
@@ -111,13 +139,17 @@ def plot_image_test(st, predicted_output, timestamps,
         None
     """
     print(f"{'Plotting Image':-^30}")
-    times = [UTCDateTime(t).matplotlib_date for t in np.concatenate(timestamps)]
+    
+    flat_preds = np.concatenate(predicted_output)
+    flat_ts = np.concatenate(timestamps)
+    times = [UTCDateTime(t).matplotlib_date for t in flat_ts]
+    
     fig, ax1 = plt.subplots(1,1)
     ax1.plot(st[0].times('matplotlib'), st[0].data, color="black", label= "ILL11", alpha=0.5)
     ax1.set_ylabel(r"Amplitude (mm/s)");
     ax1.set_ylim(-1.7, 1.7);
     ax = ax1.twinx()
-    ax.plot(times, np.concatenate(predicted_output), label="Model Prediction", alpha=0.8, color='b',linewidth=1)
+    ax.plot(times, flat_preds, label="Model Prediction", alpha=0.8, color='b',linewidth=1)
     ax.xaxis_date()
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d\n%H:%M:%S'))
     ax.set_xlim(times[0], times[-1])

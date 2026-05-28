@@ -160,4 +160,4 @@ if __name__ == "__main__":
             # juldays = [153, 161]
         for julday in tqdm(juldays, desc="Julday"):
             for model in tqdm(models, desc="Model"):
-                main(julday, year, "ILL11", 15, model, test_dir = f"{paths['LOCAL_BASE_DIR']}/model_test")
+                main(julday, year, "ILL11", 15, model, test_dir = f"../../comparison_baseline_cv_5_30_4/average_60_45/model_test")
