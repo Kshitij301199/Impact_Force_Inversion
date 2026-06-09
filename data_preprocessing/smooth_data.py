@@ -98,7 +98,7 @@ def do_smoothing(input_dir):
 
 #     return None
 
-def main(time_shift:str, smooth:bool, plot:bool):
+def main(time_shift:str, smooth:bool):
     input_dir = f"../label/data_processed_{time_shift}/ILL11"
     
     if smooth:
@@ -112,7 +112,7 @@ if __name__ == "__main__":
     parser.add_argument("--smooth", action="store_true", help="Whether to smooth the data")
     args = parser.parse_args()
 
-    main(time_shift=args.time_shift, smooth=args.smooth, plot=args.plot)
+    main(time_shift=args.time_shift, smooth=args.smooth)
 
 # python smooth_data.py --time_shift 0 --smooth
 # python smooth_data.py --time_shift 'average' --smooth

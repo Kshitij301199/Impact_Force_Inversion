@@ -7,17 +7,14 @@
 # Please do not distribute this code without the author's permission
 
 import os
+import sys
 import json
-from pathlib import Path
 from datetime import timedelta
+from pathlib import Path
 
-with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/paths.json", "r") as file:
-    paths = json.load(file)
-with open("/storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/config/data_parameters.json", "r") as file:
-    data_params = json.load(file)
 # Dynamic path resolution
 script_dir = Path(__file__).resolve().parent
-project_root = script_dir.parent.parent.parent
+project_root = script_dir.parent.parent
 
 def load_config(filename):
     path = project_root / "config" / filename
@@ -27,19 +24,19 @@ def load_config(filename):
 try:
     paths = load_config("paths.json")
     data_params = load_config("data_parameters.json")
+    time_config = load_config("event_id_map.json")
 except FileNotFoundError:
-    paths = {"BASE_DIR": str(project_root)}
+    # Fallback for different environments if necessary
+    paths = json.load(file)
 
 # Set CUDA environment variables
-os.environ["CUDA_HOME"] = paths['CUDA_HOME']
-os.environ["PATH"] = os.path.join(os.environ["CUDA_HOME"], "bin") + ":" + os.environ.get("PATH", "")
-os.environ["LD_LIBRARY_PATH"] = os.path.join(os.environ["CUDA_HOME"], "lib64") + ":" + os.environ.get("LD_LIBRARY_PATH", "")
 if 'CUDA_HOME' in paths:
     os.environ["CUDA_HOME"] = paths['CUDA_HOME']
     os.environ["PATH"] = os.path.join(os.environ["CUDA_HOME"], "bin") + ":" + os.environ.get("PATH", "")
     os.environ["LD_LIBRARY_PATH"] = os.path.join(os.environ["CUDA_HOME"], "lib64") + ":" + os.environ.get("LD_LIBRARY_PATH", "")
 
-import torch
+sys.path.append(paths['BASE_DIR'])
+
 import torch
 import argparse
 import numpy as np

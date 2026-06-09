@@ -11,6 +11,8 @@ import sys
 import json
 import argparse
 
+from sympy import continued_fraction
+
 with open("../../config/paths.json", "r") as file:
     paths = json.load(file)
 with open("../../config/data_parameters.json", "r") as file:
@@ -143,9 +145,11 @@ def main(julday:int, year:int, station:str, interval_seconds:int, model:str, tes
 
 if __name__ == "__main__":
     models = ['xLSTM']
-    for year in tqdm([2019, 2020, 2021, 2022, 2023]):
+    stations = ["ILL11", "ILL12"]
+    intervals = [5, 15]
+    # for year in tqdm([2019, 2020, 2021, 2022, 2023]):
     # for year in tqdm([2022, 2023], desc="Year"):
-    # for year in tqdm([2021, 2022, 2023], desc="Year"):
+    for year in tqdm([2021, 2022, 2023], desc="Year"):
         if year == 2019:
             juldays = [161, 171, 172, 182, 183, 184, 196, 207, 223, 232]
         elif year == 2020:
@@ -160,4 +164,10 @@ if __name__ == "__main__":
             # juldays = [153, 161]
         for julday in tqdm(juldays, desc="Julday"):
             for model in tqdm(models, desc="Model"):
-                main(julday, year, "ILL11", 15, model, test_dir = f"../../comparison_baseline_cv_5_30_4/average_60_45/model_test")
+                for station in stations:
+                    for interval in intervals:
+                        try:
+                            main(julday, year, station, interval, model, test_dir = f"../../comparison_baseline_cv_5_30_4/average_60_45/model_test")
+                        except FileNotFoundError as E:
+                            print(E)
+                            continue

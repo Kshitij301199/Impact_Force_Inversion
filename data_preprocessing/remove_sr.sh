@@ -13,48 +13,36 @@
 source /home/kshitkar/miniforge3/bin/activate
 conda activate xlstm_env
 
+# Configuration
+STATIONS=("ILL12")
 commands=()
 
-stations=("ILL12")
-# year=2019
-juldays=(161 162 171 172 182 183 184 196 207 223 232) # 11
-for station in "${stations[@]}"; do
-    for julday in "${juldays[@]}"; do
-        commands+=("python ./data_preprocessing/remove_sr.py --station $station --julday $julday --year 2019")
+# Helper to populate command array
+add_jobs() {
+    local year=$1
+    shift
+    local juldays=("$@")
+    for station in "${STATIONS[@]}"; do
+        for julday in "${juldays[@]}"; do
+            commands+=("python ./data_preprocessing/remove_sr.py --station $station --julday $julday --year $year")
+        done
     done
-done
-# year=2020
-juldays=(156 159 160 162 168 169 181 210 229 243) # 10
-for station in "${stations[@]}"; do
-    for julday in "${juldays[@]}"; do
-        commands+=("python ./data_preprocessing/remove_sr.py --station $station --julday $julday --year 2020")
-    done
-done
-# year=2021
-juldays=(131 136 141 142 156 173 175 187 194 197 219 262) # 12
-for station in "${stations[@]}"; do
-    for julday in "${juldays[@]}"; do
-        commands+=("python ./data_preprocessing/remove_sr.py --station $station --julday $julday --year 2021")
-    done
-done
-# year=2022
-juldays=(156 181 185 195 221) # 5
-for station in "${stations[@]}"; do
-    for julday in "${juldays[@]}"; do
-        commands+=("python ./data_preprocessing/remove_sr.py --station $station --julday $julday --year 2022")
-    done
-done
-# year=2023
-juldays=(153 161 193 194) # 4
-for station in "${stations[@]}"; do
-    for julday in "${juldays[@]}"; do
-        commands+=("python ./data_preprocessing/remove_sr.py --station $station --julday $julday --year 2023")
-    done
-done
+}
+
+add_jobs 2019 161 162 171 172 182 183 184 196 207 223 232
+add_jobs 2020 156 159 160 162 168 169 181 210 229 243
+add_jobs 2021 131 136 141 142 156 173 175 187 194 197 219 262
+add_jobs 2022 156 181 185 195 221
+add_jobs 2023 153 161 193 194
 
 # Get the command to run for this task
 command_to_run=${commands[$SLURM_ARRAY_TASK_ID-1]}
+
+if [ -z "$command_to_run" ]; then
+    echo "Error: Job index $SLURM_ARRAY_TASK_ID exceeds command list size (${#commands[@]})"
+    exit 1
+fi
+
 # Print and run the command
 echo "Running: $command_to_run"
 srun $command_to_run
-

@@ -50,10 +50,10 @@ def load_write_data(year:str, julday:str, station:str) -> None:
         st.trim(starttime=UTCDateTime(year=int(year), julday=int(julday))-3600, endtime=UTCDateTime(year=int(year), julday=int(next_julday))+3600)
         st.remove_response(inventory=inv)
     # st.filter("bandpass", freqmin=data_params['fmin'], freqmax=data_params['fmax'])
-    st.filter("bandpass", freqmin=1, freqmax=15)
+    st.filter("bandpass", freqmin=1, freqmax=30)
     st.trim(starttime=UTCDateTime(year=int(year), julday=int(julday)), endtime=UTCDateTime(year=int(year), julday=int(next_julday)))
     # output_dir = f"./data_srr_{data_params['fmax']}/Illgraben/{year}/{station}/EHZ"
-    output_dir = f"./data_srr_15/Illgraben/{year}/{station}/EHZ"
+    output_dir = f"./data_srr_30/Illgraben/{year}/{station}/EHZ"
     os.makedirs(output_dir, exist_ok=True)
     try:
         st.write(f'{output_dir}/9S.{station}.EHZ.{year}.{julday}.mseed', format="MSEED")
