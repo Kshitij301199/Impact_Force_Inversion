@@ -73,4 +73,4 @@ python test_models.py \
 ## Contributors
 **[Kshitij Kar](https://github.com/Kshitij301199)** 
 <br>kshitij.kar@gfz.de<br> or 
-<br>kshitij787.ak@gmail.de<br>
+<br>kshitij787.ak@gmail.com<br>
