@@ -18,40 +18,31 @@ source /home/kshitkar/miniforge3/bin/activate
 conda activate xlstm_env
 
 # Define parameters
-network="9S"
-station_list=("ILL02")
-component="EHZ"
-year=2017
-julday_list=(139 148 154 165)
-intervals=(5)
-models=('xLSTM' 'LSTM')
+NETWORK="9S"
+STATIONS=("ILL02")
+COMPONENT="EHZ"
+YEAR=2017
+JULDAYS=(139 148 154 165)
+INTERVALS=(5)
+MODELS=('xLSTM' 'LSTM')
 
-# Compute total job count
-total_jobs=$(( ${#station_list[@]} * ${#julday_list[@]} * ${#intervals[@]} * ${#models[@]} ))
+# Calculate indices (Mapping 1D array task ID to N-dimensional parameter space)
+idx=$((SLURM_ARRAY_TASK_ID - 1))
 
-# Get SLURM job array index (1-based)
-index=$((SLURM_ARRAY_TASK_ID - 1))
+n_mod=${#MODELS[@]};    model=${MODELS[$(( idx % n_mod ))]};     idx=$(( idx / n_mod ))
+n_int=${#INTERVALS[@]}; interval=${INTERVALS[$(( idx % n_int ))]}; idx=$(( idx / n_int ))
+n_jul=${#JULDAYS[@]};   julday=${JULDAYS[$(( idx % n_jul ))]};     idx=$(( idx / n_jul ))
+n_sta=${#STATIONS[@]};  station=${STATIONS[$(( idx % n_sta ))]}
 
-# Determine station, julday, interval, and model based on job index
-station_index=$(( index / ( ${#julday_list[@]} * ${#intervals[@]} * ${#models[@]} ) ))
-julday_index=$(( (index / ( ${#intervals[@]} * ${#models[@]} )) % ${#julday_list[@]} ))
-interval_index=$(( (index / ${#models[@]}) % ${#intervals[@]} ))
-model_index=$(( index % ${#models[@]} ))
-
-station=${station_list[$station_index]}
-julday=${julday_list[$julday_index]}
-interval=${intervals[$interval_index]}
-model=${models[$model_index]}
+echo "Task $SLURM_ARRAY_TASK_ID: Station=$station, Julday=$julday, Interval=$interval, Model=$model"
 
 # Run Python script with selected parameters
-srun --gres=gpu:A40:1 --unbuffered python /storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/functions/application/test_models.py \
-    --network "$network" \
+# Using python -u for unbuffered output; --gres is inherited from #SBATCH headers
+srun python -u /storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/functions/application/test_models.py \
+    --network "$NETWORK" \
     --station "$station" \
-    --component "$component" \
-    --year "$year" \
+    --component "$COMPONENT" \
+    --year "$YEAR" \
     --julday "$julday" \
     --interval "$interval" \
     --model_type "$model"
-
-
-
