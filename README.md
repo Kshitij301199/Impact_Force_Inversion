@@ -68,7 +68,7 @@ python test_models.py \
 ```
 - `compile_results.py` can be run after testing the model to compile the ensemble output into a mean and standard deviation.
 
-![Test Output](./figures_rm/2020_156.png)
+![Test Output](./figures_rm/156.png)
 
 ## Contributors
 **[Kshitij Kar](https://github.com/Kshitij301199)** 
