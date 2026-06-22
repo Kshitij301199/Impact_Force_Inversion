@@ -193,4 +193,5 @@ class xLSTMRegressor_v2(nn.Module):
         x = self.embedding(x) + self.positional_embedding
         for xlstm in self.xlstm_layers:
             x = xlstm(x)
+        x, _ = torch.max(x, dim=1)  # (batch_size, embedding_dim)
         return x
