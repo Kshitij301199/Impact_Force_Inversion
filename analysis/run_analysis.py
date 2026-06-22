@@ -145,7 +145,6 @@ def make_evaluation_plots(data, intervals, hue, base_dir, output_file_name, feat
     fig, ax = plt.subplots()
     data["Time_To_Train"] = pd.to_timedelta(data["Time_To_Train"]).dt.total_seconds()
     plot_grouped_bar_with_error(data=data, x="Interval", y="Time_To_Train", hue=hue, palette="viridis", ax=ax, hue_order=hue_order)
-    # plot_grouped_bar_with_error(data=data, x="Interval", y="Time_To_Train", hue=hue, palette="viridis", ax=ax, hue_order=["LinReg"])
     ax.set_xlabel("Interval (s)")
     ax.set_ylabel("Mean Training Time (seconds)")
     ax.set_title("Comparison of Training Time by Interval and Model")
@@ -180,22 +179,12 @@ def move_plots(df, model_types, configs, time_intervals, base_dir):
                         f.write(f"{config} {interval} {model_type} {row['Test']} {row['Val']}\n")
                     to_path = f"{to_dir}/{model_type}_{interval}_{row['Test']}.txt"
                     shutil.copy(from_path, to_path)
-                    # MOVING BEST DISTRIBUTIONS
-                    # from_path = f"{base_dir}/dist_plots/test/{interval}/{row['Test']}/{model_type}_{row['Val']}.png"
-                    # to_dir = f"{base_dir}/best_loss_curves/{config}/"
-                    # os.makedirs(to_dir, exist_ok=True)
-                    # with open(f"{to_dir}/best_losscurves.txt", "a") as f:
-                    #     f.write(f"{config} {interval} {model_type} {row['Test']} {row['Val']}\n")
-                    # to_path = f"{to_dir}/{model_type}_{interval}.txt"
-                    # shutil.copy(from_path, to_path)
 
 def check_velocity_estimates(best_comb, task_dir):
     true_vel = pd.read_csv("../label/DF_characteristics.csv")
     true_vel['Event_Date'] = true_vel['Event_Date'].apply(lambda x: UTCDateTime(x).strftime('%Y-%m-%d'))
     true_vel = true_vel[true_vel['Year'] == 2019]
     print(true_vel)
-    # true_vel = true_vel[true_vel['Event_Date'] < UTCDateTime('2020-01-01')]
-    # true_vel['Julday'] = true_vel['Event_Date'].apply(lambda x: UTCDateTime(x).julday)
     check_list = []
     for i in true_vel['Julday']:
         if str(i) not in check_list:
@@ -223,10 +212,6 @@ def check_velocity_estimates(best_comb, task_dir):
         julday = start_time.julday
         st = read(f"../data_srr/Illgraben/2019/ILL11/EHZ/9S.ILL11.EHZ.2019.{julday}.mseed")
         st.trim(starttime=start_time, endtime=end_time)
-        # idxs = np.argpartition(st[0].data, -5)[-5:]
-        # time_diff = [idx / st[0].stats.sampling_rate for idx in idxs]
-        # max_idx = idxs[np.argmin(time_diff)]
-        # peak_time = start_time + max_idx / st[0].stats.sampling_rate
         peak_time = peak_times.iloc[time_idx,0]
         temp = best_comb[best_comb['Test'] == julday].reset_index(drop=True)
         for idx, row in temp.iterrows():
@@ -359,10 +344,7 @@ def recalc_hist_wmse(base_dir, output_dir, filenum):
         # weights = weights / np.sum(weights)
         n = len(weights)
         weights_geom = np.geomspace(0.01, 50.0, n)
-        # list1.append(np.round(np.dot(weights, np.sqrt((heights2 - heights1) ** 2)) / n, 4))
-        # list1.append(np.round(np.dot(weights, np.abs(heights2 - heights1)) / n, 4))
         list1.append(np.round(np.sqrt(np.dot(weights_geom, ((heights2 - heights1) ** 2)))/n , 4))
-        # list1.append(np.round(np.dot(weights_geom, np.abs(heights2 - heights1)) / n, 4))
     eval_out_cons['Hist_WMSE2'] = list1
     if filenum == 1:
         eval_out_cons.to_csv(f"{output_dir}/evaluation_output_constrained.txt", index=False)
