@@ -1,5 +1,4 @@
-logs
-logs/*
+logs/
 */model/*
 *output_df*
 *test_results_*
@@ -15,9 +14,8 @@ USGS_data/*
 old_*
 tuning/*_*/
 models/saved_models*
-analysis/
-*comparison_baseline*
 *data_preprocessing/smoothing*
 *train_slstm*
 *.gif
 *.DS_Store*
+backup/
