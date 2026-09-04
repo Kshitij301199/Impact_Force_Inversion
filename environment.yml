@@ -1,11 +1,14 @@
 name: xlstm_env
 channels:
-  - conda-forge
   - pytorch
   - nvidia
-  - defaults
+  - conda-forge
 dependencies:
   - python=3.12
+  - pip=26.2.1
+  # pkg_resources was fully removed in setuptools 82.0.0 (Feb 2026).
+  # xlstm/mlstm_kernels/torchsummary still rely on pkg_resources, so pin below 82.
+  - setuptools<82
   # Scientific Stack (Conda-Forge)
   - numpy=1.26.4
   - pandas=3.0.1
@@ -17,6 +20,7 @@ dependencies:
   - tqdm=4.67.3
   - pyyaml=6.0.3
   - pillow=12.1.1
+  - statsmodels=0.14.6
   # Seismic and Optimization
   - obspy=1.5.0
   - optuna
@@ -27,23 +31,20 @@ dependencies:
   - psutil=7.2.2
   - sqlalchemy=2.0.48
   - requests=2.32.5
-  # PyTorch and GPU (PyTorch/Nvidia Channels)
-  - pytorch=2.1.0 # Standard stable versioning for conda
-  - cuda-toolkit=13.0.2
-  - nvidia-cudnn-cu13
-  - nvidia-nccl-cu13
+  # cuda-toolkit provides nvcc, needed to build mlstm_kernels' custom CUDA
+  # kernels. PyTorch itself is installed via pip below, NOT conda: conda's
+  # solver was silently downgrading pytorch=2.4.1 to an old 2.1.0 build to
+  # satisfy other pins, with no error. Pip's official wheel index is precise
+  # and won't get renegotiated.
+  - cuda-toolkit=12.4
+  # - nvidia-cudnn-cu13
+  # - nvidia-nccl-cu13
   # Pip for niche or research-specific libraries
   - pip:
+    - --extra-index-url https://download.pytorch.org/whl/cu124
+    - torch==2.4.1
     - xlstm==2.0.5
     - mlstm_kernels==2.0.2
-    - dacite==1.9.2
-    - einops==0.8.2
     - torchinfo==1.8.0
     - torchsummary==1.5.1
-    - ftfy==6.3.1
-    - hf-xet==1.4.2
     - transformers==5.3.0
-    - omegaconf==2.3.0
-    - annotated-doc==0.0.4
-    - antlr4-python3-runtime==4.9.3
-    - joypy==0.2.6
