@@ -4,6 +4,26 @@ import os
 import torch
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import ConcatDataset
+
+def concat_sequence_datasets(datasets):
+    """
+    Combine multiple SequenceDataset / SequenceDatasetTest instances into
+    a single dataset that can be passed to one DataLoader.
+
+    Args:
+        datasets (list[Dataset]): list of dataset instances, e.g. one
+            SequenceDataset per event/julday, all built with the same
+            interval_count / sequence_length / sampling_rate.
+
+    Returns:
+        ConcatDataset: a dataset whose __len__ is the sum of the inputs'
+        lengths, and whose __getitem__ transparently dispatches to the
+        correct underlying dataset.
+    """
+    if len(datasets) == 0:
+        raise ValueError("concat_sequence_datasets received an empty list.")
+    return ConcatDataset(datasets)
 
 class BaseSequenceDataset(Dataset):
     """Base class for sequence datasets to handle shared logic efficiently."""
@@ -16,7 +36,18 @@ class BaseSequenceDataset(Dataset):
             sequence_length (int): Samples per interval (e.g., 3000 for 30s @ 100Hz).
             sampling_rate (int): Sampling rate of input data in Hz.
         """
+        # Ensure numpy inputs are writable / own their memory to avoid PyTorch warning
+        if isinstance(input_data, np.ndarray):
+            input_data = np.asarray(input_data).astype(np.float32, copy=False)
+            # make a writable copy if the array is not writable
+            if not input_data.flags.writeable:
+                input_data = input_data.copy()
         self.input_data = torch.as_tensor(input_data, dtype=torch.float32)
+
+        if isinstance(target_time, np.ndarray):
+            target_time = np.array(target_time, copy=False)
+            if not target_time.flags.writeable:
+                target_time = target_time.copy()
         self.target_time = torch.as_tensor(target_time)
         self.interval_count = interval_count
         self.sequence_length = sequence_length
@@ -35,6 +66,8 @@ class BaseSequenceDataset(Dataset):
         end_idx = start_idx + total_samples
         
         chunk = self.input_data[start_idx:end_idx]
+        # ensure contiguous memory before view
+        chunk = chunk.contiguous()
         # .view() is zero-copy compared to looping with torch.stack()
         return chunk.view(self.interval_count, self.sequence_length)
 

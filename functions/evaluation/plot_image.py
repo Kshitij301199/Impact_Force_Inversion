@@ -60,7 +60,8 @@ mpl.rcParams['path.simplify_threshold'] = 0.5  # Adjust this value if needed
 from functions.data_processing.read_data import load_label
 
 def plot_image(st, predicted_output, target_output, timestamps,
-                image_dir:str, test_id, val_id, interval, trim=True, smoothing=30):    
+                image_dir:str, test_id, val_id, 
+                time_shift_minutes, interval, trim=True, smoothing=30):    
     """Plot the seismogram along with target and predicted impact forces.
      Args:
         st (obspy.Stream): Seismogram data.
@@ -91,7 +92,7 @@ def plot_image(st, predicted_output, target_output, timestamps,
     test_julday = test_info['julday'] if isinstance(test_info['julday'], int) else test_info['julday'][0]
     val_julday = val_info['julday'] if isinstance(val_info['julday'], int) else val_info['julday'][0]
     
-    zero_label = load_label([test_id], "ILL11", interval, "average", trim, smoothing=None, divide_by=None)
+    zero_label = load_label(test_id, "ILL11", interval, time_shift_minutes, trim, smoothing=None, divide_by=None)
     
     if trim:
         start_time, end_time = UTCDateTime(test_info['start_time']), UTCDateTime(test_info['end_time'])
@@ -119,7 +120,7 @@ def plot_image(st, predicted_output, target_output, timestamps,
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d\n%H:%M:%S'))
     ax.set_xlim(times[0], times[-1])
     ax.set_ylabel("Normal Force [kN]");
-    ax.set_ylim(0,45);
+    ax.set_ylim(0, 350);
     ax.legend(loc='best')
     fig.tight_layout()
     fig.savefig(f"{image_dir}/{test_julday}_{val_julday}_{interval}.png", dpi=300)
@@ -154,7 +155,7 @@ def plot_image_test(st, predicted_output, timestamps,
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d\n%H:%M:%S'))
     ax.set_xlim(times[0], times[-1])
     ax.set_ylabel("Normal Force [kN]");
-    ax.set_ylim(0,50);
+    ax.set_ylim(0, 350);
     ax.legend(loc='best')
     fig.tight_layout()
     fig.savefig(f"{image_dir}/{julday}.png", dpi=300)
