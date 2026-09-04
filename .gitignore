@@ -19,3 +19,7 @@ models/saved_models*
 *.gif
 *.DS_Store*
 backup/
+output/
+analysis/
+output_*/
+._*
