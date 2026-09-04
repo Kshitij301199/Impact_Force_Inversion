@@ -2,7 +2,7 @@
 #SBATCH -t 96:00:00               # time limit: (HH:MM:SS)
 #SBATCH --job-name=base_lstm           # job name
 #SBATCH --ntasks=1                # each task in the job array will have a single task associated with it
-#SBATCH --array=1-35%6            # 1 interval * 7 events * 1 div * 2 hyps * 3 smooths = 42
+#SBATCH --array=1-14%7            # 1 interval * 7 events * 1 div * 2 hyps * 3 smooths = 42
 #SBATCH --mem-per-cpu=16G         # Memory Request (per CPU; can use on GLIC)
 #SBATCH --gres=gpu:A40:1             # load GPU A100 could be replace by A40/A40, 509-510 nodes has 4_A100_80G
 #SBATCH --reservation=GPU            # reserve the GPU
@@ -20,9 +20,9 @@ conda activate xlstm_env
 # Define the arrays
 intervals=(5)
 event_ids=(1 3 4 6 7 8 9)
-divide_bys=(45)
-hyp_options=("v1" "v2" "v3" "v4" "v5")
-smoothings=(60)
+divide_bys=(360)
+hyp_options=("v4")
+smoothings=(30 60)
 
 # Decompose SLURM_ARRAY_TASK_ID into indices
 task_index=$(( SLURM_ARRAY_TASK_ID - 1 ))
@@ -64,7 +64,7 @@ mkdir -p logs/out logs/err
 srun --gres=gpu:A40:1 --unbuffered python /storage/vast-gfz-hpc-01/home/kshitkar/Impact_Force_Inversion/functions/training/train_lstm.py \
     --test_event_id "$event_id" \
     --val_event_id "$event_id" \
-    --time_shift_mins "average" \
+    --time_shift_mins "0" \
     --interval "$interval" \
     --station "ILL11" \
     --config_op "$hyp_option" \

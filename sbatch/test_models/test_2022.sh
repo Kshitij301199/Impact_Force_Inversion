@@ -19,12 +19,12 @@ conda activate xlstm_env
 
 # Define parameters
 network="9S"
-station_list=("ILL11" "ILL12")
+station_list=("ILL12")
 component="EHZ"
 year=2022
 julday_list=(156 181 185 195 221)
-intervals=(5 15)
-models=('LSTM')
+intervals=(5 10)
+models=('xLSTM' 'LSTM')
 
 # Compute total job count
 total_jobs=$(( ${#station_list[@]} * ${#julday_list[@]} * ${#intervals[@]} * ${#models[@]} ))
