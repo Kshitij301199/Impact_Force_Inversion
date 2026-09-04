@@ -44,6 +44,29 @@ def do_smoothing(input_dir):
         df.to_csv(f"{input_dir}/{date}.csv", index=False)
     return None
 
+
+def do_smoothing_conv(input_dir):
+    """ Smooth the data using moving average via np.convolve and fill missing values.
+    Args:
+        input_dir (str): Directory containing the input CSV files.
+    Returns:
+        None
+    """
+    for date in tqdm(["2019-06-10", "2019-06-11", "2019-06-21", "2019-07-01", "2019-07-02", "2019-07-03", "2019-07-15", "2019-07-26", "2019-08-11", "2019-08-20"], desc="Smoothing data (convolve)"):
+        df = pd.read_csv(f"{input_dir}/{date}.csv", index_col=None)
+        values = df['Fv [kN]'].astype(float).to_numpy()
+        for n in [10, 30, 60]:
+            window_size = 2 * n + 1  # total window size (symmetric around the center)
+            kernel = np.ones(window_size, dtype=float) / window_size
+            moving_avg = np.convolve(values, kernel, mode='same')
+            min_edge_value = np.min(moving_avg[n:-n])
+            moving_avg[:n] = min_edge_value
+            moving_avg[-n:] = min_edge_value
+            df[f'moving_avg_{n}'] = np.round(moving_avg, 4)
+            df[f"moving_avg_{n}"] = df[f"moving_avg_{n}"].fillna(df['Fv [kN]'])
+        df.to_csv(f"{input_dir}/{date}.csv", index=False)
+    return None
+
 # def make_plot(date):
 #     """ Make plots for the given date showing raw and smoothed data.
 #     Args:
